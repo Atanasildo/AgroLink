@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+// URL do backend - hardcoded para garantir funcionamento em produção
+const API_URL = "https://agrolink-api-67zk.onrender.com/api/v1";
 
 export class ApiError extends Error {
   status: number;
@@ -36,7 +37,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       cache: "no-store",
     });
   } catch {
-    throw new ApiError(0, "Sem ligação ao servidor. Verifique se o backend está acessível.");
+    throw new ApiError(0, "Sem ligação ao servidor. Verifique a sua ligação à internet.");
   }
 
   if (!res.ok) {
