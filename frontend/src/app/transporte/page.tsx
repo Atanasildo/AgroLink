@@ -1,0 +1,310 @@
+"use client";
+
+import { useEffect, useState, FormEvent } from "react";
+import { Search, Send, Truck, Leaf, MapPin, Weight, Clock, CheckCircle, XCircle, Loader } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import {
+  ApiError, TransportRequestItem, TransportRoute,
+  createTransportRequest, myTransportRequests, searchRoutes,
+} from "@/lib/api";
+import { RouteDiagram } from "@/components/RouteDiagram";
+
+const statusConfig: Record<string, { label: string; icon: typeof Clock; cls: string }> = {
+  pendente:     { label: "Pendente",     icon: Clock,        cls: "pending" },
+  aceite:       { label: "Aceite",       icon: CheckCircle,  cls: "active" },
+  em_andamento: { label: "Em andamento", icon: Loader,       cls: "active" },
+  concluido:    { label: "Concluído",    icon: CheckCircle,  cls: "done" },
+  cancelado:    { label: "Cancelado",    icon: XCircle,      cls: "done" },
+};
+
+function formatKz(value?: string | null) {
+  if (!value) return "—";
+  return new Intl.NumberFormat("pt-AO", { maximumFractionDigits: 0 }).format(parseFloat(value)) + " Kz";
+}
+
+export default function TransportePage() {
+  const { user, token } = useAuth();
+  const [routes, setRoutes] = useState<TransportRoute[]>([]);
+  const [origem, setOrigem] = useState("");
+  const [destino, setDestino] = useState("");
+  const [loadingRoutes, setLoadingRoutes] = useState(true);
+  const [myRequests, setMyRequests] = useState<TransportRequestItem[]>([]);
+
+  async function loadRoutes() {
+    setLoadingRoutes(true);
+    try {
+      const data = await searchRoutes({ origem: origem || undefined, destino: destino || undefined });
+      setRoutes(data);
+    } catch { setRoutes([]); }
+    finally { setLoadingRoutes(false); }
+  }
+
+  async function loadMyRequests() {
+    if (!token) return;
+    try { setMyRequests(await myTransportRequests(token)); }
+    catch { setMyRequests([]); }
+  }
+
+  useEffect(() => { loadRoutes(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { if (user?.role === "agricultor") loadMyRequests(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
+
+  function handleSearch(e: FormEvent) { e.preventDefault(); loadRoutes(); }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="border-b border-field/15 bg-sky-light">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <p className="label-eyebrow mb-2">
+            <Truck size={12} className="inline mr-1" />
+            Módulo 02 · Transporte Rural
+          </p>
+          <h1 className="text-4xl text-field">Rotas disponíveis</h1>
+          <p className="font-body text-ink/55 mt-1">
+            Partilhe carga e reduza os custos de transporte agrícola
+          </p>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-6 py-10 space-y-10">
+
+        {/* Pesquisa de rotas */}
+        <form onSubmit={handleSearch} className="field-card rounded-sm">
+          <p className="label-eyebrow mb-4">Pesquisar rotas</p>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <label className="flex flex-col gap-2">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Origem</span>
+              <input value={origem} onChange={e => setOrigem(e.target.value)}
+                placeholder="Ex: Caála" className="field-input rounded-sm" />
+            </label>
+            <label className="flex flex-col gap-2">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Destino</span>
+              <input value={destino} onChange={e => setDestino(e.target.value)}
+                placeholder="Ex: Huambo" className="field-input rounded-sm" />
+            </label>
+            <div className="flex items-end">
+              <button type="submit" className="btn-primary w-full justify-center rounded-sm">
+                <Search size={16} /> Pesquisar
+              </button>
+            </div>
+          </div>
+        </form>
+
+        {/* Lista de rotas */}
+        <div>
+          <h2 className="text-2xl text-field mb-5">
+            {loadingRoutes ? "A carregar..." : `${routes.length} rota${routes.length !== 1 ? "s" : ""} encontrada${routes.length !== 1 ? "s" : ""}`}
+          </h2>
+
+          {loadingRoutes ? (
+            <div className="text-center py-16">
+              <Leaf size={28} className="text-field/30 mx-auto mb-2 animate-pulse" />
+              <p className="font-mono text-sm text-ink/40">A carregar rotas...</p>
+            </div>
+          ) : routes.length === 0 ? (
+            <div className="field-card text-center py-16 rounded-sm">
+              <Truck size={32} className="text-field/30 mx-auto mb-3" />
+              <p className="font-display text-2xl text-field mb-2">Nenhuma rota disponível</p>
+              <p className="font-body text-ink/50">Ajuste os filtros de origem e destino.</p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {routes.map(route => (
+                <RouteCard key={route.id} route={route} token={token}
+                  isAgricultor={user?.role === "agricultor"}
+                  onRequested={loadMyRequests} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Minhas solicitações */}
+        {user?.role === "agricultor" && myRequests.length > 0 && (
+          <div>
+            <h2 className="text-2xl text-field mb-5">As minhas solicitações</h2>
+            <div className="space-y-4">
+              {myRequests.map(req => {
+                const sc = statusConfig[req.status] ?? statusConfig.pendente;
+                return (
+                  <div key={req.id} className="field-card rounded-sm">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <MapPin size={14} className="text-harvest" />
+                          <p className="font-display text-base text-field">
+                            {req.origem_municipio} → {req.destino_municipio}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Weight size={12} className="text-field-muted" />
+                          <span className="font-mono text-xs text-ink/50">{req.peso_toneladas}t</span>
+                        </div>
+                      </div>
+                      <span className={`status-badge ${sc.cls}`}>
+                        <sc.icon size={11} /> {sc.label}
+                      </span>
+                    </div>
+
+                    {req.valor_total && (
+                      <div className="mt-4 pt-4 border-t border-field/10 grid grid-cols-3 gap-3 font-mono text-sm">
+                        <div>
+                          <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Total</p>
+                          <p className="text-field font-bold">{formatKz(req.valor_total)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Comissão (5%)</p>
+                          <p className="text-harvest">{formatKz(req.comissao_plataforma)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Transportador</p>
+                          <p className="text-earth">{formatKz(req.valor_liquido_transportador)}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RouteCard({
+  route, token, isAgricultor, onRequested,
+}: {
+  route: TransportRoute; token: string | null; isAgricultor: boolean; onRequested: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [peso, setPeso] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function handleRequest(e: FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await createTransportRequest(token, {
+        rota_id: route.id,
+        peso_toneladas: Number(peso) as unknown as string,
+        descricao_carga: descricao || undefined,
+      });
+      setDone(true);
+      setOpen(false);
+      onRequested();
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : "Não foi possível solicitar o transporte.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const precoEstimado = peso && route.preco_por_tonelada
+    ? Number(peso) * parseFloat(route.preco_por_tonelada)
+    : null;
+  const comissao = precoEstimado ? precoEstimado * 0.05 : null;
+
+  return (
+    <div className="field-card rounded-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="mb-4">
+            <RouteDiagram
+              origem={route.origem_municipio}
+              destino={route.destino_municipio}
+              capacidadeTotal={parseFloat(route.capacidade_total_toneladas)}
+              capacidadeDisponivel={parseFloat(route.capacidade_disponivel_toneladas)}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-4 font-mono text-xs text-ink/50">
+            {route.preco_por_tonelada && (
+              <span className="flex items-center gap-1">
+                <span className="text-harvest font-bold text-sm">
+                  {formatKz(route.preco_por_tonelada)}
+                </span>
+                /tonelada
+              </span>
+            )}
+            {route.data_partida && (
+              <span className="flex items-center gap-1">
+                <Clock size={11} />
+                {new Date(route.data_partida).toLocaleDateString("pt-AO")}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          {done ? (
+            <div className="status-badge active">
+              <CheckCircle size={12} /> Solicitado
+            </div>
+          ) : isAgricultor && token && (
+            <button onClick={() => setOpen(v => !v)} className="btn-primary rounded-sm text-xs">
+              <Send size={14} />
+              {open ? "Cancelar" : "Solicitar"}
+            </button>
+          )}
+          {!token && (
+            <a href="/login" className="btn-secondary rounded-sm text-xs">
+              Entrar para solicitar
+            </a>
+          )}
+        </div>
+      </div>
+
+      {open && (
+        <form onSubmit={handleRequest} className="mt-5 pt-5 border-t border-field/15 space-y-4">
+          <p className="label-eyebrow">Solicitar transporte nesta rota</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-2">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Peso (toneladas)</span>
+              <input required type="number" min="0.1" step="0.1"
+                max={route.capacidade_disponivel_toneladas}
+                value={peso} onChange={e => setPeso(e.target.value)}
+                placeholder={`Máx. ${route.capacidade_disponivel_toneladas}t`}
+                className="field-input rounded-sm" />
+            </label>
+            <label className="flex flex-col gap-2">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Descrição da carga</span>
+              <input value={descricao} onChange={e => setDescricao(e.target.value)}
+                placeholder="Ex: Saco de milho branco"
+                className="field-input rounded-sm" />
+            </label>
+          </div>
+
+          {precoEstimado && (
+            <div className="grid grid-cols-3 gap-3 bg-field/5 border border-field/15 p-4 rounded-sm font-mono text-sm">
+              <div>
+                <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Estimativa total</p>
+                <p className="text-field font-bold">{precoEstimado.toLocaleString("pt-AO")} Kz</p>
+              </div>
+              <div>
+                <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Comissão (5%)</p>
+                <p className="text-harvest">{comissao!.toLocaleString("pt-AO")} Kz</p>
+              </div>
+              <div>
+                <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Para transportador</p>
+                <p className="text-earth">{(precoEstimado - comissao!).toLocaleString("pt-AO")} Kz</p>
+              </div>
+            </div>
+          )}
+
+          {error && <p className="text-earth font-body text-sm">{error}</p>}
+
+          <button type="submit" disabled={loading} className="btn-harvest rounded-sm disabled:opacity-50">
+            <Send size={14} />
+            {loading ? "A enviar..." : "Confirmar solicitação"}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}

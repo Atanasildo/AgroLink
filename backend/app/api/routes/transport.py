@@ -1,0 +1,206 @@
+import uuid
+from datetime import date
+from decimal import Decimal
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user, require_roles
+from app.core.database import get_db
+from app.crud.transport import (
+    accept_transport_request,
+    create_route,
+    create_transport_request,
+    get_route,
+    get_transport_request,
+    list_my_transport_requests,
+    search_routes,
+    update_transport_location,
+    update_transport_request_status,
+)
+from app.crud.vehicle import (
+    create_vehicle,
+    delete_vehicle,
+    get_vehicle,
+    list_vehicles_by_owner,
+    update_vehicle,
+)
+from app.models.transport_request import TransportStatus
+from app.models.user import User, UserRole
+from app.schemas.transport import (
+    TransportRequestCreate,
+    TransportRequestLocationUpdate,
+    TransportRequestRead,
+    TransportRequestUpdateStatus,
+    TransportRouteCreate,
+    TransportRouteRead,
+    VehicleCreate,
+    VehicleRead,
+    VehicleUpdate,
+)
+
+router = APIRouter(prefix="/transport", tags=["Transporte Rural"])
+
+
+# ---------- Veículos ----------
+
+@router.post("/vehicles", response_model=VehicleRead, status_code=status.HTTP_201_CREATED)
+def register_vehicle(
+    vehicle_in: VehicleCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Registar um veículo (caminhão, carrinha, trator de carga, reboque)."""
+    return create_vehicle(db, vehicle_in, proprietario_id=current_user.id)
+
+
+@router.get("/vehicles/me", response_model=list[VehicleRead])
+def my_vehicles(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Listar os veículos do transportador autenticado."""
+    return list_vehicles_by_owner(db, current_user.id)
+
+
+@router.put("/vehicles/{vehicle_id}", response_model=VehicleRead)
+def edit_vehicle(
+    vehicle_id: uuid.UUID,
+    vehicle_in: VehicleUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    vehicle = get_vehicle(db, vehicle_id)
+    if not vehicle:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Veículo não encontrado")
+    if vehicle.proprietario_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
+    return update_vehicle(db, vehicle, vehicle_in)
+
+
+@router.delete("/vehicles/{vehicle_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_vehicle(
+    vehicle_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    vehicle = get_vehicle(db, vehicle_id)
+    if not vehicle:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Veículo não encontrado")
+    if vehicle.proprietario_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
+    delete_vehicle(db, vehicle)
+
+
+# ---------- Rotas ----------
+
+@router.post("/routes", response_model=TransportRouteRead, status_code=status.HTTP_201_CREATED)
+def publish_route(
+    route_in: TransportRouteCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Publicar uma rota (origem, destino, data, capacidade disponível, preço por tonelada)."""
+    return create_route(db, route_in, transportador_id=current_user.id)
+
+
+@router.get("/routes", response_model=list[TransportRouteRead])
+def find_routes(
+    origem: str | None = Query(default=None),
+    destino: str | None = Query(default=None),
+    data: date | None = Query(default=None),
+    peso_minimo_disponivel: Decimal | None = Query(default=None, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Buscar rotas/transportadores próximos disponíveis."""
+    return search_routes(db, origem=origem, destino=destino, data=data, peso_minimo_disponivel=peso_minimo_disponivel)
+
+
+@router.get("/routes/{route_id}", response_model=TransportRouteRead)
+def read_route(route_id: uuid.UUID, db: Session = Depends(get_db)):
+    route = get_route(db, route_id)
+    if not route:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rota não encontrada")
+    return route
+
+
+# ---------- Solicitações de Transporte ----------
+
+@router.post("/requests", response_model=TransportRequestRead, status_code=status.HTTP_201_CREATED)
+def request_transport(
+    request_in: TransportRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.AGRICULTOR)),
+):
+    """Agricultor cria uma solicitação de transporte.
+
+    Pode ser associada a uma rota existente (`rota_id`) para compartilhamento
+    de carga, ou criada de forma independente até um transportador disponível
+    ser encontrado.
+    """
+    return create_transport_request(db, request_in, agricultor_id=current_user.id)
+
+
+@router.get("/requests/me", response_model=list[TransportRequestRead])
+def my_transport_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.AGRICULTOR)),
+):
+    """Listar as solicitações de transporte do agricultor autenticado."""
+    return list_my_transport_requests(db, current_user.id)
+
+
+@router.get("/requests/{request_id}", response_model=TransportRequestRead)
+def read_transport_request(request_id: uuid.UUID, db: Session = Depends(get_db)):
+    request = get_transport_request(db, request_id)
+    if not request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
+    return request
+
+
+@router.post("/requests/{request_id}/accept", response_model=TransportRequestRead)
+def accept_request(
+    request_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Transportador aceita o pedido. A plataforma calcula automaticamente
+    o valor total, a comissão (5%) e o valor líquido para o transportador."""
+    request = get_transport_request(db, request_id)
+    if not request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
+    return accept_transport_request(db, request, transportador_id=current_user.id)
+
+
+@router.patch("/requests/{request_id}/status", response_model=TransportRequestRead)
+def change_request_status(
+    request_id: uuid.UUID,
+    status_in: TransportRequestUpdateStatus,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Atualizar o status da solicitação: pendente -> aceite -> em_andamento -> concluido
+    (ou cancelado em qualquer etapa anterior à conclusão)."""
+    request = get_transport_request(db, request_id)
+    if not request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
+    return update_transport_request_status(db, request, status_in.status)
+
+
+@router.patch("/requests/{request_id}/location", response_model=TransportRequestRead)
+def update_location(
+    request_id: uuid.UUID,
+    location_in: TransportRequestLocationUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Atualizar a localização GPS em tempo real e a hora prevista de chegada (rastreamento)."""
+    request = get_transport_request(db, request_id)
+    if not request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
+    if request.status not in (TransportStatus.ACEITE, TransportStatus.EM_ANDAMENTO):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Só é possível atualizar localização para transportes aceites ou em andamento",
+        )
+    return update_transport_location(db, request, location_in)
