@@ -5,7 +5,7 @@ from app.api.routes import auth, chat, machines, map as map_routes, payments, pr
 from app.core.config import settings
 from app.core.database import Base, engine
 
-# Cria as tabelas automaticamente se não existirem (fallback para quando Alembic não correu)
+# Cria as tabelas automaticamente se não existirem
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -18,13 +18,11 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS
-origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
-
+# CORS - aceita todos os domínios (ajustar em produção enterprise)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
