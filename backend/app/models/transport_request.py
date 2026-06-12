@@ -39,7 +39,7 @@ class TransportRequest(Base):
     data = Column(Date, nullable=False)
     observacoes = Column(String(1000), nullable=True)
 
-    status = Column(Enum(TransportStatus), nullable=False, default=TransportStatus.PENDENTE)
+    status = Column(Enum(TransportStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=TransportStatus.PENDENTE)
 
     # Valores financeiros calculados automaticamente ao aceitar/concluir
     valor_total = Column(Numeric(12, 2), nullable=True)

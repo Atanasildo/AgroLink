@@ -34,7 +34,7 @@ class Payment(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    tipo = Column(Enum(PaymentType), nullable=False, index=True)
+    tipo = Column(Enum(PaymentType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     transacao_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
     pagador_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
@@ -44,7 +44,7 @@ class Payment(Base):
     comissao = Column(Numeric(12, 2), nullable=False)
     valor_liquido = Column(Numeric(12, 2), nullable=False)
 
-    status_pagamento = Column(Enum(PaymentStatus), nullable=False, default=PaymentStatus.PENDENTE)
+    status_pagamento = Column(Enum(PaymentStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=PaymentStatus.PENDENTE)
 
     metodo_pagamento = Column(String(50), nullable=True)
     referencia_externa = Column(String(150), nullable=True)

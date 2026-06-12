@@ -30,7 +30,7 @@ class MapLocation(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    tipo = Column(Enum(MapEntityType), nullable=False, index=True)
+    tipo = Column(Enum(MapEntityType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
 
     # Referência opcional à entidade original (produto, máquina, etc.)
     referencia_id = Column(UUID(as_uuid=True), nullable=True)

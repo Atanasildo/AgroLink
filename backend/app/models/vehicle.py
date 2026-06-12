@@ -23,7 +23,7 @@ class Vehicle(Base):
 
     proprietario_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
-    tipo = Column(Enum(VehicleType), nullable=False)
+    tipo = Column(Enum(VehicleType, values_callable=lambda x: [e.value for e in x]), nullable=False)
     capacidade_toneladas = Column(Numeric(10, 2), nullable=False)
     matricula = Column(String(20), unique=True, nullable=False)
 

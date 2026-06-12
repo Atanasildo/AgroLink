@@ -27,7 +27,7 @@ class User(Base):
     telefone = Column(String(30), unique=True, index=True, nullable=True)
     hashed_password = Column(String(255), nullable=False)
 
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.AGRICULTOR)
+    role = Column(Enum(UserRole, values_callable=lambda x: [e.value for e in x]), nullable=False, default=UserRole.AGRICULTOR)
 
     # Localização
     provincia = Column(String(100), nullable=True)

@@ -26,7 +26,7 @@ class Machine(Base):
 
     nome = Column(String(150), nullable=False)
     descricao = Column(String(2000), nullable=True)
-    tipo = Column(Enum(MachineType), nullable=False)
+    tipo = Column(Enum(MachineType, values_callable=lambda x: [e.value for e in x]), nullable=False)
 
     valor_diario = Column(Numeric(12, 2), nullable=False)
 
@@ -63,7 +63,7 @@ class MachineRental(Base):
     data_inicio = Column(Date, nullable=False)
     data_fim = Column(Date, nullable=False)
 
-    status = Column(Enum(MachineRentalStatus), nullable=False, default=MachineRentalStatus.PENDENTE)
+    status = Column(Enum(MachineRentalStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=MachineRentalStatus.PENDENTE)
 
     valor_total = Column(Numeric(12, 2), nullable=True)
     comissao_percentual = Column(Numeric(5, 2), nullable=True)

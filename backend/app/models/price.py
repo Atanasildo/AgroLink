@@ -24,7 +24,7 @@ class PriceRecord(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    produto = Column(Enum(CommodityType), nullable=False, index=True)
+    produto = Column(Enum(CommodityType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     provincia = Column(String(100), nullable=False, index=True)
     municipio = Column(String(100), nullable=True, index=True)
 

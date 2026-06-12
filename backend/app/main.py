@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.routes import auth, chat, machines, map as map_routes, payments, prices, products, ratings, transport, users
 from app.core.config import settings
@@ -39,6 +40,20 @@ app.include_router(chat.router, prefix=api_prefix)
 app.include_router(prices.router, prefix=api_prefix)
 app.include_router(map_routes.router, prefix=api_prefix)
 app.include_router(payments.router, prefix=api_prefix)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Garante que respostas 500 passem pelo CORSMiddleware.
+
+    Sem este handler, exceções não tratadas propagam até o
+    ServerErrorMiddleware (fora do CORSMiddleware) e o navegador
+    reporta "bloqueado por CORS", escondendo o erro real (500).
+    """
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Erro interno no servidor. Tente novamente mais tarde."},
+    )
 
 
 @app.get("/", tags=["Status"])

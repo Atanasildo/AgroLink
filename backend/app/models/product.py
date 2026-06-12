@@ -33,11 +33,11 @@ class Product(Base):
 
     nome = Column(String(150), nullable=False)
     descricao = Column(String(2000), nullable=True)
-    categoria = Column(Enum(ProductCategory), nullable=False, index=True)
+    categoria = Column(Enum(ProductCategory, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
 
     preco = Column(Numeric(12, 2), nullable=False)
     quantidade = Column(Numeric(12, 2), nullable=False)
-    unidade = Column(Enum(ProductUnit), nullable=False, default=ProductUnit.KG)
+    unidade = Column(Enum(ProductUnit, values_callable=lambda x: [e.value for e in x]), nullable=False, default=ProductUnit.KG)
 
     imagens = Column(ARRAY(String), nullable=True)
 

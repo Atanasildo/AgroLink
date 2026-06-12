@@ -23,7 +23,7 @@ class ChatMessage(Base):
     remetente_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     destinatario_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
-    tipo = Column(Enum(MessageType), nullable=False, default=MessageType.TEXTO)
+    tipo = Column(Enum(MessageType, values_callable=lambda x: [e.value for e in x]), nullable=False, default=MessageType.TEXTO)
 
     conteudo = Column(String(2000), nullable=True)  # texto da mensagem
     imagem_url = Column(String(500), nullable=True)
