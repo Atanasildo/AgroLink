@@ -11,7 +11,7 @@ const roles = [
   { value: "agricultor",           label: "Agricultor",             icon: Wheat,       desc: "Vendo produtos e solicito transporte" },
   { value: "comprador",            label: "Comprador",              icon: ShoppingCart, desc: "Compro produtos agrícolas" },
   { value: "transportador",        label: "Transportador",          icon: Truck,        desc: "Ofereço serviços de transporte rural" },
-  { value: "proprietario_maquina", label: "Proprietário de Máquinas", icon: Tractor,    desc: "Aluguel tratores e equipamentos" },
+  { value: "proprietario_maquinas", label: "Proprietário de Máquinas", icon: Tractor,    desc: "Aluguel tratores e equipamentos" },
 ];
 
 export default function RegisterPage() {
