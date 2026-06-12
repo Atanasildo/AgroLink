@@ -3,7 +3,7 @@
 ## Visão geral
 | Parte     | Serviço  | URL                                        |
 |-----------|----------|--------------------------------------------|
-| Backend   | Render   | https://agrolink-api.onrender.com          |
+| Backend   | Render   | https://agrolink-api-67zk.onrender.com          |
 | Frontend  | Vercel   | https://agro-link-eight.vercel.app         |
 
 ---
@@ -20,8 +20,8 @@
 5. Aguarde o deploy (~5 min). Quando ficar verde, copie a URL do serviço.
 
 ### Verificação
-- `https://agrolink-api.onrender.com/health` → `{"status": "ok"}`
-- `https://agrolink-api.onrender.com/docs` → Swagger UI
+- `https://agrolink-api-67zk.onrender.com/health` → `{"status": "ok"}`
+- `https://agrolink-api-67zk.onrender.com/docs` → Swagger UI
 
 > ⚠️ **Plano gratuito**: o serviço "dorme" após 15 min sem uso e demora ~30s a acordar.
 
@@ -37,14 +37,14 @@
    - **Root Directory**: `frontend`
 4. Em **"Environment Variables"**, adicione **obrigatoriamente**:
    ```
-   NEXT_PUBLIC_API_URL = https://agrolink-api.onrender.com/api/v1
+   NEXT_PUBLIC_API_URL = https://agrolink-api-67zk.onrender.com/api/v1
    ```
    > ⚠️ Sem esta variável o site tenta ligar a `localhost` e não funciona!
 5. Clique em **"Deploy"**
 
 ### Se já está deployado e não funciona
 1. No dashboard do Vercel → **Settings** → **Environment Variables**
-2. Adicione (ou corrija): `NEXT_PUBLIC_API_URL` = `https://agrolink-api.onrender.com/api/v1`
+2. Adicione (ou corrija): `NEXT_PUBLIC_API_URL` = `https://agrolink-api-67zk.onrender.com/api/v1`
 3. Vá a **Deployments** → clique nos **3 pontos** do último deploy → **Redeploy**
 
 ---
