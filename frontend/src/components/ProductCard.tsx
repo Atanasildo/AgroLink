@@ -1,5 +1,5 @@
 import { Product } from "@/lib/api";
-import { MapPin, Package, Tag } from "lucide-react";
+import { MapPin, Package } from "lucide-react";
 
 export function ProductCard({ product }: { product: Product }) {
   return (
@@ -32,12 +32,6 @@ export function ProductCard({ product }: { product: Product }) {
           <Package size={11} className="text-harvest" />
           {Number(product.quantidade).toLocaleString("pt-AO")} {product.unidade} disponíveis
         </span>
-        {product.agricultor_nome && (
-          <span className="flex items-center gap-1">
-            <Tag size={11} className="text-earth" />
-            {product.agricultor_nome}
-          </span>
-        )}
       </div>
     </div>
   );
