@@ -25,15 +25,18 @@ function formatKz(value?: string | null) {
 export default function TransportePage() {
   const { user, token } = useAuth();
   const [routes, setRoutes] = useState<TransportRoute[]>([]);
-  const [origem, setOrigem] = useState("");
-  const [destino, setDestino] = useState("");
+  const [origemFilter, setOrigemFilter] = useState("");
+  const [destinoFilter, setDestinoFilter] = useState("");
   const [loadingRoutes, setLoadingRoutes] = useState(true);
   const [myRequests, setMyRequests] = useState<TransportRequestItem[]>([]);
 
   async function loadRoutes() {
     setLoadingRoutes(true);
     try {
-      const data = await searchRoutes({ origem: origem || undefined, destino: destino || undefined });
+      const data = await searchRoutes({
+        origem: origemFilter || undefined,
+        destino: destinoFilter || undefined,
+      });
       setRoutes(data);
     } catch { setRoutes([]); }
     finally { setLoadingRoutes(false); }
@@ -45,8 +48,10 @@ export default function TransportePage() {
     catch { setMyRequests([]); }
   }
 
-  useEffect(() => { loadRoutes(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-  useEffect(() => { if (user?.role === "agricultor") loadMyRequests(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [user]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadRoutes(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (user?.role === "agricultor") loadMyRequests(); }, [user]);
 
   function handleSearch(e: FormEvent) { e.preventDefault(); loadRoutes(); }
 
@@ -72,12 +77,12 @@ export default function TransportePage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="flex flex-col gap-2">
               <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Origem</span>
-              <input value={origem} onChange={e => setOrigem(e.target.value)}
+              <input value={origemFilter} onChange={e => setOrigemFilter(e.target.value)}
                 placeholder="Ex: Caála" className="field-input rounded-sm" />
             </label>
             <label className="flex flex-col gap-2">
               <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Destino</span>
-              <input value={destino} onChange={e => setDestino(e.target.value)}
+              <input value={destinoFilter} onChange={e => setDestinoFilter(e.target.value)}
                 placeholder="Ex: Huambo" className="field-input rounded-sm" />
             </label>
             <div className="flex items-end">
@@ -90,7 +95,9 @@ export default function TransportePage() {
 
         <div>
           <h2 className="text-2xl text-field mb-5">
-            {loadingRoutes ? "A carregar..." : `${routes.length} rota${routes.length !== 1 ? "s" : ""} encontrada${routes.length !== 1 ? "s" : ""}`}
+            {loadingRoutes
+              ? "A carregar..."
+              : `${routes.length} rota${routes.length !== 1 ? "s" : ""} encontrada${routes.length !== 1 ? "s" : ""}`}
           </h2>
 
           {loadingRoutes ? (
@@ -107,9 +114,13 @@ export default function TransportePage() {
           ) : (
             <div className="space-y-5">
               {routes.map(route => (
-                <RouteCard key={route.id} route={route} token={token}
+                <RouteCard
+                  key={route.id}
+                  route={route}
+                  token={token}
                   isAgricultor={user?.role === "agricultor"}
-                  onRequested={loadMyRequests} />
+                  onRequested={loadMyRequests}
+                />
               ))}
             </div>
           )}
@@ -149,7 +160,7 @@ export default function TransportePage() {
                         </div>
                         <div>
                           <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Comissão (5%)</p>
-                          <p className="text-harvest">{formatKz(req.valor_liquido_transportador)}</p>
+                          <p className="text-harvest">{formatKz(req.valor_comissao)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Transportador</p>
@@ -171,11 +182,15 @@ export default function TransportePage() {
 function RouteCard({
   route, token, isAgricultor, onRequested,
 }: {
-  route: TransportRoute; token: string | null; isAgricultor: boolean; onRequested: () => void;
+  route: TransportRoute;
+  token: string | null;
+  isAgricultor: boolean;
+  onRequested: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [peso, setPeso] = useState("");
-  const [descricao, setDescricao] = useState("");
+  const [produto, setProduto] = useState("");
+  const [data, setData] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -187,9 +202,12 @@ function RouteCard({
     setLoading(true);
     try {
       await createTransportRequest(token, {
+        produto,
+        peso_toneladas: parseFloat(peso),
+        origem: route.origem,
+        destino: route.destino,
+        data,
         rota_id: route.id,
-        peso_toneladas: Number(peso) as unknown as string,
-        descricao_carga: descricao || undefined,
       });
       setDone(true);
       setOpen(false);
@@ -202,7 +220,7 @@ function RouteCard({
   }
 
   const precoEstimado = peso && route.preco_por_tonelada
-    ? Number(peso) * parseFloat(route.preco_por_tonelada)
+    ? parseFloat(peso) * parseFloat(route.preco_por_tonelada)
     : null;
   const comissao = precoEstimado ? precoEstimado * 0.05 : null;
 
@@ -242,17 +260,16 @@ function RouteCard({
             <div className="status-badge active">
               <CheckCircle size={12} /> Solicitado
             </div>
-          ) : isAgricultor && token && (
+          ) : isAgricultor && token ? (
             <button onClick={() => setOpen(v => !v)} className="btn-primary rounded-sm text-xs">
               <Send size={14} />
               {open ? "Cancelar" : "Solicitar"}
             </button>
-          )}
-          {!token && (
+          ) : !token ? (
             <a href="/login" className="btn-secondary rounded-sm text-xs">
               Entrar para solicitar
             </a>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -261,6 +278,12 @@ function RouteCard({
           <p className="label-eyebrow">Solicitar transporte nesta rota</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-2">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Produto / Carga</span>
+              <input required value={produto} onChange={e => setProduto(e.target.value)}
+                placeholder="Ex: Milho branco, Feijão..."
+                className="field-input rounded-sm" />
+            </label>
+            <label className="flex flex-col gap-2">
               <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Peso (toneladas)</span>
               <input required type="number" min="0.1" step="0.1"
                 max={route.capacidade_disponivel_toneladas}
@@ -268,15 +291,14 @@ function RouteCard({
                 placeholder={`Máx. ${route.capacidade_disponivel_toneladas}t`}
                 className="field-input rounded-sm" />
             </label>
-            <label className="flex flex-col gap-2">
-              <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Descrição da carga</span>
-              <input value={descricao} onChange={e => setDescricao(e.target.value)}
-                placeholder="Ex: Saco de milho branco"
+            <label className="flex flex-col gap-2 sm:col-span-2">
+              <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Data pretendida</span>
+              <input required type="date" value={data} onChange={e => setData(e.target.value)}
                 className="field-input rounded-sm" />
             </label>
           </div>
 
-          {precoEstimado && (
+          {precoEstimado !== null && comissao !== null && (
             <div className="grid grid-cols-3 gap-3 bg-field/5 border border-field/15 p-4 rounded-sm font-mono text-sm">
               <div>
                 <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Estimativa total</p>
@@ -284,11 +306,11 @@ function RouteCard({
               </div>
               <div>
                 <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Comissão (5%)</p>
-                <p className="text-harvest">{comissao!.toLocaleString("pt-AO")} Kz</p>
+                <p className="text-harvest">{comissao.toLocaleString("pt-AO")} Kz</p>
               </div>
               <div>
                 <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Para transportador</p>
-                <p className="text-earth">{(precoEstimado - comissao!).toLocaleString("pt-AO")} Kz</p>
+                <p className="text-earth">{(precoEstimado - comissao).toLocaleString("pt-AO")} Kz</p>
               </div>
             </div>
           )}
