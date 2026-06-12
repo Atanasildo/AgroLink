@@ -52,7 +52,6 @@ export default function TransportePage() {
 
   return (
     <div>
-      {/* Header */}
       <div className="border-b border-field/15 bg-sky-light">
         <div className="mx-auto max-w-6xl px-6 py-10">
           <p className="label-eyebrow mb-2">
@@ -68,7 +67,6 @@ export default function TransportePage() {
 
       <div className="mx-auto max-w-6xl px-6 py-10 space-y-10">
 
-        {/* Pesquisa de rotas */}
         <form onSubmit={handleSearch} className="field-card rounded-sm">
           <p className="label-eyebrow mb-4">Pesquisar rotas</p>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -90,7 +88,6 @@ export default function TransportePage() {
           </div>
         </form>
 
-        {/* Lista de rotas */}
         <div>
           <h2 className="text-2xl text-field mb-5">
             {loadingRoutes ? "A carregar..." : `${routes.length} rota${routes.length !== 1 ? "s" : ""} encontrada${routes.length !== 1 ? "s" : ""}`}
@@ -118,7 +115,6 @@ export default function TransportePage() {
           )}
         </div>
 
-        {/* Minhas solicitações */}
         {user?.role === "agricultor" && myRequests.length > 0 && (
           <div>
             <h2 className="text-2xl text-field mb-5">As minhas solicitações</h2>
@@ -132,7 +128,7 @@ export default function TransportePage() {
                         <div className="flex items-center gap-2 mb-1">
                           <MapPin size={14} className="text-harvest" />
                           <p className="font-display text-base text-field">
-                            {req.origem_municipio} → {req.destino_municipio}
+                            {req.origem} → {req.destino}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -153,7 +149,7 @@ export default function TransportePage() {
                         </div>
                         <div>
                           <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Comissão (5%)</p>
-                          <p className="text-harvest">{formatKz(req.comissao_plataforma)}</p>
+                          <p className="text-harvest">{formatKz(req.valor_liquido_transportador)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Transportador</p>
@@ -216,8 +212,8 @@ function RouteCard({
         <div className="flex-1 min-w-0">
           <div className="mb-4">
             <RouteDiagram
-              origem={route.origem_municipio}
-              destino={route.destino_municipio}
+              origem={route.origem}
+              destino={route.destino}
               capacidadeTotal={parseFloat(route.capacidade_total_toneladas)}
               capacidadeDisponivel={parseFloat(route.capacidade_disponivel_toneladas)}
             />
@@ -232,10 +228,10 @@ function RouteCard({
                 /tonelada
               </span>
             )}
-            {route.data_partida && (
+            {route.data && (
               <span className="flex items-center gap-1">
                 <Clock size={11} />
-                {new Date(route.data_partida).toLocaleDateString("pt-AO")}
+                {new Date(route.data).toLocaleDateString("pt-AO")}
               </span>
             )}
           </div>
