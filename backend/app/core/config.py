@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,6 +9,22 @@ class Settings(BaseSettings):
 
     # Banco de dados
     DATABASE_URL: str = "postgresql://agrolink:agrolink@db:5432/agrolink"
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def _normalize_database_url(cls, value: str) -> str:
+        """Normaliza a URL da base de dados.
+
+        Serviços como o Render fornecem a connection string no formato
+        antigo `postgres://...`, mas o SQLAlchemy 1.4+/2.x apenas
+        reconhece o dialeto `postgresql://...`. Sem esta normalização,
+        o `create_engine()` falha com `NoSuchModuleError`, o que faz o
+        container crashar no arranque (alembic/uvicorn) e a API ficar
+        completamente indisponível.
+        """
+        if value.startswith("postgres://"):
+            return "postgresql://" + value[len("postgres://"):]
+        return value
 
     # JWT
     SECRET_KEY: str = "troque-esta-chave-por-uma-chave-secreta-forte"
