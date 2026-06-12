@@ -20,7 +20,7 @@ services:
       - key: REFRESH_TOKEN_EXPIRE_DAYS
         value: "7"
       - key: ALLOWED_ORIGINS
-        value: "https://agrolink.vercel.app,http://localhost:3000"
+        value: "https://agro-link-eight.vercel.app,http://localhost:3000"
     healthCheckPath: /health
 
 databases:

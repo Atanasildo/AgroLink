@@ -3,6 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth, chat, machines, map as map_routes, payments, prices, products, ratings, transport, users
 from app.core.config import settings
+from app.core.database import Base, engine
+
+# Cria as tabelas automaticamente se não existirem (fallback para quando Alembic não correu)
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -14,10 +18,12 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS - ajustar origens permitidas em produção
+# CORS
+origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins if origins else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

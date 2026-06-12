@@ -27,17 +27,23 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(0, "Sem ligação ao servidor. Verifique se o backend está acessível.");
+  }
 
   if (!res.ok) {
     let detail: unknown;
     try {
-      detail = (await res.json()).detail;
+      const json = await res.json();
+      detail = json.detail ?? json;
     } catch {
       detail = res.statusText;
     }

@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    # CORS - origens permitidas separadas por vírgula
+    ALLOWED_ORIGINS: str = "http://localhost:3000,https://agro-link-eight.vercel.app"
+
     # Comissões
     TRANSPORT_COMMISSION_PERCENT: float = 5.0
     MACHINE_RENTAL_COMMISSION_PERCENT: float = 10.0
