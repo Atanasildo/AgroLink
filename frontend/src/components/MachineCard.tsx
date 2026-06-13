@@ -8,9 +8,10 @@ import { ApiError, Machine, createMachineRental } from "@/lib/api";
 const tipoLabels: Record<string, string> = {
   trator: "🚜 Trator",
   colheitadeira: "🌾 Colheitadeira",
-  pulverizador: "💨 Pulverizador",
   arado: "🔧 Arado",
-  sistema_irrigacao: "💧 Sistema de irrigação",
+  plantadora: "🌱 Plantadora",
+  irrigacao: "💧 Sistema de irrigação",
+  outros: "⚙️ Outros",
 };
 
 export function MachineCard({ machine }: { machine: Machine }) {
@@ -50,7 +51,7 @@ export function MachineCard({ machine }: { machine: Machine }) {
         </div>
         <div className="text-right flex-shrink-0">
           <p className="font-mono text-xl text-harvest font-bold">
-            {Number(machine.valor_diario).toLocaleString("pt-AO")} Kz
+            {Number(machine.preco_diaria).toLocaleString("pt-AO")} Kz
           </p>
           <p className="font-mono text-xs text-ink/50">/dia</p>
         </div>
