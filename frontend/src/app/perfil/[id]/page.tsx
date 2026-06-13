@@ -52,24 +52,11 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
     setLoading(true);
     setError(null);
     try {
-      // Carregar apenas o perfil - ratings vem depois
       const profileData = await getUser(profileId);
       setProfile(profileData);
-      
-      // Ratings: opcional, falhar silenciosamente se der erro
-      try {
-        const [summaryData, ratingsData] = await Promise.all([
-          getUserRatingSummary(profileId),
-          getUserRatings(profileId),
-        ]);
-        setSummary(summaryData);
-        setRatings(ratingsData);
-      } catch (ratingErr) {
-        console.warn("⚠️ Falha ao carregar ratings (não bloqueia perfil):", ratingErr);
-        // Continua mesmo sem ratings
-        setSummary({ media_geral: 0, total_avaliacoes: 0 });
-        setRatings([]);
-      }
+      // Ratings desabilitados temporariamente
+      setSummary({ media_geral: 0, total_avaliacoes: 0 });
+      setRatings([]);
     } catch (err) {
       setError(err instanceof ApiError && err.status === 0 ? "O servidor está a acordar (~30s). Aguarde e recarregue a página." : "Não foi possível carregar este perfil.");
     } finally {
@@ -149,73 +136,17 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-6 py-10 flex flex-col gap-8">
+      <div className="mx-auto max-w-3xl px-6 py-10">
         {/* Aviso temporário */}
-        <div className="bg-amber-50 border border-amber-200 px-4 py-3 rounded-sm">
+        <div className="bg-amber-50 border border-amber-200 px-4 py-3 rounded-sm mb-6">
           <p className="font-mono text-xs text-amber-700">
-            ⚠️ Ratings temporariamente indisponíveis (backend em manutenção)
+            ⚠️ Módulo de avaliações temporariamente em manutenção
           </p>
         </div>
 
-        {/* Resumo de avaliações — DESABILITADO TEMPORARIAMENTE */}
-        {summary && summary.total_avaliacoes > 0 && (
-        <div className="field-card rounded-sm flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="label-eyebrow mb-2">Reputação</p>
-            <div className="flex items-center gap-3">
-              <p className="font-display text-3xl text-field">{summary?.media_geral.toFixed(1) ?? "0.0"}</p>
-              <Stars value={summary?.media_geral ?? 0} size={20} />
-            </div>
-            <p className="font-mono text-xs text-ink/50 mt-1">
-              {summary?.total_avaliacoes ?? 0} avaliação(ões)
-            </p>
-          </div>
-
-          {!isOwnProfile && currentUser && token && (
-            <button onClick={() => setShowForm(v => !v)} className="btn-primary rounded-sm">
-              <MessageSquare size={16} /> {showForm ? "Cancelar" : "Avaliar"}
-            </button>
-          )}
-        </div>
-
-        {showForm && token && (
-          <RatingForm
-            token={token}
-            avaliadoId={profile.id}
-            onSubmitted={() => { setShowForm(false); load(); }}
-          />
-        )}
-
-        {/* Lista de avaliações */}
-        <div>
-          <p className="label-eyebrow mb-4">Avaliações recebidas</p>
-          {ratings.length === 0 ? (
-            <div className="field-card text-center py-12 rounded-sm">
-              <p className="font-body text-ink/50">Este utilizador ainda não recebeu avaliações.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {ratings.map((r) => (
-                <div key={r.id} className="field-card rounded-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <Stars value={r.nota} />
-                    <span className="font-mono text-xs text-ink/40">
-                      {new Date(r.criado_em).toLocaleDateString("pt-AO")}
-                    </span>
-                  </div>
-                  {r.comentario && <p className="font-body text-sm text-ink/70">{r.comentario}</p>}
-                  <div className="flex flex-wrap gap-3 mt-2 font-mono text-[10px] uppercase tracking-wider text-ink/40">
-                    {r.confianca && <span>Confiança: {r.confianca}/5</span>}
-                    {r.qualidade && <span>Qualidade: {r.qualidade}/5</span>}
-                    {r.pontualidade && <span>Pontualidade: {r.pontualidade}/5</span>}
-                    {r.atendimento && <span>Atendimento: {r.atendimento}/5</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        )}
+        <p className="font-body text-ink/60">
+          Este perfil foi carregado com sucesso. Os detalhes de avaliações, histórico de transações e reputação serão adicionados em breve.
+        </p>
       </div>
     </div>
   );
