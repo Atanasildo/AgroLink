@@ -13,8 +13,6 @@ from app.schemas.machine import MachineCreate, MachineRentalCreate, MachineUpdat
 
 def create_machine(db: Session, machine_in: MachineCreate, proprietario_id: uuid.UUID) -> Machine:
     data = machine_in.model_dump()
-    # Schema usa valor_diario; coluna na BD é preco_diaria
-    data["preco_diaria"] = data.pop("valor_diario")
     db_machine = Machine(**data, proprietario_id=proprietario_id)
     db.add(db_machine)
     db.commit()
