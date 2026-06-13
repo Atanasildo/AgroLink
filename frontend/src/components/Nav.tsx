@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { Sprout, Truck, ShoppingBasket, LogOut, User } from "lucide-react";
+import { Sprout, Truck, ShoppingBasket, LogOut, User, Tractor } from "lucide-react";
 
 const links = [
   { href: "/marketplace", label: "Mercado", icon: ShoppingBasket },
   { href: "/transporte", label: "Transporte", icon: Truck },
+  { href: "/maquinas", label: "Máquinas", icon: Tractor },
 ];
 
 export function Nav() {
@@ -45,12 +46,15 @@ export function Nav() {
 
           {user ? (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-field/8 border border-field/20 px-3 py-1.5 rounded-sm">
+              <Link
+                href={`/perfil/${user.id}`}
+                className="flex items-center gap-1.5 bg-field/8 border border-field/20 px-3 py-1.5 rounded-sm hover:bg-field/15 transition-colors"
+              >
                 <User size={12} className="text-field" />
                 <span className="font-mono text-xs uppercase tracking-wider text-field">
                   {user.nome.split(" ")[0]}
                 </span>
-              </div>
+              </Link>
               <button
                 onClick={signOut}
                 className="flex items-center gap-1.5 border border-earth/30 text-earth px-3 py-1.5 text-xs uppercase tracking-wider font-mono hover:bg-earth hover:text-cream transition-colors rounded-sm"

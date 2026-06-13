@@ -12,3 +12,4 @@ node_modules/
 
 # Manter o .env.example como referência
 !.env.example
+tsconfig.tsbuildinfo

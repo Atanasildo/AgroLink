@@ -136,6 +136,93 @@ export interface TransportRequestItem {
   criado_em: string;
 }
 
+// ---------- Máquinas ----------
+
+export type MachineType = "trator" | "colheitadeira" | "pulverizador" | "arado" | "sistema_irrigacao";
+export type MachineRentalStatus = "pendente" | "aprovado" | "em_andamento" | "concluido" | "cancelado";
+
+export interface Machine {
+  id: string;
+  nome: string;
+  descricao?: string | null;
+  tipo: MachineType;
+  valor_diario: string;
+  provincia?: string | null;
+  municipio?: string | null;
+  proprietario_id: string;
+  disponivel: boolean;
+  criado_em: string;
+}
+
+export interface MachineRental {
+  id: string;
+  maquina_id: string;
+  agricultor_id: string;
+  data_inicio: string;
+  data_fim: string;
+  status: MachineRentalStatus;
+  valor_total?: string | null;
+  comissao_percentual?: string | null;
+  valor_comissao?: string | null;
+  valor_liquido_proprietario?: string | null;
+  criado_em: string;
+}
+
+// ---------- Avaliações ----------
+
+export interface Rating {
+  id: string;
+  avaliador_id: string;
+  avaliado_id: string;
+  nota: number;
+  confianca?: number | null;
+  qualidade?: number | null;
+  pontualidade?: number | null;
+  atendimento?: number | null;
+  comentario?: string | null;
+  transacao_tipo?: string | null;
+  transacao_id?: string | null;
+  criado_em: string;
+}
+
+export interface UserRatingSummary {
+  media_geral: number;
+  total_avaliacoes: number;
+}
+
+// ---------- Preços ----------
+
+export type CommodityType = "milho" | "feijao" | "mandioca" | "soja" | "hortalicas";
+
+export interface PriceRecord {
+  id: string;
+  produto: CommodityType;
+  provincia: string;
+  municipio?: string | null;
+  preco_medio: string;
+  unidade: string;
+  data_referencia: string;
+  criado_em: string;
+}
+
+// ---------- Mapa ----------
+
+export type MapEntityType = "fazenda" | "produto" | "maquina" | "transportador" | "cooperativa";
+
+export interface MapLocation {
+  id: string;
+  tipo: MapEntityType;
+  referencia_id?: string | null;
+  nome: string;
+  descricao?: string | null;
+  latitude: string;
+  longitude: string;
+  provincia?: string | null;
+  municipio?: string | null;
+  utilizador_id?: string | null;
+  criado_em: string;
+}
+
 // ---------- Auth ----------
 
 export function login(email: string, senha: string) {
@@ -197,4 +284,120 @@ export function createTransportRequest(
 
 export function myTransportRequests(token: string) {
   return apiRequest<TransportRequestItem[]>("/transport/requests/me", { token });
+}
+
+// ---------- Utilizadores ----------
+
+export function getUser(userId: string) {
+  return apiRequest<User>(`/users/${userId}`);
+}
+
+export function updateMyProfile(
+  token: string,
+  payload: Partial<{
+    nome: string;
+    telefone: string;
+    provincia: string;
+    municipio: string;
+    bio: string;
+    foto_perfil_url: string;
+  }>
+) {
+  return apiRequest<User>("/users/me", { method: "PUT", body: payload, token });
+}
+
+// ---------- Máquinas ----------
+
+export function listMachines(params: Record<string, string | undefined> = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== "") as [string, string][]
+  ).toString();
+  return apiRequest<Machine[]>(`/machines/${query ? `?${query}` : ""}`);
+}
+
+export function createMachine(token: string, payload: Partial<Machine>) {
+  return apiRequest<Machine>("/machines/", { method: "POST", body: payload, token });
+}
+
+export function createMachineRental(
+  token: string,
+  machineId: string,
+  payload: { data_inicio: string; data_fim: string }
+) {
+  return apiRequest<MachineRental>(`/machines/${machineId}/rentals`, { method: "POST", body: payload, token });
+}
+
+export function myMachineRentals(token: string) {
+  return apiRequest<MachineRental[]>("/machines/rentals/me", { token });
+}
+
+export function updateMachineRentalStatus(token: string, rentalId: string, status: MachineRentalStatus) {
+  return apiRequest<MachineRental>(`/machines/rentals/${rentalId}/status`, {
+    method: "PATCH",
+    body: { status },
+    token,
+  });
+}
+
+// ---------- Avaliações ----------
+
+export function getUserRatings(userId: string) {
+  return apiRequest<Rating[]>(`/ratings/users/${userId}`);
+}
+
+export function getUserRatingSummary(userId: string) {
+  return apiRequest<UserRatingSummary>(`/ratings/users/${userId}/summary`);
+}
+
+export function createRating(
+  token: string,
+  payload: {
+    avaliado_id: string;
+    nota: number;
+    confianca?: number;
+    qualidade?: number;
+    pontualidade?: number;
+    atendimento?: number;
+    comentario?: string;
+    transacao_tipo?: string;
+    transacao_id?: string;
+  }
+) {
+  return apiRequest<Rating>("/ratings/", { method: "POST", body: payload, token });
+}
+
+// ---------- Preços ----------
+
+export function latestPrices(params: Record<string, string | undefined> = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== "") as [string, string][]
+  ).toString();
+  return apiRequest<PriceRecord[]>(`/prices/latest${query ? `?${query}` : ""}`);
+}
+
+export function priceHistory(params: Record<string, string | undefined> = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== "") as [string, string][]
+  ).toString();
+  return apiRequest<PriceRecord[]>(`/prices/history${query ? `?${query}` : ""}`);
+}
+
+export function comparePrices(params: Record<string, string | undefined> = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== "") as [string, string][]
+  ).toString();
+  return apiRequest<PriceRecord[]>(`/prices/compare${query ? `?${query}` : ""}`);
+}
+
+// ---------- Mapa ----------
+
+export function listMapLocations(params: Record<string, string | undefined> = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== "") as [string, string][]
+  ).toString();
+  return apiRequest<MapLocation[]>(`/map/locations${query ? `?${query}` : ""}`);
+}
+
+export function createMapLocation(token: string, payload: Partial<MapLocation>) {
+  return apiRequest<MapLocation>("/map/locations", { method: "POST", body: payload, token });
 }
