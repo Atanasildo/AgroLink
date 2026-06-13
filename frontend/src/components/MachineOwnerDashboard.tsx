@@ -177,7 +177,7 @@ function MachineForm({ token, onSuccess, initial }: {
   initial?: Machine;
 }) {
   const [nome, setNome] = useState(initial?.nome ?? "");
-  const [tipo, setTipo] = useState(initial?.tipo ?? "trator");
+  const [tipo, setTipo] = useState<string>(initial?.tipo ?? "trator");
   const [descricao, setDescricao] = useState(initial?.descricao ?? "");
   const [precoDiaria, setPrecoDiaria] = useState(initial?.preco_diaria?.toString() ?? "");
   const [provincia, setProvincia] = useState(initial?.provincia ?? "");
