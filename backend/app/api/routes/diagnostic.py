@@ -121,3 +121,27 @@ def diagnostic_transport_error(db: Session = Depends(get_db)):
         return {"status": "ok", "rows": len(result)}
     except Exception as e:
         return {"status": "error", "error": str(e), "type": type(e).__name__}
+
+
+@router.get("/transport-orm", tags=["Diagnóstico"])
+def diagnostic_transport_orm(db: Session = Depends(get_db)):
+    """Tenta carregar transport_routes via ORM para capturar erro real."""
+    try:
+        from app.models.transport_route import TransportRoute
+        routes = db.query(TransportRoute).limit(1).all()
+        return {"status": "ok", "count": len(routes)}
+    except Exception as e:
+        import traceback
+        return {"status": "error", "error": str(e), "type": type(e).__name__, "trace": traceback.format_exc()}
+
+
+@router.get("/vehicle-orm", tags=["Diagnóstico"])
+def diagnostic_vehicle_orm(db: Session = Depends(get_db)):
+    """Tenta carregar vehicles via ORM para capturar erro real."""
+    try:
+        from app.models.vehicle import Vehicle
+        v = db.query(Vehicle).limit(1).all()
+        return {"status": "ok", "count": len(v)}
+    except Exception as e:
+        import traceback
+        return {"status": "error", "error": str(e), "type": type(e).__name__, "trace": traceback.format_exc()}
