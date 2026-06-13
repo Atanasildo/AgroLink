@@ -9,26 +9,19 @@ from app.models.payment import PaymentStatus, PaymentType
 
 class PaymentCreate(BaseModel):
     tipo: PaymentType
-    transacao_id: uuid.UUID
-    recebedor_id: uuid.UUID
-    valor_total: Decimal = Field(gt=0)
-    comissao: Decimal = Field(ge=0)
-    metodo_pagamento: str | None = Field(default=None, max_length=50)
-    referencia_externa: str | None = Field(default=None, max_length=150)
+    referencia_id: uuid.UUID | None = None
+    valor: Decimal = Field(gt=0)
+    referencia_externa: str | None = Field(default=None, max_length=200)
 
 
 class PaymentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    utilizador_id: uuid.UUID
+    referencia_id: uuid.UUID | None = None
     tipo: PaymentType
-    transacao_id: uuid.UUID
-    pagador_id: uuid.UUID
-    recebedor_id: uuid.UUID
-    valor_total: Decimal
-    comissao: Decimal
-    valor_liquido: Decimal
-    status_pagamento: PaymentStatus
-    metodo_pagamento: str | None = None
+    valor: Decimal
+    status: PaymentStatus
     referencia_externa: str | None = None
     criado_em: datetime

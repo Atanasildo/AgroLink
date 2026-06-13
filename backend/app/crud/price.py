@@ -1,5 +1,3 @@
-from datetime import date
-
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -20,12 +18,12 @@ def get_latest_prices(
     produto: CommodityType | None = None,
     provincia: str | None = None,
 ) -> list[PriceRecord]:
-    """Consulta de preços: retorna o registo mais recente por produto/província."""
+    """Retorna o registo mais recente por produto/província."""
     subquery = (
         db.query(
             PriceRecord.produto,
             PriceRecord.provincia,
-            func.max(PriceRecord.data_referencia).label("max_data"),
+            func.max(PriceRecord.criado_em).label("max_data"),
         )
         .group_by(PriceRecord.produto, PriceRecord.provincia)
         .subquery()
@@ -35,7 +33,7 @@ def get_latest_prices(
         subquery,
         (PriceRecord.produto == subquery.c.produto)
         & (PriceRecord.provincia == subquery.c.provincia)
-        & (PriceRecord.data_referencia == subquery.c.max_data),
+        & (PriceRecord.criado_em == subquery.c.max_data),
     )
 
     if produto:
@@ -50,27 +48,19 @@ def get_price_history(
     db: Session,
     produto: CommodityType,
     provincia: str,
-    data_inicio: date | None = None,
-    data_fim: date | None = None,
 ) -> list[PriceRecord]:
-    """Histórico de preços de um produto numa província, ordenado por data."""
-    query = db.query(PriceRecord).filter(
-        PriceRecord.produto == produto,
-        PriceRecord.provincia.ilike(provincia),
-    )
-    if data_inicio:
-        query = query.filter(PriceRecord.data_referencia >= data_inicio)
-    if data_fim:
-        query = query.filter(PriceRecord.data_referencia <= data_fim)
-
-    return query.order_by(PriceRecord.data_referencia.asc()).all()
-
-
-def compare_regions(db: Session, produto: CommodityType, data_referencia: date) -> list[PriceRecord]:
-    """Comparação do preço de um produto entre regiões, numa data de referência."""
     return (
         db.query(PriceRecord)
-        .filter(PriceRecord.produto == produto, PriceRecord.data_referencia == data_referencia)
-        .order_by(PriceRecord.preco_medio.asc())
+        .filter(PriceRecord.produto == produto, PriceRecord.provincia.ilike(provincia))
+        .order_by(PriceRecord.criado_em.asc())
+        .all()
+    )
+
+
+def compare_regions(db: Session, produto: CommodityType) -> list[PriceRecord]:
+    return (
+        db.query(PriceRecord)
+        .filter(PriceRecord.produto == produto)
+        .order_by(PriceRecord.preco_kg.asc())
         .all()
     )

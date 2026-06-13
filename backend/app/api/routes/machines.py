@@ -12,7 +12,7 @@ from app.crud.machine import (
     get_machine,
     get_rental,
     list_machines,
-    list_rentals_for_farmer,
+    list_rentals_for_locatario,
     list_rentals_for_owner,
     update_machine,
     update_rental_status,
@@ -104,7 +104,7 @@ def request_rental(
     machine = get_machine(db, machine_id)
     if not machine:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Máquina não encontrada")
-    return create_rental(db, machine, rental_in, agricultor_id=current_user.id)
+    return create_rental(db, machine, rental_in, locatario_id=current_user.id)
 
 
 @router.get("/rentals/me", response_model=list[MachineRentalRead])
@@ -115,7 +115,7 @@ def my_rentals(
     """Listar reservas: como agricultor (solicitadas) ou proprietário (recebidas)."""
     if current_user.role == UserRole.PROPRIETARIO_MAQUINAS:
         return list_rentals_for_owner(db, current_user.id)
-    return list_rentals_for_farmer(db, current_user.id)
+    return list_rentals_for_locatario(db, current_user.id)
 
 
 @router.patch("/rentals/{rental_id}/status", response_model=MachineRentalRead)
@@ -133,7 +133,7 @@ def change_rental_status(
 
     machine = get_machine(db, rental.maquina_id)
     is_owner = machine and machine.proprietario_id == current_user.id
-    is_farmer = rental.agricultor_id == current_user.id
+    is_farmer = rental.locatario_id == current_user.id
     if not (is_owner or is_farmer or current_user.role == UserRole.ADMIN):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
 

@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import Column, Date, DateTime, Enum, Numeric, String
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
@@ -12,25 +12,22 @@ class CommodityType(str, enum.Enum):
     MILHO = "milho"
     FEIJAO = "feijao"
     MANDIOCA = "mandioca"
-    SOJA = "soja"
-    HORTALICAS = "hortalicas"
+    BATATA = "batata"
+    TOMATE = "tomate"
+    BANANA = "banana"
+    CAFE = "cafe"
+    ALGODAO = "algodao"
 
 
 class PriceRecord(Base):
-    """Registo histórico de preços de produtos agrícolas por região,
-    usado para consultas, histórico, tendências e comparação por região."""
-
     __tablename__ = "price_records"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
-    produto = Column(Enum(CommodityType, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
-    provincia = Column(String(100), nullable=False, index=True)
-    municipio = Column(String(100), nullable=True, index=True)
-
-    preco_medio = Column(Numeric(12, 2), nullable=False)
-    unidade = Column(String(20), nullable=False, default="kg")
-
-    data_referencia = Column(Date, nullable=False, index=True)
+    produto = Column(Enum(CommodityType, values_callable=lambda x: [e.value for e in x]), nullable=False)
+    # Coluna real na BD é preco_kg
+    preco_kg = Column(Numeric(10, 2), nullable=False)
+    provincia = Column(String(100), nullable=False)
+    fonte = Column(String(200), nullable=True)
 
     criado_em = Column(DateTime(timezone=True), server_default=func.now())

@@ -12,7 +12,11 @@ def create_rating(db: Session, rating_in: RatingCreate, avaliador_id: uuid.UUID)
     if rating_in.avaliado_id == avaliador_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível avaliar a si mesmo")
 
-    db_rating = Rating(**rating_in.model_dump(), avaliador_id=avaliador_id)
+    data = rating_in.model_dump()
+    # Schema usa nota; coluna na BD é pontuacao
+    data["pontuacao"] = data.pop("nota")
+
+    db_rating = Rating(**data, avaliador_id=avaliador_id)
     db.add(db_rating)
     db.commit()
     db.refresh(db_rating)
@@ -30,7 +34,7 @@ def list_ratings_for_user(db: Session, avaliado_id: uuid.UUID) -> list[Rating]:
 
 def get_rating_summary(db: Session, avaliado_id: uuid.UUID) -> tuple[float, int]:
     result = (
-        db.query(func.avg(Rating.nota), func.count(Rating.id))
+        db.query(func.avg(Rating.pontuacao), func.count(Rating.id))
         .filter(Rating.avaliado_id == avaliado_id)
         .first()
     )

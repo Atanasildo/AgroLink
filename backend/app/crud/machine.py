@@ -12,7 +12,10 @@ from app.schemas.machine import MachineCreate, MachineRentalCreate, MachineUpdat
 # ---------- Máquinas ----------
 
 def create_machine(db: Session, machine_in: MachineCreate, proprietario_id: uuid.UUID) -> Machine:
-    db_machine = Machine(**machine_in.model_dump(), proprietario_id=proprietario_id)
+    data = machine_in.model_dump()
+    # Schema usa valor_diario; coluna na BD é preco_diaria
+    data["preco_diaria"] = data.pop("valor_diario")
+    db_machine = Machine(**data, proprietario_id=proprietario_id)
     db.add(db_machine)
     db.commit()
     db.refresh(db_machine)
@@ -43,6 +46,8 @@ def list_machines(
 
 def update_machine(db: Session, db_machine: Machine, machine_in: MachineUpdate) -> Machine:
     update_data = machine_in.model_dump(exclude_unset=True)
+    if "valor_diario" in update_data:
+        update_data["preco_diaria"] = update_data.pop("valor_diario")
     for field, value in update_data.items():
         setattr(db_machine, field, value)
     db.add(db_machine)
@@ -58,33 +63,31 @@ def delete_machine(db: Session, db_machine: Machine) -> None:
 
 # ---------- Reservas ----------
 
-def _calculate_commission(valor_total: Decimal) -> tuple[Decimal, Decimal, Decimal]:
+def _calculate_commission(valor_total: Decimal) -> tuple[Decimal, Decimal]:
     percentual = Decimal(str(settings.MACHINE_RENTAL_COMMISSION_PERCENT))
     comissao = (valor_total * percentual / Decimal("100")).quantize(Decimal("0.01"))
-    liquido = (valor_total - comissao).quantize(Decimal("0.01"))
-    return percentual, comissao, liquido
+    return percentual, comissao
 
 
 def create_rental(
-    db: Session, machine: Machine, rental_in: MachineRentalCreate, agricultor_id: uuid.UUID
+    db: Session, machine: Machine, rental_in: MachineRentalCreate, locatario_id: uuid.UUID
 ) -> MachineRental:
     if not machine.disponivel:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Máquina não está disponível")
 
     dias = (rental_in.data_fim - rental_in.data_inicio).days + 1
-    valor_total = (machine.valor_diario * Decimal(dias)).quantize(Decimal("0.01"))
-    percentual, comissao, liquido = _calculate_commission(valor_total)
+    valor_total = (machine.preco_diaria * Decimal(dias)).quantize(Decimal("0.01"))
+    percentual, comissao = _calculate_commission(valor_total)
 
     db_rental = MachineRental(
         maquina_id=machine.id,
-        agricultor_id=agricultor_id,
+        locatario_id=locatario_id,
         data_inicio=rental_in.data_inicio,
         data_fim=rental_in.data_fim,
         status=MachineRentalStatus.PENDENTE,
         valor_total=valor_total,
         comissao_percentual=percentual,
         valor_comissao=comissao,
-        valor_liquido_proprietario=liquido,
     )
     db.add(db_rental)
     db.commit()
@@ -106,10 +109,10 @@ def list_rentals_for_owner(db: Session, proprietario_id: uuid.UUID) -> list[Mach
     )
 
 
-def list_rentals_for_farmer(db: Session, agricultor_id: uuid.UUID) -> list[MachineRental]:
+def list_rentals_for_locatario(db: Session, locatario_id: uuid.UUID) -> list[MachineRental]:
     return (
         db.query(MachineRental)
-        .filter(MachineRental.agricultor_id == agricultor_id)
+        .filter(MachineRental.locatario_id == locatario_id)
         .order_by(MachineRental.criado_em.desc())
         .all()
     )
@@ -117,8 +120,8 @@ def list_rentals_for_farmer(db: Session, agricultor_id: uuid.UUID) -> list[Machi
 
 def update_rental_status(db: Session, db_rental: MachineRental, new_status: MachineRentalStatus) -> MachineRental:
     valid_transitions: dict[MachineRentalStatus, set[MachineRentalStatus]] = {
-        MachineRentalStatus.PENDENTE: {MachineRentalStatus.APROVADO, MachineRentalStatus.CANCELADO},
-        MachineRentalStatus.APROVADO: {MachineRentalStatus.EM_ANDAMENTO, MachineRentalStatus.CANCELADO},
+        MachineRentalStatus.PENDENTE: {MachineRentalStatus.CONFIRMADO, MachineRentalStatus.CANCELADO},
+        MachineRentalStatus.CONFIRMADO: {MachineRentalStatus.EM_ANDAMENTO, MachineRentalStatus.CANCELADO},
         MachineRentalStatus.EM_ANDAMENTO: {MachineRentalStatus.CONCLUIDO, MachineRentalStatus.CANCELADO},
         MachineRentalStatus.CONCLUIDO: set(),
         MachineRentalStatus.CANCELADO: set(),
@@ -132,10 +135,9 @@ def update_rental_status(db: Session, db_rental: MachineRental, new_status: Mach
 
     db_rental.status = new_status
 
-    # Ao aprovar, marca a máquina como indisponível durante o aluguel
     machine = db.query(Machine).filter(Machine.id == db_rental.maquina_id).first()
     if machine:
-        if new_status == MachineRentalStatus.APROVADO:
+        if new_status == MachineRentalStatus.CONFIRMADO:
             machine.disponivel = False
             db.add(machine)
         elif new_status in (MachineRentalStatus.CONCLUIDO, MachineRentalStatus.CANCELADO):

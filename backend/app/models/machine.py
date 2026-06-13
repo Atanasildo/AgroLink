@@ -1,8 +1,8 @@
 import enum
 import uuid
 
-from sqlalchemy import Boolean, Column, Date, DateTime, Enum, ForeignKey, Numeric, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Numeric, String
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -12,27 +12,28 @@ from app.core.database import Base
 class MachineType(str, enum.Enum):
     TRATOR = "trator"
     COLHEITADEIRA = "colheitadeira"
-    PULVERIZADOR = "pulverizador"
     ARADO = "arado"
-    SISTEMA_IRRIGACAO = "sistema_irrigacao"
+    PLANTADORA = "plantadora"
+    IRRIGACAO = "irrigacao"
+    OUTROS = "outros"
 
 
 class Machine(Base):
     __tablename__ = "machines"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
     proprietario_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     nome = Column(String(150), nullable=False)
-    descricao = Column(String(2000), nullable=True)
+    descricao = Column(String(1000), nullable=True)
     tipo = Column(Enum(MachineType, values_callable=lambda x: [e.value for e in x]), nullable=False)
 
-    valor_diario = Column(Numeric(12, 2), nullable=False)
+    # Coluna real na BD é preco_diaria
+    preco_diaria = Column(Numeric(12, 2), nullable=False)
 
-    provincia = Column(String(100), nullable=True)
-    municipio = Column(String(100), nullable=True)
-
+    provincia = Column(String(100), nullable=False)
+    municipio = Column(String(100), nullable=False)
+    imagens = Column(ARRAY(String()), nullable=True)
     disponivel = Column(Boolean, default=True, nullable=False)
 
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
@@ -44,34 +45,35 @@ class Machine(Base):
 
 class MachineRentalStatus(str, enum.Enum):
     PENDENTE = "pendente"
-    APROVADO = "aprovado"
+    CONFIRMADO = "confirmado"
     EM_ANDAMENTO = "em_andamento"
     CONCLUIDO = "concluido"
     CANCELADO = "cancelado"
 
 
 class MachineRental(Base):
-    """Reserva de uma máquina agrícola, com cálculo automático de comissão (10%)."""
-
     __tablename__ = "machine_rentals"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     maquina_id = Column(UUID(as_uuid=True), ForeignKey("machines.id"), nullable=False)
-    agricultor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    # Coluna real na BD é locatario_id (não agricultor_id)
+    locatario_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
-    data_inicio = Column(Date, nullable=False)
-    data_fim = Column(Date, nullable=False)
+    data_inicio = Column(DateTime, nullable=False)
+    data_fim = Column(DateTime, nullable=False)
 
-    status = Column(Enum(MachineRentalStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=MachineRentalStatus.PENDENTE)
-
-    valor_total = Column(Numeric(12, 2), nullable=True)
+    valor_total = Column(Numeric(14, 2), nullable=False)
     comissao_percentual = Column(Numeric(5, 2), nullable=True)
-    valor_comissao = Column(Numeric(12, 2), nullable=True)
-    valor_liquido_proprietario = Column(Numeric(12, 2), nullable=True)
+    valor_comissao = Column(Numeric(14, 2), nullable=True)
+
+    status = Column(
+        Enum(MachineRentalStatus, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=MachineRentalStatus.PENDENTE,
+    )
 
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
-    atualizado_em = Column(DateTime(timezone=True), onupdate=func.now())
 
     maquina = relationship("Machine", back_populates="reservas")
-    agricultor = relationship("User", foreign_keys=[agricultor_id])
+    locatario = relationship("User", foreign_keys=[locatario_id])
