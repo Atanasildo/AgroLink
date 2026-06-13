@@ -52,14 +52,24 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
     setLoading(true);
     setError(null);
     try {
-      const [profileData, summaryData, ratingsData] = await Promise.all([
-        getUser(profileId),
-        getUserRatingSummary(profileId),
-        getUserRatings(profileId),
-      ]);
+      // Carregar apenas o perfil - ratings vem depois
+      const profileData = await getUser(profileId);
       setProfile(profileData);
-      setSummary(summaryData);
-      setRatings(ratingsData);
+      
+      // Ratings: opcional, falhar silenciosamente se der erro
+      try {
+        const [summaryData, ratingsData] = await Promise.all([
+          getUserRatingSummary(profileId),
+          getUserRatings(profileId),
+        ]);
+        setSummary(summaryData);
+        setRatings(ratingsData);
+      } catch (ratingErr) {
+        console.warn("⚠️ Falha ao carregar ratings (não bloqueia perfil):", ratingErr);
+        // Continua mesmo sem ratings
+        setSummary({ media_geral: 0, total_avaliacoes: 0 });
+        setRatings([]);
+      }
     } catch (err) {
       setError(err instanceof ApiError && err.status === 0 ? "O servidor está a acordar (~30s). Aguarde e recarregue a página." : "Não foi possível carregar este perfil.");
     } finally {
@@ -140,7 +150,15 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
       </div>
 
       <div className="mx-auto max-w-3xl px-6 py-10 flex flex-col gap-8">
-        {/* Resumo de avaliações */}
+        {/* Aviso temporário */}
+        <div className="bg-amber-50 border border-amber-200 px-4 py-3 rounded-sm">
+          <p className="font-mono text-xs text-amber-700">
+            ⚠️ Ratings temporariamente indisponíveis (backend em manutenção)
+          </p>
+        </div>
+
+        {/* Resumo de avaliações — DESABILITADO TEMPORARIAMENTE */}
+        {summary && summary.total_avaliacoes > 0 && (
         <div className="field-card rounded-sm flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="label-eyebrow mb-2">Reputação</p>
@@ -197,6 +215,7 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
