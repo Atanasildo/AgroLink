@@ -20,7 +20,7 @@ EXPOSE 8000
 # Script de arranque: aguarda DB, corre migrations, inicia servidor
 CMD ["sh", "-c", "\
   echo 'A iniciar AgroLink API...' && \
-  alembic upgrade head || (echo 'Migration falhou, a tentar stamp + upgrade...' && alembic stamp 0001 && alembic upgrade head) && \
-  echo 'Migrations concluídas. A iniciar servidor...' && \
+  alembic upgrade head || echo 'Alembic ignorado, as migrações serão aplicadas pelo servidor.' && \
+  echo 'A iniciar servidor...' && \
   uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1\
 "]

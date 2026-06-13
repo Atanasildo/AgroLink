@@ -9,6 +9,23 @@ from app.core.database import Base, engine
 # Cria as tabelas automaticamente se não existirem
 Base.metadata.create_all(bind=engine)
 
+# Adiciona colunas novas de forma segura (idempotente)
+def _safe_migrate():
+    import sqlalchemy as sa
+    with engine.connect() as conn:
+        for col_sql in [
+            "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS disponivel BOOLEAN NOT NULL DEFAULT TRUE",
+            "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS provincia VARCHAR(100)",
+            "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS municipio VARCHAR(100)",
+        ]:
+            try:
+                conn.execute(sa.text(col_sql))
+                conn.commit()
+            except Exception:
+                conn.rollback()
+
+_safe_migrate()
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=(
