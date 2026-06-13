@@ -190,7 +190,7 @@ function MachineForm({ token, onSuccess, initial }: {
     setError(null);
     setLoading(true);
     try {
-      const payload = { nome, tipo, descricao: descricao || undefined, preco_diaria: parseFloat(precoDiaria), provincia, municipio };
+      const payload = { nome, tipo: tipo as Machine["tipo"], descricao: descricao || undefined, preco_diaria: parseFloat(precoDiaria), provincia, municipio };
       if (initial) {
         await updateMachine(token, initial.id, payload);
       } else {
