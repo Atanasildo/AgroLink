@@ -170,7 +170,7 @@ function PublishMachineForm({ token, onPublished }: { token: string; onPublished
         nome,
         descricao: descricao || undefined,
         tipo: tipo as Machine["tipo"],
-        valor_diario: Number(valorDiario) as unknown as string,
+        preco_diaria: Number(valorDiario),
         provincia: provincia || undefined,
         municipio: municipio || undefined,
       });
