@@ -548,3 +548,70 @@ export function sendMessage(
 ) {
   return apiRequest<ChatMessage>("/chat/messages", { method: "POST", body: payload, token });
 }
+
+// ---------- Rede Social ----------
+
+export type PostType = "duvida" | "dica" | "experiencia" | "noticia";
+
+export interface PostAuthor {
+  id: string;
+  nome: string;
+  role: UserRole;
+  foto_perfil_url?: string | null;
+}
+
+export interface SocialPost {
+  id: string;
+  autor_id: string;
+  conteudo: string;
+  tipo: PostType;
+  imagens?: string[] | null;
+  criado_em: string;
+  autor: PostAuthor;
+  likes_count: number;
+  comments_count: number;
+  curtido_por_mim: boolean;
+}
+
+export interface SocialComment {
+  id: string;
+  post_id: string;
+  autor_id: string;
+  conteudo: string;
+  criado_em: string;
+  autor: PostAuthor;
+}
+
+export function listPosts(params: Record<string, string | undefined> = {}, token?: string | null) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== "") as [string, string][]
+  ).toString();
+  return apiRequest<SocialPost[]>(`/social/posts${query ? `?${query}` : ""}`, { token });
+}
+
+export function createPost(token: string, payload: { conteudo: string; tipo: PostType; imagens?: string[] }) {
+  return apiRequest<SocialPost>("/social/posts", { method: "POST", body: payload, token });
+}
+
+export function deletePost(token: string, postId: string) {
+  return apiRequest<void>(`/social/posts/${postId}`, { method: "DELETE", token });
+}
+
+export function togglePostLike(token: string, postId: string) {
+  return apiRequest<{ curtido: boolean; likes_count: number }>(`/social/posts/${postId}/like`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function listPostComments(postId: string) {
+  return apiRequest<SocialComment[]>(`/social/posts/${postId}/comments`);
+}
+
+export function createComment(token: string, postId: string, conteudo: string) {
+  return apiRequest<SocialComment>(`/social/posts/${postId}/comments`, {
+    method: "POST",
+    body: { conteudo },
+    token,
+  });
+}

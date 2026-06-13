@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { Sprout, Truck, ShoppingBasket, LogOut, User, Tractor, TrendingUp, Map, MessageCircle } from "lucide-react";
+import { Sprout, Truck, ShoppingBasket, LogOut, User, Tractor, TrendingUp, Map, MessageCircle, Users } from "lucide-react";
 
 const links = [
   { href: "/marketplace", label: "Mercado", icon: ShoppingBasket },
@@ -10,6 +10,7 @@ const links = [
   { href: "/maquinas", label: "Máquinas", icon: Tractor },
   { href: "/precos", label: "Preços", icon: TrendingUp },
   { href: "/mapa", label: "Mapa", icon: Map },
+  { href: "/social", label: "Comunidade", icon: Users },
   { href: "/chat", label: "Chat", icon: MessageCircle },
 ];
 

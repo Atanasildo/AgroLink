@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import auth, chat, diagnostic, machines, map as map_routes, payments, prices, products, ratings, seed, test, transport, users
+from app.api.routes import auth, chat, diagnostic, machines, map as map_routes, payments, prices, products, ratings, seed, social, test, transport, users
 from app.core.config import settings
 from app.core.database import Base, engine
 
@@ -65,6 +65,7 @@ app.include_router(ratings.router, prefix=api_prefix)
 app.include_router(chat.router, prefix=api_prefix)
 app.include_router(prices.router, prefix=api_prefix)
 app.include_router(map_routes.router, prefix=api_prefix)
+app.include_router(social.router, prefix=api_prefix)
 app.include_router(payments.router, prefix=api_prefix)
 app.include_router(seed.router, prefix=api_prefix)
 app.include_router(test.router, prefix=api_prefix)

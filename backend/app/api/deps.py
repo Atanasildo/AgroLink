@@ -11,6 +11,7 @@ from app.crud.user import get_user_by_id
 from app.models.user import User, UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login", auto_error=False)
 
 
 def get_current_user(
@@ -46,6 +47,35 @@ def get_current_user(
 
 def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     return current_user
+
+
+def get_current_user_optional(
+    token: str | None = Depends(oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Como get_current_user, mas devolve None em vez de erro se não houver token
+    válido. Útil para endpoints públicos que mostram informação extra a utilizadores
+    autenticados (ex: se já curtiram uma publicação)."""
+    if not token:
+        return None
+
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "access":
+        return None
+
+    user_id = payload.get("sub")
+    if user_id is None:
+        return None
+
+    try:
+        user = get_user_by_id(db, uuid.UUID(user_id))
+    except ValueError:
+        return None
+
+    if user is None or not user.ativo:
+        return None
+
+    return user
 
 
 def require_roles(*allowed_roles: UserRole):

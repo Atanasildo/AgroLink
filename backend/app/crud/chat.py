@@ -48,7 +48,7 @@ def count_unread(db: Session, user_id: uuid.UUID, other_user_id: uuid.UUID) -> i
         .filter(
             ChatMessage.remetente_id == other_user_id,
             ChatMessage.destinatario_id == user_id,
-            ChatMessage.lida.is_(False),
+            ChatMessage.lido.is_(False),
         )
         .count()
     )
@@ -60,9 +60,9 @@ def mark_conversation_as_read(db: Session, user_id: uuid.UUID, other_user_id: uu
         .filter(
             ChatMessage.remetente_id == other_user_id,
             ChatMessage.destinatario_id == user_id,
-            ChatMessage.lida.is_(False),
+            ChatMessage.lido.is_(False),
         )
-        .update({ChatMessage.lida: True})
+        .update({ChatMessage.lido: True})
     )
     db.commit()
     return updated
