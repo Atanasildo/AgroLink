@@ -15,9 +15,17 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("vehicles", sa.Column("disponivel", sa.Boolean(), nullable=False, server_default="true"))
-    op.add_column("vehicles", sa.Column("provincia", sa.String(100), nullable=True))
-    op.add_column("vehicles", sa.Column("municipio", sa.String(100), nullable=True))
+    conn = op.get_bind()
+    # Usar ADD COLUMN IF NOT EXISTS para ser idempotente
+    conn.execute(sa.text(
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS disponivel BOOLEAN NOT NULL DEFAULT TRUE"
+    ))
+    conn.execute(sa.text(
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS provincia VARCHAR(100)"
+    ))
+    conn.execute(sa.text(
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS municipio VARCHAR(100)"
+    ))
 
 
 def downgrade() -> None:
