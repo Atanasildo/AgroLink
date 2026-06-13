@@ -18,7 +18,49 @@ def test_machines_count(db: Session = Depends(get_db)):
         return {"status": "error", "error": str(e), "type": type(e).__name__}
 
 
-@router.get("/machines-ids")
+@router.get("/raw-sql")
+def test_raw_sql(db: Session = Depends(get_db)):
+    """Query SQL pura — sem models."""
+    try:
+        from sqlalchemy import text
+        
+        # Teste 1: Contar
+        count = db.execute(text("SELECT COUNT(*) FROM machines")).scalar()
+        
+        # Teste 2: Listar colunas
+        columns = db.execute(text("""
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'machines'
+            ORDER BY ordinal_position
+        """)).fetchall()
+        
+        # Teste 3: Primeira máquina (sem joins)
+        machine = db.execute(text("""
+            SELECT id, nome, tipo, preco_diaria 
+            FROM machines 
+            LIMIT 1
+        """)).fetchone()
+        
+        return {
+            "status": "ok",
+            "machines_count": count,
+            "columns": [{"name": c[0], "type": c[1]} for c in columns],
+            "first_machine": {
+                "id": str(machine[0]) if machine else None,
+                "nome": machine[1] if machine else None,
+                "tipo": machine[2] if machine else None,
+                "preco_diaria": str(machine[3]) if machine else None,
+            } if machine else None,
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "error": str(e),
+            "type": type(e).__name__,
+            "traceback": traceback.format_exc(),
+        }
 def test_machines_ids(db: Session = Depends(get_db)):
     """Apenas IDs e nomes das máquinas (teste minimalista)."""
     try:
