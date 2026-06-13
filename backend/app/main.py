@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import auth, chat, machines, map as map_routes, payments, prices, products, ratings, seed, test, transport, users
+from app.api.routes import auth, chat, diagnostic, machines, map as map_routes, payments, prices, products, ratings, seed, test, transport, users
 from app.core.config import settings
 from app.core.database import Base, engine
 
@@ -11,18 +11,21 @@ Base.metadata.create_all(bind=engine)
 
 # Adiciona colunas novas de forma segura (idempotente)
 def _safe_migrate():
-    import sqlalchemy as sa
-    with engine.connect() as conn:
-        for col_sql in [
-            "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS disponivel BOOLEAN NOT NULL DEFAULT TRUE",
-            "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS provincia VARCHAR(100)",
-            "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS municipio VARCHAR(100)",
-        ]:
+    import logging
+    logger = logging.getLogger(__name__)
+    from sqlalchemy import text
+    migrations = [
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS disponivel BOOLEAN NOT NULL DEFAULT TRUE",
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS provincia VARCHAR(100)",
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS municipio VARCHAR(100)",
+    ]
+    with engine.begin() as conn:  # begin() faz commit automático ao sair
+        for sql in migrations:
             try:
-                conn.execute(sa.text(col_sql))
-                conn.commit()
-            except Exception:
-                conn.rollback()
+                conn.execute(text(sql))
+                logger.info(f"Migration OK: {sql[:60]}")
+            except Exception as e:
+                logger.warning(f"Migration skip: {e}")
 
 _safe_migrate()
 
@@ -59,6 +62,7 @@ app.include_router(map_routes.router, prefix=api_prefix)
 app.include_router(payments.router, prefix=api_prefix)
 app.include_router(seed.router, prefix=api_prefix)
 app.include_router(test.router, prefix=api_prefix)
+app.include_router(diagnostic.router, prefix=api_prefix)
 # TODO: Adicionar rota de diagnóstico (temporariamente desabilitada)
 
 
@@ -97,3 +101,8 @@ def root():
 @app.get("/health", tags=["Status"])
 def health_check():
     return {"status": "ok"}
+
+# Startup confirmation log
+import logging as _logging
+_logging.basicConfig(level=_logging.INFO)
+_logging.getLogger(__name__).info("AgroLink API iniciada - migracoes aplicadas")

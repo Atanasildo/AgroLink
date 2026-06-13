@@ -90,3 +90,34 @@ def diagnostic_python():
         "python_version": sys.version,
         "python_implementation": sys.implementation.name,
     }
+
+
+@router.get("/vehicles-columns", tags=["Diagnóstico"])
+def diagnostic_vehicles_columns(db: Session = Depends(get_db)):
+    """Lista as colunas da tabela vehicles."""
+    try:
+        result = db.execute(
+            text("""
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_name = 'vehicles'
+            ORDER BY ordinal_position
+            """)
+        ).fetchall()
+        return {
+            "status": "ok",
+            "columns": [{"name": r[0], "type": r[1], "nullable": r[2], "default": r[3]} for r in result],
+        }
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
+
+
+@router.get("/transport-error", tags=["Diagnóstico"])
+def diagnostic_transport_error(db: Session = Depends(get_db)):
+    """Tenta fazer o mesmo que /transport/routes para capturar o erro real."""
+    try:
+        from sqlalchemy import text as t
+        result = db.execute(t("SELECT * FROM transport_routes LIMIT 1")).fetchall()
+        return {"status": "ok", "rows": len(result)}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "type": type(e).__name__}
