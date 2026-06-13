@@ -18,6 +18,32 @@ def test_machines_count(db: Session = Depends(get_db)):
         return {"status": "error", "error": str(e), "type": type(e).__name__}
 
 
+@router.get("/machines-ids")
+def test_machines_ids(db: Session = Depends(get_db)):
+    """Apenas IDs e nomes das máquinas (teste minimalista)."""
+    try:
+        from app.models.machine import Machine
+        from sqlalchemy import text
+        
+        # Query muito simples sem joins
+        result = db.execute(text("SELECT id, nome FROM machines LIMIT 10"))
+        machines = result.fetchall()
+        
+        return {
+            "status": "ok",
+            "count": len(machines),
+            "machines": [{"id": str(m[0]), "nome": m[1]} for m in machines],
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "error": str(e),
+            "type": type(e).__name__,
+            "traceback": traceback.format_exc(),
+        }
+
+
 @router.get("/machines-raw")
 def test_machines_raw(db: Session = Depends(get_db)):
     """Retorna máquinas brutas sem serialização."""

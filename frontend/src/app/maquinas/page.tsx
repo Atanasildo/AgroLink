@@ -43,8 +43,8 @@ export default function MaquinasPage() {
   }
 
   useEffect(() => { loadMachines(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-  // Auto-retry: quando o servidor acorda, recarrega automaticamente
-  useAutoRetry(!!error, loadMachines);
+  // TODO: Auto-retry desabilitado temporariamente (causava loop de atualização)
+  // useAutoRetry(!!error, loadMachines);
 
   function handleSearch(e: FormEvent) { e.preventDefault(); loadMachines(); }
 
