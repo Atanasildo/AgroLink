@@ -29,6 +29,8 @@ function timeAgo(iso: string) {
 
 export default function ChatPage() {
   const { user, token } = useAuth();
+  // Clear unread badge when chat is open
+  const { refreshUnread } = useAuth();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [partners, setPartners] = useState<Record<string, User>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -75,8 +77,8 @@ export default function ChatPage() {
     getConversation(token, activeId)
       .then((msgs) => setMessages([...msgs].reverse()))
       .catch(() => {})
-      .finally(() => setLoadingMsgs(false));
-  }, [token, activeId]);
+      .finally(() => { setLoadingMsgs(false); refreshUnread(); });
+  }, [token, activeId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // WebSocket for real-time messages
   useEffect(() => {

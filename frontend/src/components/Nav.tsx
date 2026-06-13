@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { Sprout, Truck, ShoppingBasket, LogOut, User, Tractor, TrendingUp, Map, MessageCircle, Users } from "lucide-react";
+import {
+  Sprout, Truck, ShoppingBasket, LogOut, User,
+  Tractor, TrendingUp, Map, MessageCircle, Users,
+} from "lucide-react";
 
 const links = [
   { href: "/marketplace", label: "Mercado", icon: ShoppingBasket },
@@ -11,17 +14,18 @@ const links = [
   { href: "/precos", label: "Preços", icon: TrendingUp },
   { href: "/mapa", label: "Mapa", icon: Map },
   { href: "/social", label: "Comunidade", icon: Users },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/chat", label: "Chat", icon: MessageCircle, showBadge: true },
 ];
 
 export function Nav() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, unreadCount } = useAuth();
 
   return (
     <header className="border-b-2 border-field/20 bg-cream/95 backdrop-blur sticky top-0 z-50 shadow-sm">
-      <div className="flex items-center justify-between px-3 py-3 w-full">
-        {/* Logo — flush left */}
-        <Link href="/" className="flex items-center gap-2 shrink-0 mr-4">
+      <div className="flex items-center px-4 py-3 w-full gap-4">
+
+        {/* Logo — left */}
+        <Link href="/" className="flex items-center gap-2 shrink-0">
           <div className="bg-field rounded-sm p-1.5">
             <Sprout size={18} className="text-cream" />
           </div>
@@ -31,22 +35,29 @@ export function Nav() {
           </div>
         </Link>
 
-        <nav className="flex items-center gap-0.5 min-w-0">
+        {/* Nav links — centered */}
+        <nav className="flex-1 flex items-center justify-center gap-0.5">
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="flex items-center gap-1 font-mono text-xs uppercase tracking-wide text-ink/60 hover:text-field hover:bg-field/5 px-2 py-2 transition-colors rounded-sm whitespace-nowrap"
+              className="relative flex items-center gap-1 font-mono text-xs uppercase tracking-wide text-ink/60 hover:text-field hover:bg-field/5 px-2.5 py-2 transition-colors rounded-sm whitespace-nowrap"
             >
               <link.icon size={13} />
               {link.label}
+              {link.showBadge && unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-mono font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </Link>
           ))}
+        </nav>
 
-          <div className="h-5 w-px bg-field/20 mx-1.5" />
-
+        {/* Auth — right */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {user ? (
-            <div className="flex items-center gap-1.5">
+            <>
               <Link
                 href={`/perfil/${user.id}`}
                 className="flex items-center gap-1.5 bg-field/8 border border-field/20 px-2.5 py-1.5 rounded-sm hover:bg-field/15 transition-colors"
@@ -62,9 +73,9 @@ export function Nav() {
               >
                 <LogOut size={12} /> Saír
               </button>
-            </div>
+            </>
           ) : (
-            <div className="flex items-center gap-1.5">
+            <>
               <Link
                 href="/login"
                 className="font-mono text-xs uppercase tracking-wider text-field/80 hover:text-field px-2 py-2 transition-colors"
@@ -77,9 +88,9 @@ export function Nav() {
               >
                 Criar conta
               </Link>
-            </div>
+            </>
           )}
-        </nav>
+        </div>
       </div>
     </header>
   );
