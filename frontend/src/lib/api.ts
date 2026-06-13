@@ -28,18 +28,27 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}${path}`, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      cache: "no-store",
-    });
-  } catch {
-    throw new ApiError(0, "Sem ligação ao servidor. Verifique a sua ligação à internet.");
+  // Retry até 3x com backoff — lida com cold start do Render (free tier)
+  let res!: Response;
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      res = await fetch(`${API_URL}${path}`, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        cache: "no-store",
+      });
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    }
   }
-
+  if (lastErr !== null) {
+    throw new ApiError(0, "Servidor indisponível. A tentar reconectar… Aguarde alguns segundos e tente novamente.");
+  }
   if (!res.ok) {
     let detail: unknown;
     try {

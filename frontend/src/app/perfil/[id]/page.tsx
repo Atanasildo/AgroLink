@@ -59,8 +59,8 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
       setProfile(profileData);
       setSummary(summaryData);
       setRatings(ratingsData);
-    } catch {
-      setError("Não foi possível carregar este perfil.");
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 0 ? "O servidor está a acordar (~30s). Aguarde e recarregue a página." : "Não foi possível carregar este perfil.");
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,8 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
       <div className="mx-auto max-w-3xl px-6 py-16">
         <div className="field-card text-center py-16 rounded-sm">
           <p className="font-display text-2xl text-field mb-2">Perfil não encontrado</p>
-          <p className="font-body text-ink/50">{error ?? "Este utilizador não existe."}</p>
+          <p className="font-body text-ink/50 mb-4">{error ?? "Este utilizador não existe."}</p>
+          {error && <button onClick={load} className="btn-primary rounded-sm text-sm">🔄 Tentar novamente</button>}
         </div>
       </div>
     );

@@ -12,13 +12,10 @@ from app.schemas.user import UserRead, UserUpdate
 router = APIRouter(prefix="/users", tags=["Utilizadores"])
 
 
-@router.get("/{user_id}", response_model=UserRead)
-def read_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
-    """Visualizar o perfil público de um utilizador."""
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
-    return user
+@router.get("/me", response_model=UserRead)
+def read_my_profile(current_user: User = Depends(get_current_user)):
+    """Retornar o perfil do utilizador autenticado."""
+    return current_user
 
 
 @router.put("/me", response_model=UserRead)
@@ -29,3 +26,12 @@ def update_my_profile(
 ):
     """Atualizar o próprio perfil (nome, telefone, localização, bio, foto)."""
     return update_user(db, current_user, user_in)
+
+
+@router.get("/{user_id}", response_model=UserRead)
+def read_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Visualizar o perfil público de um utilizador."""
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
+    return user

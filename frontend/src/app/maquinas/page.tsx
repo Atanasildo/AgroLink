@@ -34,8 +34,8 @@ export default function MaquinasPage() {
         municipio: municipio || undefined,
       });
       setMachines(data);
-    } catch {
-      setError("Não foi possível carregar as máquinas. Verifique se o backend está em execução.");
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 0 ? "O servidor está a acordar (pode demorar ~30s). A tentar novamente…" : "Não foi possível carregar as máquinas.");
     } finally {
       setLoading(false);
     }
