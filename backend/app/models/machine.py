@@ -35,6 +35,7 @@ class Machine(Base):
     municipio = Column(String(100), nullable=False)
     imagens = Column(ARRAY(String()), nullable=True)
     disponivel = Column(Boolean, default=True, nullable=False)
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
     proprietario = relationship("User", back_populates="maquinas")
     reservas = relationship("MachineRental", back_populates="maquina", cascade="all, delete-orphan")
