@@ -22,3 +22,10 @@ class ChatMessageRead(BaseModel):
     tipo: MessageType
     lido: bool
     criado_em: datetime
+
+
+class ConversationSummary(BaseModel):
+    """Resumo de uma conversa com contagem de mensagens não lidas."""
+    outro_utilizador_id: uuid.UUID
+    ultima_mensagem: ChatMessageRead | None = None
+    mensagens_nao_lidas: int = 0
