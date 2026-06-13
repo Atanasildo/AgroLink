@@ -36,9 +36,6 @@ class Machine(Base):
     imagens = Column(ARRAY(String()), nullable=True)
     disponivel = Column(Boolean, default=True, nullable=False)
 
-    criado_em = Column(DateTime(timezone=True), server_default=func.now())
-    atualizado_em = Column(DateTime(timezone=True), onupdate=func.now())
-
     proprietario = relationship("User", back_populates="maquinas")
     reservas = relationship("MachineRental", back_populates="maquina", cascade="all, delete-orphan")
 
