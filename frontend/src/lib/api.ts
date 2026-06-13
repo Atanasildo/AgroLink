@@ -46,11 +46,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       break;
     } catch (e) {
       lastErr = e;
+      console.error(`[apiRequest] Tentativa ${attempt + 1} falhou:`, e);
     }
   }
   if (lastErr !== null) {
+    console.error(`[apiRequest] Todas as ${delays.length} tentativas falharam:`, lastErr);
     throw new ApiError(0, "O servidor está a iniciar (plano gratuito). Aguarde ~60s e tente novamente.");
   }
+
   if (!res.ok) {
     let detail: unknown;
     try {
@@ -59,6 +62,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     } catch {
       detail = res.statusText;
     }
+    
+    // Log especial para 500s
+    if (res.status === 500) {
+      console.error(`[apiRequest] Erro 500 em ${method} ${path}:`, detail);
+    }
+    
     throw new ApiError(res.status, detail);
   }
 

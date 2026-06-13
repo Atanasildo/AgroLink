@@ -85,12 +85,29 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
   }
 
   if (error || !profile) {
+    const is500 = error?.includes("Erro interno");
     return (
       <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="field-card text-center py-16 rounded-sm">
-          <p className="font-display text-2xl text-field mb-2">Perfil não encontrado</p>
-          <p className="font-body text-ink/50 mb-4">{error ?? "Este utilizador não existe."}</p>
-          {error && <button onClick={load} className="btn-primary rounded-sm text-sm">🔄 Tentar novamente</button>}
+        <div className="field-card text-center py-16 rounded-sm border-l-4 border-alert">
+          <p className="font-display text-2xl text-field mb-2">
+            {is500 ? "Servidor indisponível" : "Perfil não encontrado"}
+          </p>
+          <p className="font-body text-ink/50 mb-6">
+            {error ?? "Este utilizador não existe."}
+          </p>
+          <div className="flex justify-center gap-2">
+            <button onClick={load} className="btn-primary rounded-sm text-sm">
+              🔄 Tentar novamente
+            </button>
+            <a href="/" className="btn-secondary rounded-sm text-sm">
+              ← Voltar ao início
+            </a>
+          </div>
+          {is500 && (
+            <p className="font-mono text-xs text-ink/40 mt-4 p-2 bg-field/5 rounded">
+              Se o problema persistir, contacte support@agrolink.ao
+            </p>
+          )}
         </div>
       </div>
     );

@@ -45,16 +45,25 @@ app.include_router(seed.router, prefix=api_prefix)
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    """Garante que respostas 500 passem pelo CORSMiddleware.
+    """Garante que respostas 500 passem pelo CORSMiddleware e com logging.
 
     Sem este handler, exceções não tratadas propagam até o
     ServerErrorMiddleware (fora do CORSMiddleware) e o navegador
     reporta "bloqueado por CORS", escondendo o erro real (500).
     """
-    return JSONResponse(
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error(f"Erro 500 não tratado: {type(exc).__name__}: {str(exc)}", exc_info=exc)
+    
+    # Retorna com headers CORS explícitos
+    response = JSONResponse(
         status_code=500,
-        content={"detail": "Erro interno no servidor. Tente novamente mais tarde."},
+        content={"detail": "Erro interno no servidor. Tente novamente mais tarde.", "error": str(exc)[:100]},
     )
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 
 @app.get("/", tags=["Status"])

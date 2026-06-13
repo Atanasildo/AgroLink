@@ -101,8 +101,11 @@ export default function MaquinasPage() {
         </form>
 
         {error && (
-          <div className="border border-earth/25 bg-earth/8 text-earth px-4 py-3 rounded-sm mb-6 font-body text-sm">
-            {error}
+          <div className="border border-earth/25 bg-earth/8 text-earth px-4 py-3 rounded-sm mb-6 font-body text-sm flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={loadMachines} className="btn-link text-earth hover:underline text-xs ml-4">
+              🔄 Tentar novamente
+            </button>
           </div>
         )}
 
