@@ -33,6 +33,7 @@ def _prov_mun():
     return p, m
 
 
+@router.get("/machines-only", status_code=status.HTTP_201_CREATED)
 @router.post("/machines-only", status_code=status.HTTP_201_CREATED)
 def seed_machines_only(db: Session = Depends(get_db)):
     """Popula apenas máquinas de exemplo. Rápido e idempotente."""
