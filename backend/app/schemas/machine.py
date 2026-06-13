@@ -31,6 +31,9 @@ class MachineUpdate(BaseModel):
     disponivel: bool | None = None
 
 
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_serializer
+
+
 class MachineRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -39,19 +42,15 @@ class MachineRead(BaseModel):
     nome: str
     descricao: str | None = None
     tipo: MachineType
-    # Expõe preco_diaria como valor_diario para o frontend
-    valor_diario: Decimal
+    preco_diaria: Decimal = Field(alias="valor_diario")  # Mapeia BD → API
     provincia: str | None = None
     municipio: str | None = None
     disponivel: bool
     criado_em: datetime
 
-    @classmethod
-    def model_validate(cls, obj, **kwargs):  # type: ignore[override]
-        # Mapeia preco_diaria → valor_diario quando lê da BD
-        if hasattr(obj, "preco_diaria") and not hasattr(obj, "valor_diario"):
-            obj.__dict__["valor_diario"] = obj.preco_diaria
-        return super().model_validate(obj, **kwargs)
+    @field_serializer("preco_diaria", when_used="json-unless-none")
+    def serialize_preco(self, value: Decimal) -> str:
+        return str(value)
 
 
 # ---------- Reservas ----------
