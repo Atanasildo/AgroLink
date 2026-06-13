@@ -33,7 +33,65 @@ def _prov_mun():
     return p, m
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("/machines-only", status_code=status.HTTP_201_CREATED)
+def seed_machines_only(db: Session = Depends(get_db)):
+    """Popula apenas máquinas de exemplo. Rápido e idempotente."""
+    try:
+        # Verifica se já há máquinas
+        existing = db.query(Machine).first()
+        if existing:
+            return {"detail": "Máquinas já existem.", "seeded": False}
+
+        # Cria um proprietário (ou usa um existente)
+        proprietario = db.query(User).filter(User.role == UserRole.PROPRIETARIO_MAQUINAS).first()
+        if not proprietario:
+            proprietario = User(
+                nome="Sofia Proprietária",
+                email="proprietaria@agrolink.ao",
+                hashed_password=hash_password("Agrolink@2026"),
+                role=UserRole.PROPRIETARIO_MAQUINAS,
+                provincia="Huambo",
+                municipio="Huambo",
+            )
+            db.add(proprietario)
+            db.flush()
+
+        # Máquinas de exemplo
+        maquinas_dados = [
+            ("Trator John Deere 5075E", MachineType.TRATOR, 50000, "Trator 75CV para preparação do solo", "Huambo", "Huambo"),
+            ("Colheitadeira New Holland TC5060", MachineType.COLHEITADEIRA, 75000, "Para cereais com cabina climatizada", "Huambo", "Caála"),
+            ("Arado de Disco Baldan", MachineType.ARADO, 15000, "4 discos para solos argilosos", "Luanda", "Luanda"),
+            ("Plantadora Semeato SHM", MachineType.PLANTADORA, 35000, "Precisão para milho e soja", "Bié", "Kuito"),
+            ("Sistema de Irrigação Gotejamento", MachineType.IRRIGACAO, 25000, "Kit para 5 hectares", "Cuanza Sul", "Sumbe"),
+            ("Trator Massey Ferguson 292", MachineType.TRATOR, 45000, "Bom para pequenas propriedades", "Malanje", "Malanje"),
+            ("Pulverizador Jacto 600L", MachineType.OUTROS, 12000, "Pulverizador costal motorizado", "Benguela", "Benguela"),
+        ]
+
+        maquinas = []
+        for nome, tipo, preco, descricao, provincia, municipio in maquinas_dados:
+            m = Machine(
+                nome=nome,
+                tipo=tipo,
+                preco_diaria=preco,
+                descricao=descricao,
+                provincia=provincia,
+                municipio=municipio,
+                proprietario_id=proprietario.id,
+                disponivel=True,
+            )
+            maquinas.append(m)
+
+        db.add_all(maquinas)
+        db.commit()
+
+        return {
+            "detail": "Máquinas seedadas com sucesso!",
+            "seeded": True,
+            "count": len(maquinas),
+            "maquinas": [{"nome": m.nome, "tipo": m.tipo.value, "provincia": m.provincia} for m in maquinas],
+        }
+    except Exception as e:
+        return {"detail": "Erro ao seedar máquinas", "error": str(e)}
 def seed_database(db: Session = Depends(get_db)):
     """Insere dados de exemplo. Idempotente — não duplica se já existir."""
     if settings.ENVIRONMENT == "production":

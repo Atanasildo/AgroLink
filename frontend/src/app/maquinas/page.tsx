@@ -10,10 +10,23 @@ import { useAutoRetry } from "@/lib/useAutoRetry";
 const tipos = [
   { value: "trator", label: "🚜 Trator" },
   { value: "colheitadeira", label: "🌾 Colheitadeira" },
-  { value: "pulverizador", label: "💨 Pulverizador" },
   { value: "arado", label: "🔧 Arado" },
-  { value: "sistema_irrigacao", label: "💧 Sistema de irrigação" },
+  { value: "plantadora", label: "🌱 Plantadora" },
+  { value: "irrigacao", label: "💧 Sistema de irrigação" },
+  { value: "outros", label: "⚙️ Outros" },
 ];
+
+const provincias = ["Luanda", "Huambo", "Bié", "Malanje", "Uíge", "Benguela", "Cuanza Sul"];
+
+const municipios: Record<string, string[]> = {
+  "Luanda": ["Luanda", "Cacuaco", "Viana"],
+  "Huambo": ["Huambo", "Caála", "Catchiungo"],
+  "Bié": ["Kuito", "Camacupa", "Chinguar"],
+  "Malanje": ["Malanje", "Calandula"],
+  "Uíge": ["Uíge", "Negage"],
+  "Benguela": ["Benguela", "Lobito"],
+  "Cuanza Sul": ["Sumbe", "Amboim"],
+};
 
 export default function MaquinasPage() {
   const { user, token } = useAuth();
@@ -82,15 +95,19 @@ export default function MaquinasPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex flex-col gap-2 lg:col-span-2">
               <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Província</span>
-              <input value={provincia} onChange={e => setProvincia(e.target.value)}
-                placeholder="Ex: Huambo"
-                className="field-input rounded-sm" />
+              <select value={provincia} onChange={e => { setProvincia(e.target.value); setMunicipio(""); }}
+                className="field-input rounded-sm">
+                <option value="">Todas as províncias</option>
+                {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
             </label>
             <label className="flex flex-col gap-2 lg:col-span-2">
               <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Município</span>
-              <input value={municipio} onChange={e => setMunicipio(e.target.value)}
-                placeholder="Ex: Caála"
-                className="field-input rounded-sm" />
+              <select value={municipio} onChange={e => setMunicipio(e.target.value)}
+                disabled={!provincia} className="field-input rounded-sm disabled:opacity-50">
+                <option value="">Todos os municípios</option>
+                {provincia && municipios[provincia]?.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
             </label>
             <div className="sm:col-span-2 lg:col-span-4">
               <button type="submit" className="btn-primary rounded-sm">
@@ -187,13 +204,19 @@ function PublishMachineForm({ token, onPublished }: { token: string; onPublished
         </label>
         <label className="flex flex-col gap-2">
           <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Província</span>
-          <input value={provincia} onChange={e => setProvincia(e.target.value)}
-            placeholder="Ex: Huambo" className="field-input rounded-sm" />
+          <select required value={provincia} onChange={e => { setProvincia(e.target.value); setMunicipio(""); }}
+            className="field-input rounded-sm">
+            <option value="">Selecionar província...</option>
+            {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
         </label>
         <label className="flex flex-col gap-2">
           <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Município</span>
-          <input value={municipio} onChange={e => setMunicipio(e.target.value)}
-            placeholder="Ex: Caála" className="field-input rounded-sm" />
+          <select required value={municipio} onChange={e => setMunicipio(e.target.value)}
+            disabled={!provincia} className="field-input rounded-sm disabled:opacity-50">
+            <option value="">Selecionar município...</option>
+            {provincia && municipios[provincia]?.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
         </label>
         <label className="flex flex-col gap-2 lg:col-span-4">
           <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Descrição (opcional)</span>
