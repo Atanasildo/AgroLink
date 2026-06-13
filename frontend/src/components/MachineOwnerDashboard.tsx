@@ -451,7 +451,14 @@ function RentalCard({ rental, machines, token, onUpdated }: {
               </div>
               <div>
                 <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Recebe</p>
-                <p className="text-earth font-bold">{formatKz(rental.valor_liquido_proprietario)}</p>
+                <p className="text-earth font-bold">
+                  {formatKz(
+                    rental.valor_liquido_proprietario ??
+                    (rental.valor_total && rental.valor_comissao
+                      ? (parseFloat(String(rental.valor_total)) - parseFloat(String(rental.valor_comissao)))
+                      : null)
+                  )}
+                </p>
               </div>
             </div>
           )}

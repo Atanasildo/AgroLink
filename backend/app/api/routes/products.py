@@ -13,7 +13,7 @@ from app.crud.product import (
     list_products,
     update_product,
 )
-from app.models.product import ProductCategory
+from app.models.product import Product as ProductModel, ProductCategory
 from app.models.user import User, UserRole
 from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
 
@@ -53,6 +53,23 @@ def search_products(
         municipio=municipio,
         preco_min=preco_min,
         preco_max=preco_max,
+    )
+
+
+from app.models.product import Product as ProductModel, ProductCategory
+
+
+@router.get("/me", response_model=list[ProductRead])
+def my_products(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.AGRICULTOR)),
+):
+    """Listar os meus produtos publicados."""
+    return (
+        db.query(ProductModel)
+        .filter(ProductModel.agricultor_id == current_user.id)
+        .order_by(ProductModel.criado_em.desc())
+        .all()
     )
 
 

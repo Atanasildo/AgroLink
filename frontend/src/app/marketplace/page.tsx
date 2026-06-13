@@ -5,6 +5,7 @@ import { Search, Plus, X, Leaf } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, Product, createProduct, listProducts } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
+import { FarmerDashboard } from "@/components/FarmerDashboard";
 
 const categorias = [
   { value: "", label: "Todas as categorias" },
@@ -67,14 +68,21 @@ export default function MarketplacePage() {
             </p>
           </div>
           {user?.role === "agricultor" && (
-            <button onClick={() => setShowForm(v => !v)} className={showForm ? "btn-secondary rounded-sm" : "btn-primary rounded-sm"}>
-              {showForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Publicar produto</>}
-            </button>
+            <span /> // Gerido pelo painel abaixo
           )}
         </div>
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-10">
+        {/* Painel do agricultor */}
+        {user?.role === "agricultor" && token && (
+          <div className="mb-14">
+            <FarmerDashboard token={token} />
+            <div className="border-b border-field/15 mt-14 mb-2" />
+            <p className="label-eyebrow mt-6 mb-6">Catálogo público do mercado</p>
+          </div>
+        )}
+
         {showForm && token && (
           <PublishProductForm token={token} onPublished={() => { setShowForm(false); loadProducts(); }} />
         )}

@@ -267,6 +267,22 @@ export function getMe(token: string) {
 
 // ---------- Marketplace ----------
 
+export function myProducts(token: string) {
+  return apiRequest<Product[]>("/products/me", { token });
+}
+
+export function getProduct(productId: string) {
+  return apiRequest<Product>(`/products/${productId}`);
+}
+
+export function updateProduct(token: string, productId: string, payload: Partial<Product>) {
+  return apiRequest<Product>(`/products/${productId}`, { method: "PUT", body: payload, token });
+}
+
+export function deleteProduct(token: string, productId: string) {
+  return apiRequest<void>(`/products/${productId}`, { method: "DELETE", token });
+}
+
 export function listProducts(params: Record<string, string | undefined> = {}) {
   const query = new URLSearchParams(
     Object.entries(params).filter(([, v]) => v !== undefined && v !== "") as [string, string][]
