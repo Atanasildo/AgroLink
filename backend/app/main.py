@@ -15,11 +15,17 @@ def _safe_migrate():
     logger = logging.getLogger(__name__)
     from sqlalchemy import text
     migrations = [
+        # vehicles
         "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS disponivel BOOLEAN NOT NULL DEFAULT TRUE",
         "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS provincia VARCHAR(100)",
         "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS municipio VARCHAR(100)",
+        # transport_routes
+        "ALTER TABLE transport_routes ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP WITH TIME ZONE",
+        # transport_requests
+        "ALTER TABLE transport_requests ADD COLUMN IF NOT EXISTS hora_prevista_chegada TIMESTAMP WITH TIME ZONE",
+        "ALTER TABLE transport_requests ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP WITH TIME ZONE",
     ]
-    with engine.begin() as conn:  # begin() faz commit automático ao sair
+    with engine.begin() as conn:
         for sql in migrations:
             try:
                 conn.execute(text(sql))
