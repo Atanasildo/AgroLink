@@ -71,6 +71,40 @@ export default function TransportePage() {
         </div>
       </div>
 
+
+      {/* GPS + Diferencial vs Uber */}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 pt-6">
+        <div className="grid sm:grid-cols-3 gap-4 mb-2">
+          <div className="field-card rounded-sm bg-gradient-to-br from-sky-50 to-blue-50 border-sky-200">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="bg-sky-100 p-2 rounded-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sky-600"><path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+              </div>
+              <p className="font-mono text-xs uppercase tracking-wider text-sky-700">GPS em Tempo Real</p>
+            </div>
+            <p className="font-body text-sm text-ink/65">Rastreie a sua carga no mapa em tempo real durante todo o percurso.</p>
+          </div>
+          <div className="field-card rounded-sm bg-gradient-to-br from-field/5 to-green-50 border-field/30">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="bg-field/10 p-2 rounded-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-field"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <p className="font-mono text-xs uppercase tracking-wider text-field">Diferencial vs Uber Freight</p>
+            </div>
+            <p className="font-body text-sm text-ink/65">Partilha de carga, rotas rurais angolanas e preços em Kwanzas. Feito para Angola.</p>
+          </div>
+          <div className="field-card rounded-sm bg-gradient-to-br from-harvest/5 to-yellow-50 border-harvest/30">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="bg-harvest/10 p-2 rounded-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-harvest"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              </div>
+              <p className="font-mono text-xs uppercase tracking-wider text-harvest-dark">Pagamento Seguro</p>
+            </div>
+            <p className="font-body text-sm text-ink/65">Pague directamente na plataforma. Comissão de apenas 5% sobre o valor total.</p>
+          </div>
+        </div>
+      </div>
+
       <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10 space-y-10">
 
         {/* Painel exclusivo para transportadores */}

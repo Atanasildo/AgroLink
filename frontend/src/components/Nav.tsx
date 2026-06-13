@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   Sprout, Truck, ShoppingBasket, LogOut, User,
-  Tractor, TrendingUp, Map, MessageCircle, Users, Menu, X,
+  Tractor, TrendingUp, Map, MessageCircle, Users, Menu, X, ShieldCheck,
 } from "lucide-react";
 
 const links = [
@@ -13,9 +13,10 @@ const links = [
   { href: "/transporte",   label: "Transporte", icon: Truck },
   { href: "/maquinas",     label: "Máquinas",   icon: Tractor },
   { href: "/precos",       label: "Preços",     icon: TrendingUp },
-  { href: "/mapa",         label: "Mapa",       icon: Map },
+  { href: "/mapa",         label: "Mapa GPS",   icon: Map },
   { href: "/social",       label: "Comunidade", icon: Users },
   { href: "/chat",         label: "Chat",       icon: MessageCircle, showBadge: true },
+  { href: "/admin",        label: "Admin",      icon: ShieldCheck },
 ];
 
 export function Nav() {
