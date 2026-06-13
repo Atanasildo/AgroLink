@@ -158,15 +158,15 @@ export interface TransportRequestItem {
 
 // ---------- Máquinas ----------
 
-export type MachineType = "trator" | "colheitadeira" | "pulverizador" | "arado" | "sistema_irrigacao";
-export type MachineRentalStatus = "pendente" | "aprovado" | "em_andamento" | "concluido" | "cancelado";
+export type MachineType = "trator" | "colheitadeira" | "arado" | "plantadora" | "irrigacao" | "outros";
+export type MachineRentalStatus = "pendente" | "confirmado" | "em_andamento" | "concluido" | "cancelado";
 
 export interface Machine {
   id: string;
   nome: string;
   descricao?: string | null;
   tipo: MachineType;
-  valor_diario: string;
+  preco_diaria: number;
   provincia?: string | null;
   municipio?: string | null;
   proprietario_id: string;
@@ -213,7 +213,6 @@ export interface UserRatingSummary {
 // ---------- Preços ----------
 
 export type CommodityType = "milho" | "feijao" | "mandioca" | "soja" | "hortalicas";
-
 export interface PriceRecord {
   id: string;
   produto: CommodityType;
