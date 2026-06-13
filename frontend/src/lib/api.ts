@@ -218,11 +218,29 @@ export interface PriceRecord {
   id: string;
   produto: CommodityType;
   provincia: string;
-  municipio?: string | null;
-  preco_medio: string;
-  unidade: string;
-  data_referencia: string;
+  preco_kg: string;
+  fonte?: string | null;
   criado_em: string;
+}
+
+// ---------- Chat ----------
+
+export type MessageType = "texto" | "imagem" | "localizacao";
+
+export interface ChatMessage {
+  id: string;
+  remetente_id: string;
+  destinatario_id: string;
+  conteudo: string;
+  tipo: MessageType;
+  lido: boolean;
+  criado_em: string;
+}
+
+export interface ConversationSummary {
+  outro_utilizador_id: string;
+  ultima_mensagem: ChatMessage | null;
+  mensagens_nao_lidas: number;
 }
 
 // ---------- Mapa ----------
@@ -512,4 +530,21 @@ export function listMapLocations(params: Record<string, string | undefined> = {}
 
 export function createMapLocation(token: string, payload: Partial<MapLocation>) {
   return apiRequest<MapLocation>("/map/locations", { method: "POST", body: payload, token });
+}
+
+// ---------- Chat ----------
+
+export function listConversations(token: string) {
+  return apiRequest<ConversationSummary[]>("/chat/conversations", { token });
+}
+
+export function getConversation(token: string, otherUserId: string) {
+  return apiRequest<ChatMessage[]>(`/chat/conversations/${otherUserId}`, { token });
+}
+
+export function sendMessage(
+  token: string,
+  payload: { destinatario_id: string; conteudo: string; tipo?: MessageType }
+) {
+  return apiRequest<ChatMessage>("/chat/messages", { method: "POST", body: payload, token });
 }

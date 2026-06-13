@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import { Sprout, Truck, ShoppingBasket, LogOut, User, Tractor } from "lucide-react";
+import { Sprout, Truck, ShoppingBasket, LogOut, User, Tractor, TrendingUp, Map, MessageCircle } from "lucide-react";
 
 const links = [
   { href: "/marketplace", label: "Mercado", icon: ShoppingBasket },
   { href: "/transporte", label: "Transporte", icon: Truck },
   { href: "/maquinas", label: "Máquinas", icon: Tractor },
+  { href: "/precos", label: "Preços", icon: TrendingUp },
+  { href: "/mapa", label: "Mapa", icon: Map },
+  { href: "/chat", label: "Chat", icon: MessageCircle },
 ];
 
 export function Nav() {
@@ -30,7 +33,7 @@ export function Nav() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-1 overflow-x-auto">
           {links.map((link) => (
             <Link
               key={link.href}
