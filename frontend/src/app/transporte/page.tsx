@@ -59,7 +59,7 @@ export default function TransportePage() {
   return (
     <div>
       <div className="border-b border-field/15 bg-sky-light">
-        <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10">
           <p className="label-eyebrow mb-2">
             <Truck size={12} className="inline mr-1" />
             Módulo 02 · Transporte Rural
@@ -71,7 +71,7 @@ export default function TransportePage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 py-10 space-y-10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10 space-y-10">
 
         {/* Painel exclusivo para transportadores */}
         {user?.role === "transportador" && token && (
@@ -80,7 +80,7 @@ export default function TransportePage() {
 
         <form onSubmit={handleSearch} className="field-card rounded-sm">
           <p className="label-eyebrow mb-4">Pesquisar rotas</p>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
             <label className="flex flex-col gap-2">
               <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Origem</span>
               <input value={origemFilter} onChange={e => setOrigemFilter(e.target.value)}
@@ -159,7 +159,7 @@ export default function TransportePage() {
                     </div>
 
                     {req.valor_total && (
-                      <div className="mt-4 pt-4 border-t border-field/10 grid grid-cols-3 gap-3 font-mono text-sm">
+                      <div className="mt-4 pt-4 border-t border-field/10 grid grid-cols-3 gap-1 sm:gap-3 font-mono text-xs sm:text-sm">
                         <div>
                           <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Total</p>
                           <p className="text-field font-bold">{formatKz(req.valor_total)}</p>

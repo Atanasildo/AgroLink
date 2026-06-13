@@ -114,3 +114,38 @@
     transform: rotate(-6deg);
   }
 }
+
+/* ── MOBILE RESPONSIVENESS ──────────────────────────────── */
+
+/* Prevent horizontal overflow globally */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Prevent iOS zoom on input focus (font-size must be >= 16px on mobile) */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Ensure buttons and links have minimum tap target size */
+@media (max-width: 768px) {
+  button, a {
+    min-height: 36px;
+  }
+}
+
+/* Page sections — reduce padding on mobile */
+.mx-auto.max-w-6xl {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Field cards on mobile */
+@media (max-width: 640px) {
+  .field-card {
+    padding: 1rem;
+  }
+}

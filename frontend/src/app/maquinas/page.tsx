@@ -66,7 +66,7 @@ export default function MaquinasPage() {
     <div>
       {/* Page header */}
       <div className="border-b border-field/15 bg-sky-light">
-        <div className="mx-auto max-w-6xl px-6 py-10 flex flex-wrap items-end justify-between gap-4">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="label-eyebrow mb-2">
               <Tractor size={12} className="inline mr-1" />
@@ -83,7 +83,7 @@ export default function MaquinasPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10">
         {/* Painel do proprietário */}
         {user?.role === "proprietario_maquinas" && token && (
           <div className="mb-14">

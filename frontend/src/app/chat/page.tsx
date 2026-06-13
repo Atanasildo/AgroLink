@@ -198,8 +198,8 @@ export default function ChatPage() {
   const activePartner = activeId ? partners[activeId] : null;
 
   return (
-    <main className="mx-auto max-w-5xl px-0 sm:px-4 py-0 sm:py-6">
-      <div className="border border-field/20 flex overflow-hidden" style={{ height: "calc(100vh - 130px)", minHeight: "500px" }}>
+    <main className="mx-auto max-w-5xl px-0 sm:px-4 py-0 sm:py-4">
+      <div className="border border-field/20 flex overflow-hidden" style={{ height: "calc(100dvh - 110px)", minHeight: "400px" }}>
 
         {/* Sidebar — conversation list */}
         <div className={`w-full sm:w-72 border-r border-field/20 flex flex-col shrink-0 ${activeId && !showSearch ? "hidden sm:flex" : "flex"}`}>

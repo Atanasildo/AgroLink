@@ -122,7 +122,7 @@ export default function MapaPage() {
   }, [locations, mapReady]);
 
   return (
-    <main className="relative flex flex-col" style={{ height: "calc(100vh - 57px)" }}>
+    <main className="relative flex flex-col" style={{ height: "calc(100dvh - 57px)" }}>
       {/* Leaflet CSS */}
       <link
         rel="stylesheet"

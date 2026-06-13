@@ -56,13 +56,13 @@ export default function MarketplacePage() {
     <div>
       {/* Page header */}
       <div className="border-b border-field/15 bg-sky-light">
-        <div className="mx-auto max-w-6xl px-6 py-10 flex flex-wrap items-end justify-between gap-4">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="label-eyebrow mb-2">
               <Leaf size={12} className="inline mr-1" />
               Módulo 01 · Mercado Agrícola
             </p>
-            <h1 className="text-4xl text-field">Produtos disponíveis</h1>
+            <h1 className="text-2xl sm:text-4xl text-field">Produtos disponíveis</h1>
             <p className="font-body text-ink/55 mt-1">
               Produtos frescos directamente dos agricultores angolanos
             </p>
@@ -73,7 +73,7 @@ export default function MarketplacePage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10">
         {/* Painel do agricultor */}
         {user?.role === "agricultor" && token && (
           <div className="mb-14">

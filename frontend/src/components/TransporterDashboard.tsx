@@ -578,7 +578,7 @@ function RequestCard({
       {expanded && (
         <div className="mt-4 pt-4 border-t border-field/15 space-y-4">
           {request.valor_total && (
-            <div className="grid grid-cols-3 gap-3 bg-field/5 border border-field/15 p-4 rounded-sm font-mono text-sm">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 bg-field/5 border border-field/15 p-4 rounded-sm font-mono text-sm">
               <div>
                 <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Total</p>
                 <p className="text-field font-bold">{formatKz(request.valor_total)}</p>

@@ -87,7 +87,7 @@ export default function RegisterPage() {
             {/* Tipo de conta */}
             <div>
               <p className="label-eyebrow mb-3">Tipo de conta</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {roles.map((r) => (
                   <button key={r.value} type="button" onClick={() => setRole(r.value)}
                     className={`flex flex-col items-start gap-1 p-3 border rounded-sm text-left transition-all ${

@@ -63,15 +63,15 @@ export default function HomePage() {
         {/* Sombra lateral decorativa */}
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-field-DEFAULT/40 to-transparent hidden lg:block" />
 
-        <div className="relative mx-auto max-w-6xl px-6 py-24">
-          <div className="flex items-center gap-2 mb-6">
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-24">
+          <div className="flex items-center gap-2 mb-4 sm:mb-6">
             <Leaf size={16} className="text-harvest" />
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-harvest">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-harvest">
               Plataforma AgriTech & LogTech · Angola
             </p>
           </div>
 
-          <h1 className="text-cream text-5xl md:text-7xl leading-[1.05] mb-6 max-w-3xl">
+          <h1 className="text-cream text-4xl sm:text-5xl md:text-7xl leading-[1.05] mb-4 sm:mb-6 max-w-3xl">
             Da fazenda
             <br />
             à mesa,
@@ -81,27 +81,27 @@ export default function HomePage() {
             a carga.
           </h1>
 
-          <p className="max-w-xl text-cream/70 font-body text-lg mb-10">
+          <p className="max-w-xl text-cream/70 font-body text-base sm:text-lg mb-8 sm:mb-10">
             Marketplace agrícola, logística rural e aluguel de máquinas numa única
             plataforma — conectando agricultores, compradores, transportadores e
             cooperativas em todas as 18 províncias.
           </p>
 
-          <div className="flex flex-wrap gap-4 mb-16">
-            <Link href="/register" className="btn-harvest rounded-sm">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-12 sm:mb-16">
+            <Link href="/register" className="btn-harvest rounded-sm justify-center">
               <Sprout size={16} /> Criar conta gratuita
             </Link>
             <Link
               href="/transporte"
-              className="border border-cream/30 text-cream px-5 py-2.5 font-mono text-sm uppercase tracking-wider inline-flex items-center gap-2 hover:border-harvest hover:text-harvest transition-colors rounded-sm"
+              className="border border-cream/30 text-cream px-5 py-2.5 font-mono text-sm uppercase tracking-wider inline-flex items-center justify-center gap-2 hover:border-harvest hover:text-harvest transition-colors rounded-sm"
             >
               Ver rotas de transporte <ArrowRight size={16} />
             </Link>
           </div>
 
           {/* Diagrama de exemplo */}
-          <div className="border border-cream/15 bg-cream/5 backdrop-blur p-8 max-w-2xl rounded-sm">
-            <p className="label-eyebrow text-harvest mb-6">
+          <div className="border border-cream/15 bg-cream/5 backdrop-blur p-4 sm:p-8 max-w-2xl rounded-sm">
+            <p className="label-eyebrow text-harvest mb-4 sm:mb-6">
               Exemplo · Compartilhamento de carga
             </p>
             <div className="text-cream [&_.stamp]:border-harvest [&_.stamp]:text-harvest [&_svg]:text-cream">
@@ -112,7 +112,7 @@ export default function HomePage() {
                 capacidadeDisponivel={7}
               />
             </div>
-            <p className="mt-6 text-sm text-cream/55 font-body">
+            <p className="mt-4 sm:mt-6 text-sm text-cream/55 font-body">
               Um caminhão com 10 toneladas já tem 3 reservadas — restam 7 toneladas
               disponíveis para outros agricultores na mesma rota.
             </p>
@@ -122,7 +122,7 @@ export default function HomePage() {
 
       {/* ── STATS ────────────────────────────────────────────── */}
       <section className="border-b border-field/15 bg-sky-light">
-        <div className="mx-auto max-w-6xl px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-8 sm:py-10 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
           {stats.map((s) => (
             <div key={s.label} className="flex items-center gap-3">
               <div className="bg-field/10 p-2.5 rounded-sm flex-shrink-0">
@@ -138,15 +138,15 @@ export default function HomePage() {
       </section>
 
       {/* ── MÓDULOS ──────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-6 py-20">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-20">
         <p className="label-eyebrow mb-3">O que o AgroLink oferece</p>
-        <h2 className="text-3xl md:text-4xl mb-3">Três módulos, uma plataforma</h2>
-        <p className="font-body text-ink/55 mb-12 max-w-xl">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl mb-3">Três módulos, uma plataforma</h2>
+        <p className="font-body text-ink/55 mb-8 sm:mb-12 max-w-xl">
           Cada módulo resolve um problema real do agronegócio angolano, integrado
           numa plataforma única com pagamentos e avaliações.
         </p>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {pillars.map((p) => (
             <div key={p.title} className={`field-card flex flex-col rounded-sm border ${p.bg}`}>
               <p className="label-eyebrow mb-4">{p.eyebrow}</p>
@@ -168,12 +168,12 @@ export default function HomePage() {
 
       {/* ── COMISSÃO ─────────────────────────────────────────── */}
       <section className="dark-section bg-earth">
-        <div className="mx-auto max-w-6xl px-6 py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-12 sm:py-16">
           <p className="label-eyebrow text-harvest mb-4">Transparência financeira</p>
-          <h2 className="text-cream text-3xl md:text-4xl mb-8">
+          <h2 className="text-cream text-2xl sm:text-3xl md:text-4xl mb-6 sm:mb-8">
             Como funciona a comissão
           </h2>
-          <div className="grid gap-4 md:grid-cols-3 font-mono">
+          <div className="grid gap-4 sm:grid-cols-3 font-mono">
             <div className="border border-cream/15 bg-cream/5 p-6 rounded-sm">
               <p className="text-xs uppercase tracking-wider text-cream/50 mb-2">Valor do transporte</p>
               <p className="text-3xl text-cream">100.000 Kz</p>
