@@ -305,6 +305,70 @@ export function myTransportRequests(token: string) {
   return apiRequest<TransportRequestItem[]>("/transport/requests/me", { token });
 }
 
+// Transporter-specific
+export interface Vehicle {
+  id: string;
+  tipo: string;
+  capacidade_toneladas: string;
+  matricula: string;
+  provincia: string;
+  municipio: string;
+  disponivel: boolean;
+  proprietario_id: string;
+  criado_em: string;
+}
+
+export function myVehicles(token: string) {
+  return apiRequest<Vehicle[]>("/transport/vehicles/me", { token });
+}
+
+export function createVehicle(token: string, payload: {
+  tipo: string;
+  capacidade_toneladas: number;
+  matricula: string;
+  provincia: string;
+  municipio: string;
+}) {
+  return apiRequest<Vehicle>("/transport/vehicles", { method: "POST", body: payload, token });
+}
+
+export function deleteVehicle(token: string, vehicleId: string) {
+  return apiRequest<void>(`/transport/vehicles/${vehicleId}`, { method: "DELETE", token });
+}
+
+export function updateVehicle(token: string, vehicleId: string, payload: { disponivel?: boolean }) {
+  return apiRequest<Vehicle>(`/transport/vehicles/${vehicleId}`, { method: "PUT", body: payload, token });
+}
+
+export function myRoutes(token: string) {
+  return apiRequest<TransportRoute[]>("/transport/routes/me", { token });
+}
+
+export function createRoute(token: string, payload: {
+  veiculo_id: string;
+  origem: string;
+  destino: string;
+  data: string;
+  capacidade_total_toneladas: number;
+  preco_por_tonelada: number;
+}) {
+  return apiRequest<TransportRoute>("/transport/routes", { method: "POST", body: payload, token });
+}
+
+export function incomingTransportRequests(token: string) {
+  return apiRequest<TransportRequestItem[]>("/transport/requests/incoming", { token });
+}
+
+export function acceptTransportRequest(token: string, requestId: string) {
+  return apiRequest<TransportRequestItem>(`/transport/requests/${requestId}/accept`, { method: "POST", token });
+}
+
+export function updateRequestStatus(token: string, requestId: string, status: string) {
+  return apiRequest<TransportRequestItem>(`/transport/requests/${requestId}/status`, { method: "PATCH", body: { status }, token });
+}
+
+
+
 // ---------- Utilizadores ----------
 
 export function getUser(userId: string) {

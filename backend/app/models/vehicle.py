@@ -27,6 +27,9 @@ class Vehicle(Base):
     capacidade_toneladas = Column(Numeric(8, 2), nullable=False)
     descricao = Column(String(500), nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
+    disponivel = Column(Boolean, default=True, nullable=False)
+    provincia = Column(String(100), nullable=True)
+    municipio = Column(String(100), nullable=True)
 
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 

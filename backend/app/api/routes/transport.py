@@ -13,6 +13,8 @@ from app.crud.transport import (
     create_transport_request,
     get_route,
     get_transport_request,
+    list_incoming_requests,
+    list_my_routes,
     list_my_transport_requests,
     search_routes,
     update_transport_location,
@@ -114,6 +116,24 @@ def find_routes(
 ):
     """Buscar rotas/transportadores próximos disponíveis."""
     return search_routes(db, origem=origem, destino=destino, data=data, peso_minimo_disponivel=peso_minimo_disponivel)
+
+
+@router.get("/routes/me", response_model=list[TransportRouteRead])
+def my_routes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Listar as rotas publicadas pelo transportador autenticado."""
+    return list_my_routes(db, current_user.id)
+
+
+@router.get("/requests/incoming", response_model=list[TransportRequestRead])
+def incoming_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Listar as solicitacoes recebidas pelo transportador (via suas rotas)."""
+    return list_incoming_requests(db, current_user.id)
 
 
 @router.get("/routes/{route_id}", response_model=TransportRouteRead)

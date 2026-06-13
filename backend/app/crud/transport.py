@@ -215,3 +215,23 @@ def update_transport_location(
     db.commit()
     db.refresh(db_request)
     return db_request
+
+
+def list_my_routes(db: Session, transportador_id: uuid.UUID) -> list[TransportRoute]:
+    return (
+        db.query(TransportRoute)
+        .filter(TransportRoute.transportador_id == transportador_id)
+        .order_by(TransportRoute.data.desc())
+        .all()
+    )
+
+
+def list_incoming_requests(db: Session, transportador_id: uuid.UUID) -> list[TransportRequest]:
+    """Solicitações recebidas pelo transportador (via rotas que lhe pertencem)."""
+    return (
+        db.query(TransportRequest)
+        .join(TransportRoute, TransportRequest.rota_id == TransportRoute.id)
+        .filter(TransportRoute.transportador_id == transportador_id)
+        .order_by(TransportRequest.criado_em.desc())
+        .all()
+    )

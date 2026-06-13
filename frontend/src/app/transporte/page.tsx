@@ -8,6 +8,7 @@ import {
   createTransportRequest, myTransportRequests, searchRoutes,
 } from "@/lib/api";
 import { RouteDiagram } from "@/components/RouteDiagram";
+import { TransporterDashboard } from "@/components/TransporterDashboard";
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; cls: string }> = {
   pendente:     { label: "Pendente",     icon: Clock,        cls: "pending" },
@@ -71,6 +72,11 @@ export default function TransportePage() {
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-10 space-y-10">
+
+        {/* Painel exclusivo para transportadores */}
+        {user?.role === "transportador" && token && (
+          <TransporterDashboard token={token} />
+        )}
 
         <form onSubmit={handleSearch} className="field-card rounded-sm">
           <p className="label-eyebrow mb-4">Pesquisar rotas</p>
