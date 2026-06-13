@@ -16,7 +16,6 @@ const links = [
   { href: "/mapa",         label: "Mapa GPS",   icon: Map },
   { href: "/social",       label: "Comunidade", icon: Users },
   { href: "/chat",         label: "Chat",       icon: MessageCircle, showBadge: true },
-  { href: "/admin",        label: "Admin",      icon: ShieldCheck },
 ];
 
 export function Nav() {
@@ -56,6 +55,16 @@ export function Nav() {
                 )}
               </Link>
             ))}
+            {/* Admin link — visível apenas para role "admin" */}
+            {user?.role === "admin" && (
+              <Link
+                href="/admin"
+                className="relative flex items-center gap-1 font-mono text-xs uppercase tracking-wide text-red-700 hover:text-red-800 hover:bg-red-50 px-2.5 py-2 transition-colors rounded-sm whitespace-nowrap border border-red-200"
+              >
+                <ShieldCheck size={13} />
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Desktop auth */}
@@ -136,6 +145,17 @@ export function Nav() {
                   )}
                 </Link>
               ))}
+              {/* Admin — apenas para role "admin" */}
+              {user?.role === "admin" && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-5 py-4 font-mono text-sm uppercase tracking-wider text-red-700 hover:bg-red-50 transition-colors"
+                >
+                  <ShieldCheck size={18} className="text-red-500" />
+                  Administração
+                </Link>
+              )}
             </nav>
 
             {/* Auth section in drawer */}

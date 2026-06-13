@@ -9,31 +9,31 @@ import {
   Leaf, Package, RefreshCw, Eye, Ban
 } from "lucide-react";
 
-// Fake admin data
-const FAKE_USERS = [
-  { id: "1", nome: "João Mbala", email: "joao@agrolink.ao", role: "agricultor", status: "activo", criado: "2024-01-15", provincia: "Huambo" },
-  { id: "2", nome: "Maria Ngola", email: "maria@agrolink.ao", role: "comprador", status: "activo", criado: "2024-02-03", provincia: "Luanda" },
-  { id: "3", nome: "Carlos Transportes", email: "carlos@agrolink.ao", role: "transportador", status: "activo", criado: "2024-01-28", provincia: "Benguela" },
-  { id: "4", nome: "Ana Cooperativa", email: "ana@agrolink.ao", role: "cooperativa", status: "suspenso", criado: "2024-03-10", provincia: "Bié" },
-  { id: "5", nome: "Pedro Fazenda", email: "pedro@agrolink.ao", role: "agricultor", status: "activo", criado: "2024-03-22", provincia: "Malanje" },
+// Dados de DEMONSTRAÇÃO — claramente fictícios
+const DEMO_USERS = [
+  { id: "1", nome: "Utilizador Demo A", email: "demo-a@exemplo.demo", role: "agricultor",    status: "activo",  criado: "2024-01-15", provincia: "Huambo"   },
+  { id: "2", nome: "Utilizador Demo B", email: "demo-b@exemplo.demo", role: "comprador",     status: "activo",  criado: "2024-02-03", provincia: "Luanda"   },
+  { id: "3", nome: "Utilizador Demo C", email: "demo-c@exemplo.demo", role: "transportador", status: "activo",  criado: "2024-01-28", provincia: "Benguela" },
+  { id: "4", nome: "Utilizador Demo D", email: "demo-d@exemplo.demo", role: "cooperativa",   status: "suspenso",criado: "2024-03-10", provincia: "Bié"      },
+  { id: "5", nome: "Utilizador Demo E", email: "demo-e@exemplo.demo", role: "agricultor",    status: "activo",  criado: "2024-03-22", provincia: "Malanje"  },
 ];
 
-const FAKE_PAYMENTS = [
-  { id: "PAY-001", descricao: "Transporte Caála → Huambo", valor: 30000, comissao: 1500, status: "concluido", data: "2024-03-15", metodo: "Multicaixa" },
-  { id: "PAY-002", descricao: "Aluguel Tractor - 2 dias", valor: 25000, comissao: 2500, status: "pendente", data: "2024-03-18", metodo: "Transferência" },
-  { id: "PAY-003", descricao: "Transporte Kuito → Luanda", valor: 80000, comissao: 4000, status: "concluido", data: "2024-03-20", metodo: "Referência" },
-  { id: "PAY-004", descricao: "Marketplace - Milho 500kg", valor: 15000, comissao: 750, status: "concluido", data: "2024-03-21", metodo: "Multicaixa" },
-  { id: "PAY-005", descricao: "Transporte Benguela → Luanda", valor: 60000, comissao: 3000, status: "cancelado", data: "2024-03-22", metodo: "Transferência" },
+const DEMO_PAYMENTS = [
+  { id: "DEMO-001", descricao: "Transporte Caála → Huambo",   valor: 30000, comissao: 1500, status: "concluido", data: "2024-03-15", metodo: "Multicaixa"   },
+  { id: "DEMO-002", descricao: "Aluguel Tractor — 2 dias",    valor: 25000, comissao: 2500, status: "pendente",  data: "2024-03-18", metodo: "Transferência" },
+  { id: "DEMO-003", descricao: "Transporte Kuito → Luanda",   valor: 80000, comissao: 4000, status: "concluido", data: "2024-03-20", metodo: "Referência"   },
+  { id: "DEMO-004", descricao: "Marketplace — Milho 500 kg",  valor: 15000, comissao: 750,  status: "concluido", data: "2024-03-21", metodo: "Multicaixa"   },
+  { id: "DEMO-005", descricao: "Transporte Benguela → Luanda",valor: 60000, comissao: 3000, status: "cancelado", data: "2024-03-22", metodo: "Transferência" },
 ];
 
-const FAKE_STATS = {
+const DEMO_STATS = {
   totalUtilizadores: 1247,
-  agricultores: 623,
-  transportadores: 184,
-  compradores: 440,
   transacoesMes: 89,
   receitaMes: 145000,
   comissaoMes: 7250,
+  agricultores: 623,
+  compradores: 440,
+  transportadores: 184,
   rotasActivas: 34,
 };
 
@@ -42,18 +42,31 @@ function formatKz(val: number) {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<"dashboard" | "users" | "payments" | "routes">("dashboard");
-  const [users, setUsers] = useState(FAKE_USERS);
-  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState(DEMO_USERS);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    // Only admin can access — for demo, allow any logged-in user
-    if (user === null) {
-      router.push("/login");
+    if (loading) return;
+    // Redireciona se não estiver autenticado ou não for admin
+    if (!user || user.role !== "admin") {
+      router.replace("/");
     }
-  }, [user, router]);
+  }, [user, loading, router]);
+
+  // Enquanto verifica autenticação, não mostra nada
+  if (loading || !user || user.role !== "admin") {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <ShieldCheck size={40} className="text-field/20 mx-auto mb-3 animate-pulse" />
+          <p className="font-mono text-sm text-ink/40 uppercase tracking-widest">A verificar acesso…</p>
+        </div>
+      </div>
+    );
+  }
 
   function toggleUserStatus(id: string) {
     setUsers(prev => prev.map(u =>
@@ -62,11 +75,11 @@ export default function AdminPage() {
   }
 
   const roleColor: Record<string, string> = {
-    agricultor: "bg-field/10 text-field border-field/30",
+    agricultor:    "bg-field/10 text-field border-field/30",
     transportador: "bg-sky-100 text-sky-700 border-sky-200",
-    comprador: "bg-harvest/10 text-harvest-dark border-harvest/30",
-    cooperativa: "bg-purple-100 text-purple-700 border-purple-200",
-    admin: "bg-red-100 text-red-700 border-red-200",
+    comprador:     "bg-harvest/10 text-harvest-dark border-harvest/30",
+    cooperativa:   "bg-purple-100 text-purple-700 border-purple-200",
+    admin:         "bg-red-100 text-red-700 border-red-200",
   };
 
   return (
@@ -83,7 +96,12 @@ export default function AdminPage() {
               <h1 className="text-2xl sm:text-4xl text-field">AgroLink Admin</h1>
             </div>
           </div>
-          <p className="font-body text-ink/50 mt-1">Gestão completa da plataforma · Dados de demonstração</p>
+          <p className="font-body text-ink/50 mt-1">
+            Gestão completa da plataforma ·{" "}
+            <span className="text-harvest font-mono text-xs uppercase tracking-wider">
+              ⚠ Dados de demonstração — não reflectem utilizadores reais
+            </span>
+          </p>
         </div>
       </div>
 
@@ -91,10 +109,10 @@ export default function AdminPage() {
       <div className="border-b border-field/15 bg-cream sticky top-0 z-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 flex gap-0 overflow-x-auto">
           {[
-            { key: "dashboard", label: "Dashboard", icon: BarChart2 },
-            { key: "users", label: "Utilizadores", icon: Users },
-            { key: "payments", label: "Pagamentos", icon: CreditCard },
-            { key: "routes", label: "Rotas Activas", icon: Truck },
+            { key: "dashboard", label: "Dashboard",      icon: BarChart2 },
+            { key: "users",     label: "Utilizadores",   icon: Users     },
+            { key: "payments",  label: "Pagamentos",     icon: CreditCard},
+            { key: "routes",    label: "Rotas Activas",  icon: Truck     },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -116,15 +134,15 @@ export default function AdminPage() {
           <div className="space-y-8">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[
-                { label: "Total Utilizadores", value: FAKE_STATS.totalUtilizadores.toLocaleString(), icon: Users, color: "text-field" },
-                { label: "Transacções/Mês", value: FAKE_STATS.transacoesMes, icon: TrendingUp, color: "text-harvest" },
-                { label: "Receita do Mês", value: formatKz(FAKE_STATS.receitaMes), icon: CreditCard, color: "text-earth" },
-                { label: "Comissão do Mês", value: formatKz(FAKE_STATS.comissaoMes), icon: Leaf, color: "text-harvest" },
+                { label: "Total Utilizadores",  value: DEMO_STATS.totalUtilizadores.toLocaleString(), icon: Users,      color: "text-field"   },
+                { label: "Transacções / Mês",   value: DEMO_STATS.transacoesMes,                      icon: TrendingUp,  color: "text-harvest" },
+                { label: "Receita do Mês",       value: formatKz(DEMO_STATS.receitaMes),               icon: CreditCard,  color: "text-earth"   },
+                { label: "Comissão do Mês",      value: formatKz(DEMO_STATS.comissaoMes),              icon: Leaf,        color: "text-harvest" },
               ].map(s => (
                 <div key={s.label} className="field-card rounded-sm">
                   <div className="flex items-start justify-between mb-3">
                     <s.icon size={20} className={s.color} />
-                    <span className="font-mono text-xs text-ink/30 uppercase tracking-wider">Este mês</span>
+                    <span className="font-mono text-xs text-ink/30 uppercase tracking-wider">Demo</span>
                   </div>
                   <p className={`font-display text-2xl ${s.color}`}>{s.value}</p>
                   <p className="font-mono text-xs text-ink/50 uppercase tracking-wider mt-1">{s.label}</p>
@@ -134,9 +152,9 @@ export default function AdminPage() {
 
             <div className="grid sm:grid-cols-3 gap-4">
               {[
-                { label: "Agricultores", value: FAKE_STATS.agricultores, icon: Wheat, color: "text-field", pct: 50 },
-                { label: "Compradores", value: FAKE_STATS.compradores, icon: Package, color: "text-harvest", pct: 35 },
-                { label: "Transportadores", value: FAKE_STATS.transportadores, icon: Truck, color: "text-sky-600", pct: 15 },
+                { label: "Agricultores",    value: DEMO_STATS.agricultores,    icon: Wheat,    color: "text-field",   pct: 50 },
+                { label: "Compradores",     value: DEMO_STATS.compradores,     icon: Package,  color: "text-harvest", pct: 35 },
+                { label: "Transportadores", value: DEMO_STATS.transportadores, icon: Truck,    color: "text-sky-600", pct: 15 },
               ].map(s => (
                 <div key={s.label} className="field-card rounded-sm">
                   <div className="flex items-center gap-2 mb-4">
@@ -145,7 +163,7 @@ export default function AdminPage() {
                   </div>
                   <p className={`font-display text-3xl ${s.color} mb-3`}>{s.value}</p>
                   <div className="h-2 bg-field/10 rounded-full overflow-hidden">
-                    <div className={`h-full bg-current ${s.color} rounded-full`} style={{ width: `${s.pct}%`, opacity: 0.6 }} />
+                    <div className={`h-full rounded-full bg-current ${s.color}`} style={{ width: `${s.pct}%`, opacity: 0.6 }} />
                   </div>
                   <p className="font-mono text-xs text-ink/40 mt-1">{s.pct}% do total</p>
                 </div>
@@ -154,15 +172,15 @@ export default function AdminPage() {
 
             <div className="field-card rounded-sm">
               <p className="label-eyebrow mb-4 flex items-center gap-2">
-                <BarChart2 size={14} /> Actividade recente — Últimos 7 dias
+                <BarChart2 size={14} /> Actividade simulada — Últimos 7 dias
               </p>
               <div className="flex items-end gap-2 h-32">
                 {[12, 8, 15, 23, 18, 31, 27].map((v, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <div
-                      className="w-full bg-field/30 hover:bg-field transition-colors rounded-sm cursor-pointer"
+                      className="w-full bg-field/30 hover:bg-field transition-colors rounded-sm cursor-default"
                       style={{ height: `${(v / 31) * 100}%` }}
-                      title={`${v} transacções`}
+                      title={`${v} transacções (demo)`}
                     />
                     <span className="font-mono text-xs text-ink/30">
                       {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][i]}
@@ -170,6 +188,7 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+              <p className="font-mono text-xs text-ink/30 mt-3 uppercase tracking-wider">⚠ Valores simulados para demonstração</p>
             </div>
           </div>
         )}
@@ -177,11 +196,18 @@ export default function AdminPage() {
         {/* ── USERS ─── */}
         {tab === "users" && (
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl text-field">Utilizadores ({users.length})</h2>
-              <button onClick={() => { setLoading(true); setTimeout(() => setLoading(false), 800); }}
-                className="btn-secondary rounded-sm text-xs">
-                <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Actualizar
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-2xl text-field">Utilizadores ({users.length})</h2>
+                <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-0.5">
+                  ⚠ Dados fictícios de demonstração — não são utilizadores reais
+                </p>
+              </div>
+              <button
+                onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }}
+                className="btn-secondary rounded-sm text-xs"
+              >
+                <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} /> Actualizar
               </button>
             </div>
             <div className="overflow-x-auto">
@@ -197,9 +223,9 @@ export default function AdminPage() {
                   {users.map(u => (
                     <tr key={u.id} className="border-b border-field/10 hover:bg-field/3 transition-colors">
                       <td className="px-3 py-3 font-display text-sm text-ink">{u.nome}</td>
-                      <td className="px-3 py-3 font-mono text-xs text-ink/60">{u.email}</td>
+                      <td className="px-3 py-3 font-mono text-xs text-ink/40 italic">{u.email}</td>
                       <td className="px-3 py-3">
-                        <span className={`font-mono text-xs px-2 py-0.5 border rounded-sm ${roleColor[u.role] || ""}`}>
+                        <span className={`font-mono text-xs px-2 py-0.5 border rounded-sm ${roleColor[u.role] ?? ""}`}>
                           {u.role}
                         </span>
                       </td>
@@ -213,11 +239,12 @@ export default function AdminPage() {
                       <td className="px-3 py-3 font-mono text-xs text-ink/40">{u.criado}</td>
                       <td className="px-3 py-3">
                         <div className="flex gap-2">
-                          <button className="p-1.5 border border-field/20 hover:border-field rounded-sm text-field/60 hover:text-field transition-colors">
+                          <button className="p-1.5 border border-field/20 hover:border-field rounded-sm text-field/60 hover:text-field transition-colors" title="Ver detalhes (demo)">
                             <Eye size={13} />
                           </button>
                           <button
                             onClick={() => toggleUserStatus(u.id)}
+                            title={u.status === "activo" ? "Suspender (demo)" : "Activar (demo)"}
                             className={`p-1.5 border rounded-sm transition-colors ${u.status === "activo" ? "border-earth/20 hover:border-earth text-earth/60 hover:text-earth" : "border-field/20 hover:border-field text-field/60 hover:text-field"}`}
                           >
                             <Ban size={13} />
@@ -235,22 +262,27 @@ export default function AdminPage() {
         {/* ── PAYMENTS ─── */}
         {tab === "payments" && (
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl text-field">Pagamentos</h2>
-              <div className="font-mono text-sm text-harvest">
-                Total comissões: {formatKz(FAKE_PAYMENTS.reduce((s, p) => s + (p.status === "concluido" ? p.comissao : 0), 0))}
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl text-field">Pagamentos</h2>
+                <div className="font-mono text-sm text-harvest">
+                  Comissões demo: {formatKz(DEMO_PAYMENTS.reduce((s, p) => s + (p.status === "concluido" ? p.comissao : 0), 0))}
+                </div>
               </div>
+              <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-1">
+                ⚠ Transacções fictícias de demonstração
+              </p>
             </div>
             <div className="space-y-4">
-              {FAKE_PAYMENTS.map(p => (
+              {DEMO_PAYMENTS.map(p => (
                 <div key={p.id} className="field-card rounded-sm flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-mono text-xs text-ink/40">{p.id}</span>
                       <span className={`inline-flex items-center gap-1 font-mono text-xs px-2 py-0.5 rounded-sm ${
                         p.status === "concluido" ? "bg-field/10 text-field border border-field/30" :
-                        p.status === "pendente" ? "bg-harvest/10 text-harvest-dark border border-harvest/30" :
-                        "bg-earth/10 text-earth border border-earth/30"
+                        p.status === "pendente"  ? "bg-harvest/10 text-harvest-dark border border-harvest/30" :
+                                                   "bg-earth/10 text-earth border border-earth/30"
                       }`}>
                         {p.status === "concluido" ? <CheckCircle size={10} /> : p.status === "pendente" ? <Clock size={10} /> : <XCircle size={10} />}
                         {p.status}
@@ -272,13 +304,18 @@ export default function AdminPage() {
         {/* ── ROUTES ─── */}
         {tab === "routes" && (
           <div>
-            <h2 className="text-2xl text-field mb-6">Rotas Activas ({FAKE_STATS.rotasActivas})</h2>
+            <div className="mb-6">
+              <h2 className="text-2xl text-field">Rotas Activas ({DEMO_STATS.rotasActivas})</h2>
+              <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-1">
+                ⚠ Rotas de demonstração
+              </p>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                { origem: "Caála", destino: "Huambo", transp: "Carlos Transportes", cap: 10, disp: 4, data: "2024-03-25" },
-                { origem: "Kuito", destino: "Luanda", transp: "António Caminhões", cap: 15, disp: 8, data: "2024-03-26" },
-                { origem: "Malanje", destino: "Luanda", transp: "Transportes Mbala", cap: 8, disp: 2, data: "2024-03-27" },
-                { origem: "Lobito", destino: "Luanda", transp: "Rota Sul Lda", cap: 20, disp: 15, data: "2024-03-28" },
+                { origem: "Caála",   destino: "Huambo", transp: "Transportador Demo 1", cap: 10, disp: 4,  data: "2024-03-25" },
+                { origem: "Kuito",   destino: "Luanda", transp: "Transportador Demo 2", cap: 15, disp: 8,  data: "2024-03-26" },
+                { origem: "Malanje", destino: "Luanda", transp: "Transportador Demo 3", cap: 8,  disp: 2,  data: "2024-03-27" },
+                { origem: "Lobito",  destino: "Luanda", transp: "Transportador Demo 4", cap: 20, disp: 15, data: "2024-03-28" },
               ].map((r, i) => (
                 <div key={i} className="field-card rounded-sm">
                   <div className="flex items-center gap-2 mb-3">
