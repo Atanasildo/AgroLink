@@ -1,6 +1,5 @@
 import uuid
 from datetime import date, datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -11,8 +10,7 @@ class MachineBase(BaseModel):
     nome: str = Field(min_length=2, max_length=150)
     descricao: str | None = Field(default=None, max_length=1000)
     tipo: MachineType
-    # API aceita valor_diario mas armazena como preco_diaria na BD
-    valor_diario: Decimal = Field(gt=0)
+    preco_diaria: float = Field(gt=0)  # Simples float
     provincia: str | None = None
     municipio: str | None = None
 
@@ -25,13 +23,10 @@ class MachineUpdate(BaseModel):
     nome: str | None = Field(default=None, min_length=2, max_length=150)
     descricao: str | None = Field(default=None, max_length=1000)
     tipo: MachineType | None = None
-    valor_diario: Decimal | None = Field(default=None, gt=0)
+    preco_diaria: float | None = Field(default=None, gt=0)
     provincia: str | None = None
     municipio: str | None = None
     disponivel: bool | None = None
-
-
-from pydantic import BaseModel, ConfigDict, Field, model_validator, field_serializer
 
 
 class MachineRead(BaseModel):
@@ -42,15 +37,11 @@ class MachineRead(BaseModel):
     nome: str
     descricao: str | None = None
     tipo: MachineType
-    preco_diaria: Decimal = Field(alias="valor_diario")  # Mapeia BD → API
+    preco_diaria: float  # BD tem isto, envia como está
     provincia: str | None = None
     municipio: str | None = None
     disponivel: bool
     criado_em: datetime
-
-    @field_serializer("preco_diaria", when_used="json-unless-none")
-    def serialize_preco(self, value: Decimal) -> str:
-        return str(value)
 
 
 # ---------- Reservas ----------
@@ -79,7 +70,7 @@ class MachineRentalRead(BaseModel):
     data_inicio: date
     data_fim: date
     status: MachineRentalStatus
-    valor_total: Decimal | None = None
-    comissao_percentual: Decimal | None = None
-    valor_comissao: Decimal | None = None
+    valor_total: float | None = None
+    comissao_percentual: float | None = None
+    valor_comissao: float | None = None
     criado_em: datetime
