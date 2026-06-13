@@ -5,6 +5,7 @@ import { Search, Plus, X, Tractor } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, Machine, createMachine, listMachines } from "@/lib/api";
 import { MachineCard } from "@/components/MachineCard";
+import { useAutoRetry } from "@/lib/useAutoRetry";
 
 const tipos = [
   { value: "trator", label: "🚜 Trator" },
@@ -42,6 +43,8 @@ export default function MaquinasPage() {
   }
 
   useEffect(() => { loadMachines(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // Auto-retry: quando o servidor acorda, recarrega automaticamente
+  useAutoRetry(!!error, loadMachines);
 
   function handleSearch(e: FormEvent) { e.preventDefault(); loadMachines(); }
 
@@ -153,7 +156,7 @@ function PublishMachineForm({ token, onPublished }: { token: string; onPublished
       });
       onPublished();
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : "Não foi possível anunciar a máquina.");
+      setError(err instanceof ApiError ? (err.status === 0 ? "Servidor a iniciar. Aguarde ~30s e tente novamente." : String(err.detail)) : "Não foi possível anunciar a máquina.");
     } finally {
       setLoading(false);
     }

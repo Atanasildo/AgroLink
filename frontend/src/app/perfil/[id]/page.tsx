@@ -13,6 +13,7 @@ import {
   getUserRatingSummary,
   getUserRatings,
 } from "@/lib/api";
+import { useAutoRetry } from "@/lib/useAutoRetry";
 
 const roleLabels: Record<string, string> = {
   agricultor: "🌱 Agricultor",
@@ -67,6 +68,8 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [profileId]);
+  // Auto-retry quando o servidor acorda
+  useAutoRetry(!!error, load);
 
   const isOwnProfile = currentUser?.id === profileId;
 

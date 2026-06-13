@@ -28,26 +28,28 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  // Retry até 3x com backoff — lida com cold start do Render (free tier)
+  // Retry robusto: até 8 tentativas em 70s — cobre cold start do Render free tier (~50-60s)
   let res!: Response;
   let lastErr: unknown = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  const delays = [0, 5000, 10000, 10000, 10000, 10000, 10000, 5000]; // ~60s total
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (delays[attempt] > 0) await new Promise((r) => setTimeout(r, delays[attempt]));
     try {
       res = await fetch(`${API_URL}${path}`, {
         method,
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
         cache: "no-store",
+        signal: AbortSignal.timeout(8000), // 8s por tentativa
       });
       lastErr = null;
       break;
     } catch (e) {
       lastErr = e;
-      if (attempt < 2) await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
     }
   }
   if (lastErr !== null) {
-    throw new ApiError(0, "Servidor indisponível. A tentar reconectar… Aguarde alguns segundos e tente novamente.");
+    throw new ApiError(0, "O servidor está a iniciar (plano gratuito). Aguarde ~60s e tente novamente.");
   }
   if (!res.ok) {
     let detail: unknown;
