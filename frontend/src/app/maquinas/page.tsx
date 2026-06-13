@@ -5,6 +5,7 @@ import { Search, Plus, X, Tractor } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, Machine, createMachine, listMachines } from "@/lib/api";
 import { MachineCard } from "@/components/MachineCard";
+import { MachineOwnerDashboard } from "@/components/MachineOwnerDashboard";
 import { useAutoRetry } from "@/lib/useAutoRetry";
 
 const tipos = [
@@ -77,14 +78,21 @@ export default function MaquinasPage() {
             </p>
           </div>
           {user?.role === "proprietario_maquinas" && (
-            <button onClick={() => setShowForm(v => !v)} className={showForm ? "btn-secondary rounded-sm" : "btn-primary rounded-sm"}>
-              {showForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Anunciar máquina</>}
-            </button>
+            <span /> // Gerido pelo painel abaixo
           )}
         </div>
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-10">
+        {/* Painel do proprietário */}
+        {user?.role === "proprietario_maquinas" && token && (
+          <div className="mb-14">
+            <MachineOwnerDashboard token={token} />
+            <div className="border-b border-field/15 mt-14 mb-2" />
+            <p className="label-eyebrow mt-6 mb-6">Catálogo público de máquinas</p>
+          </div>
+        )}
+
         {showForm && token && (
           <PublishMachineForm token={token} onPublished={() => { setShowForm(false); loadMachines(); }} />
         )}

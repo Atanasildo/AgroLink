@@ -17,6 +17,7 @@ from app.crud.machine import (
     update_machine,
     update_rental_status,
 )
+from app.models.machine import Machine
 from app.models.user import User, UserRole
 from app.schemas.machine import (
     MachineCreate,
@@ -50,6 +51,20 @@ def search_machines(
 ):
     """Listar máquinas disponíveis para aluguel."""
     return list_machines(db, skip=skip, limit=limit, provincia=provincia, municipio=municipio)
+
+
+@router.get("/me", response_model=list[MachineRead])
+def my_machines(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.PROPRIETARIO_MAQUINAS)),
+):
+    """Listar as minhas máquinas registadas."""
+    return (
+        db.query(Machine)
+        .filter(Machine.proprietario_id == current_user.id)
+        .order_by(Machine.criado_em.desc())
+        .all()
+    )
 
 
 @router.get("/{machine_id}", response_model=MachineRead)

@@ -177,7 +177,8 @@ export interface Machine {
 export interface MachineRental {
   id: string;
   maquina_id: string;
-  agricultor_id: string;
+  locatario_id: string;
+  agricultor_id?: string; // alias
   data_inicio: string;
   data_fim: string;
   status: MachineRentalStatus;
@@ -387,6 +388,18 @@ export function updateMyProfile(
   }>
 ) {
   return apiRequest<User>("/users/me", { method: "PUT", body: payload, token });
+}
+
+export function myMachines(token: string) {
+  return apiRequest<Machine[]>("/machines/me", { token });
+}
+
+export function updateMachine(token: string, machineId: string, payload: Partial<Machine>) {
+  return apiRequest<Machine>(`/machines/${machineId}`, { method: "PUT", body: payload, token });
+}
+
+export function deleteMachine(token: string, machineId: string) {
+  return apiRequest<void>(`/machines/${machineId}`, { method: "DELETE", token });
 }
 
 // ---------- Máquinas ----------
