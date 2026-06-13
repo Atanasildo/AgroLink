@@ -30,9 +30,11 @@ export default function MaquinasPage() {
     setLoading(true);
     setError(null);
     try {
-      // Temporariamente desabilitado enquanto o backend é debugado
-      setMachines([]);
-      setError("O módulo de máquinas está em manutenção. Por favor, tente novamente em breve.");
+      const data = await listMachines({
+        provincia: provincia || undefined,
+        municipio: municipio || undefined,
+      });
+      setMachines(data);
     } catch (err) {
       setError(err instanceof ApiError && err.status === 0 ? "O servidor está a acordar (pode demorar ~30s). A tentar novamente…" : "Não foi possível carregar as máquinas.");
     } finally {
