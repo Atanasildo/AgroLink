@@ -48,3 +48,20 @@ def update_user(db: Session, db_user: User, user_in: UserUpdate) -> User:
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def search_users(
+    db: Session,
+    q: str | None = None,
+    role: str | None = None,
+    exclude_id: uuid.UUID | None = None,
+    limit: int = 20,
+) -> list[User]:
+    query = db.query(User)
+    if q:
+        query = query.filter(User.nome.ilike(f"%{q}%"))
+    if role:
+        query = query.filter(User.role == role)
+    if exclude_id:
+        query = query.filter(User.id != exclude_id)
+    return query.order_by(User.nome).limit(limit).all()

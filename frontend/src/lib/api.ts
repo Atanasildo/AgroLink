@@ -410,6 +410,14 @@ export function getUser(userId: string) {
   return apiRequest<User>(`/users/${userId}`);
 }
 
+export function searchUsers(params: { q?: string; role?: string; limit?: number }, token?: string) {
+  const qs = new URLSearchParams();
+  if (params.q) qs.set("q", params.q);
+  if (params.role) qs.set("role", params.role);
+  if (params.limit) qs.set("limit", String(params.limit));
+  return apiRequest<User[]>(`/users/?${qs.toString()}`, { token });
+}
+
 export function updateMyProfile(
   token: string,
   payload: Partial<{

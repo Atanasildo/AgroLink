@@ -12,11 +12,8 @@ class CommodityType(str, enum.Enum):
     MILHO = "milho"
     FEIJAO = "feijao"
     MANDIOCA = "mandioca"
-    BATATA = "batata"
-    TOMATE = "tomate"
-    BANANA = "banana"
-    CAFE = "cafe"
-    ALGODAO = "algodao"
+    SOJA = "soja"
+    HORTALICAS = "hortalicas"
 
 
 class PriceRecord(Base):

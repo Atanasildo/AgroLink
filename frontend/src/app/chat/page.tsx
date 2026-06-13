@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Send, MessageCircle, Loader2, ArrowLeft } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Send, MessageCircle, Loader2, ArrowLeft, UserPlus, Search, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   ChatMessage,
@@ -11,6 +11,7 @@ import {
   getUser,
   listConversations,
   sendMessage,
+  searchUsers,
 } from "@/lib/api";
 import Link from "next/link";
 
@@ -36,8 +37,16 @@ export default function ChatPage() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [sending, setSending] = useState(false);
+
+  // New conversation search
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [searching, setSearching] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load conversations list
   useEffect(() => {
@@ -45,7 +54,6 @@ export default function ChatPage() {
     listConversations(token)
       .then(async (convs) => {
         setConversations(convs);
-        // Fetch partner names
         const map: Record<string, User> = {};
         await Promise.all(
           convs.map(async (c) => {
@@ -80,13 +88,11 @@ export default function ChatPage() {
         const payload = JSON.parse(e.data);
         if (payload.event === "new_message") {
           const msg: ChatMessage = payload.data;
-          // Add to current conversation if open
           const otherId =
             msg.remetente_id === user?.id ? msg.destinatario_id : msg.remetente_id;
           if (otherId === activeId) {
             setMessages((prev) => [...prev, msg]);
           }
-          // Update conversations list unread badge
           setConversations((prev) =>
             prev.map((c) =>
               c.outro_utilizador_id === otherId
@@ -109,6 +115,50 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Debounced user search
+  const doSearch = useCallback(
+    (q: string) => {
+      if (!token || !q.trim()) {
+        setSearchResults([]);
+        return;
+      }
+      setSearching(true);
+      searchUsers({ q: q.trim(), limit: 15 }, token)
+        .then((results) => {
+          // exclude self
+          setSearchResults(results.filter((u) => u.id !== user?.id));
+        })
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearching(false));
+    },
+    [token, user?.id]
+  );
+
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => doSearch(searchQuery), 350);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [searchQuery, doSearch]);
+
+  function openConversation(target: User) {
+    // Add to partners map
+    setPartners((prev) => ({ ...prev, [target.id]: target }));
+    // Add to conversations list if not present
+    setConversations((prev) => {
+      if (prev.find((c) => c.outro_utilizador_id === target.id)) return prev;
+      return [
+        { outro_utilizador_id: target.id, mensagens_nao_lidas: 0, ultima_mensagem: null as unknown as ChatMessage },
+        ...prev,
+      ];
+    });
+    setActiveId(target.id);
+    setShowSearch(false);
+    setSearchQuery("");
+    setSearchResults([]);
+  }
 
   async function handleSend() {
     if (!token || !activeId || !text.trim() || sending) return;
@@ -150,15 +200,82 @@ export default function ChatPage() {
       <div className="border border-field/20 flex overflow-hidden" style={{ height: "calc(100vh - 130px)", minHeight: "500px" }}>
 
         {/* Sidebar — conversation list */}
-        <div className={`w-full sm:w-72 border-r border-field/20 flex flex-col shrink-0 ${activeId ? "hidden sm:flex" : "flex"}`}>
-          <div className="p-4 border-b border-field/10">
-            <div className="flex items-center gap-2">
-              <MessageCircle size={16} className="text-field" />
-              <span className="font-display text-sm uppercase tracking-widest text-ink">
-                Mensagens
-              </span>
+        <div className={`w-full sm:w-72 border-r border-field/20 flex flex-col shrink-0 ${activeId && !showSearch ? "hidden sm:flex" : "flex"}`}>
+          <div className="p-3 border-b border-field/10">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <MessageCircle size={15} className="text-field" />
+                <span className="font-display text-sm uppercase tracking-widest text-ink">
+                  Mensagens
+                </span>
+              </div>
+              <button
+                onClick={() => { setShowSearch((v) => !v); setSearchQuery(""); setSearchResults([]); }}
+                title="Nova conversa"
+                className="flex items-center gap-1 text-field/60 hover:text-field border border-field/20 hover:border-field/40 px-2 py-1 rounded-sm transition-colors"
+              >
+                {showSearch ? <X size={13} /> : <UserPlus size={13} />}
+                <span className="font-mono text-[10px] uppercase tracking-wider">
+                  {showSearch ? "Fechar" : "Nova"}
+                </span>
+              </button>
             </div>
+
+            {/* Search panel */}
+            {showSearch && (
+              <div className="mt-3">
+                <div className="flex items-center border border-field/30 bg-cream overflow-hidden">
+                  <Search size={12} className="ml-2.5 text-field/40 shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Procurar utilizadores…"
+                    className="flex-1 px-2 py-2 font-mono text-xs text-ink placeholder:text-ink/30 focus:outline-none bg-transparent"
+                  />
+                  {searching && <Loader2 size={12} className="animate-spin mr-2 text-field/40" />}
+                </div>
+                {searchQuery.trim() && !searching && searchResults.length === 0 && (
+                  <p className="font-mono text-[10px] text-ink/30 uppercase text-center mt-3">
+                    Sem resultados
+                  </p>
+                )}
+                {!searchQuery.trim() && (
+                  <p className="font-mono text-[10px] text-ink/30 mt-2 text-center">
+                    Escreva um nome para procurar
+                  </p>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Search results */}
+          {showSearch && searchResults.length > 0 && (
+            <div className="overflow-y-auto border-b border-field/10">
+              {searchResults.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => openConversation(u)}
+                  className="w-full text-left px-4 py-2.5 border-b border-field/5 hover:bg-field/5 transition-colors flex items-center gap-2.5"
+                >
+                  <div className="w-7 h-7 bg-field/15 border border-field/20 rounded-full flex items-center justify-center shrink-0">
+                    <span className="font-mono text-xs text-field font-bold">
+                      {u.nome?.[0]?.toUpperCase() ?? "?"}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs uppercase tracking-wider text-ink font-bold truncate">
+                      {u.nome}
+                    </p>
+                    <p className="font-mono text-[10px] text-ink/40 uppercase">
+                      {u.role}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto">
             {loadingConvs && (
@@ -166,14 +283,14 @@ export default function ChatPage() {
                 <Loader2 size={20} className="animate-spin text-field/40" />
               </div>
             )}
-            {!loadingConvs && conversations.length === 0 && (
+            {!loadingConvs && conversations.length === 0 && !showSearch && (
               <div className="py-12 px-4 text-center">
                 <MessageCircle size={28} className="mx-auto text-field/20 mb-2" />
                 <p className="font-mono text-xs text-ink/40 uppercase tracking-wider">
                   Sem conversas ainda
                 </p>
                 <p className="font-mono text-[10px] text-ink/30 mt-1">
-                  Contacte um agricultor ou transportador
+                  Clique em <strong>Nova</strong> para começar
                 </p>
               </div>
             )}
@@ -183,7 +300,7 @@ export default function ChatPage() {
               return (
                 <button
                   key={c.outro_utilizador_id}
-                  onClick={() => setActiveId(c.outro_utilizador_id)}
+                  onClick={() => { setActiveId(c.outro_utilizador_id); setShowSearch(false); }}
                   className={`w-full text-left px-4 py-3 border-b border-field/10 hover:bg-field/5 transition-colors ${
                     isActive ? "bg-field/8 border-l-2 border-l-field" : ""
                   }`}
@@ -226,11 +343,17 @@ export default function ChatPage() {
         {/* Chat panel */}
         <div className={`flex-1 flex flex-col ${!activeId ? "hidden sm:flex" : "flex"}`}>
           {!activeId ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-              <MessageCircle size={40} className="text-field/20 mb-3" />
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-4 gap-4">
+              <MessageCircle size={40} className="text-field/20" />
               <p className="font-mono text-sm text-ink/40 uppercase tracking-widest">
                 Selecione uma conversa
               </p>
+              <button
+                onClick={() => setShowSearch(true)}
+                className="flex items-center gap-2 bg-field text-cream font-mono text-xs uppercase tracking-wider px-4 py-2.5 hover:bg-field-light transition-colors rounded-sm"
+              >
+                <UserPlus size={14} /> Nova Conversa
+              </button>
             </div>
           ) : (
             <>

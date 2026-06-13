@@ -33,6 +33,17 @@ def _safe_migrate():
             except Exception as e:
                 logger.warning(f"Migration skip: {e}")
 
+    # ALTER TYPE ADD VALUE must run outside a transaction block (each in its own connection)
+    enum_values = ["soja", "hortalicas"]
+    for val in enum_values:
+        try:
+            with engine.connect() as conn:
+                conn.execution_options(isolation_level="AUTOCOMMIT")
+                conn.execute(text(f"ALTER TYPE commoditytype ADD VALUE IF NOT EXISTS '{val}'"))
+                logger.info(f"Enum value added: {val}")
+        except Exception as e:
+            logger.warning(f"Enum migration skip ({val}): {e}")
+
 _safe_migrate()
 
 app = FastAPI(
