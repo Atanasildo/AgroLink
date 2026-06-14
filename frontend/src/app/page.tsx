@@ -38,7 +38,7 @@ const PRODUCT_IMAGES = [
   { url: "https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Feijão" },
   { url: "https://images.pexels.com/photos/533280/pexels-photo-533280.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Tomate" },
   { url: "https://images.pexels.com/photos/6157052/pexels-photo-6157052.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Mandioca" },
-  { url: "https://images.pexels.com/photos/2872791/pexels-photo-2872791.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Banana" },
+  { url: "https://images.pexels.com/photos/1093038/pexels-photo-1093038.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Banana" },
   { url: "https://images.pexels.com/photos/918643/pexels-photo-918643.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Manga" },
 ];
 
@@ -63,7 +63,7 @@ const pillars = [
     cta: "Solicitar transporte",
     color: "text-field",
     bg: "bg-field/10 border-field/30",
-    img: "https://images.pexels.com/photos/1223649/pexels-photo-1223649.jpeg?auto=compress&cs=tinysrgb&w=400"
+    img: "https://images.pexels.com/photos/1117211/pexels-photo-1117211.jpeg?auto=compress&cs=tinysrgb&w=400"
   },
   {
     icon: Tractor,
