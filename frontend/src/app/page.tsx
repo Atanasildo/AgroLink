@@ -134,44 +134,55 @@ const advantages = [
 
 export default function HomePage() {
   const [heroIndex, setHeroIndex] = useState(0);
-  const [fade, setFade] = useState(true);
-  const [scrollY, setScrollY] = useState(0);
+  const [prevIndex, setPrevIndex] = useState<number | null>(null);
+  const [transitioning, setTransitioning] = useState(false);
 
-  // Auto-slide hero images
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false);
-      setTimeout(() => {
-        setHeroIndex(i => (i + 1) % HERO_IMAGES.length);
-        setFade(true);
-      }, 400);
-    }, 4500);
-    return () => clearInterval(interval);
-  }, []);
+  function goTo(i: number) {
+    if (i === heroIndex || transitioning) return;
+    setTransitioning(true);
+    setPrevIndex(heroIndex);
+    setHeroIndex(i);
+    setTimeout(() => {
+      setPrevIndex(null);
+      setTransitioning(false);
+    }, 900);
+  }
 
-  // Parallax
+  // Auto-slide
   useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    const t = setInterval(() => {
+      goTo((heroIndex + 1) % HERO_IMAGES.length);
+    }, 5000);
+    return () => clearInterval(t);
+  }, [heroIndex, transitioning]);
 
   return (
     <div className="dark-section-wrapper">
 
       {/* ── HERO com imagens reais animadas ─────────────────── */}
       <section className="relative overflow-hidden" style={{ minHeight: "90vh" }}>
-        {/* Background slideshow */}
-        <div
-          className="absolute inset-0 transition-opacity duration-700"
-          style={{
-            opacity: fade ? 1 : 0,
-            backgroundImage: `url(${HERO_IMAGES[heroIndex].url})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            transform: `translateY(${scrollY * 0.3}px)`,
-          }}
-        />
+        {/* Background slideshow — crossfade stack */}
+        <div className="absolute inset-0 overflow-hidden">
+          {HERO_IMAGES.map((img, i) => (
+            <div
+              key={i}
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${img.url})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                opacity: i === heroIndex ? 1 : (i === prevIndex ? 0 : 0),
+                transition: i === heroIndex
+                  ? "opacity 900ms cubic-bezier(0.4,0,0.2,1)"
+                  : i === prevIndex
+                  ? "opacity 900ms cubic-bezier(0.4,0,0.2,1)"
+                  : "none",
+                zIndex: i === heroIndex ? 2 : i === prevIndex ? 1 : 0,
+                willChange: "opacity",
+              }}
+            />
+          ))}
+        </div>
         {/* Dark overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/20" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
@@ -188,7 +199,7 @@ export default function HomePage() {
           {HERO_IMAGES.map((_, i) => (
             <button
               key={i}
-              onClick={() => { setFade(false); setTimeout(() => { setHeroIndex(i); setFade(true); }, 300); }}
+              onClick={() => goTo(i)}
               className={`transition-all duration-300 rounded-full ${i === heroIndex ? "w-6 h-2 bg-harvest" : "w-2 h-2 bg-white/40 hover:bg-white/70"}`}
             />
           ))}
