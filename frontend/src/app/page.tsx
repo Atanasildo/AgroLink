@@ -30,6 +30,18 @@ const HERO_IMAGES = [
   {
     url: "https://images.pexels.com/photos/2382665/pexels-photo-2382665.jpeg?auto=compress&cs=tinysrgb&w=1600",
     caption: "Agricultura familiar"
+  },
+  {
+    url: "https://images.pexels.com/photos/1537726/pexels-photo-1537726.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    caption: "Plantações de cana-de-açúcar"
+  },
+  {
+    url: "https://images.pexels.com/photos/1408221/pexels-photo-1408221.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    caption: "Campos de girassol"
+  },
+  {
+    url: "https://images.pexels.com/photos/1379636/pexels-photo-1379636.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    caption: "Produtos frescos do campo"
   }
 ];
 
@@ -37,15 +49,17 @@ const PRODUCT_IMAGES = [
   { url: "https://images.pexels.com/photos/547264/pexels-photo-547264.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Milho" },
   { url: "https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Feijão" },
   { url: "https://images.pexels.com/photos/533280/pexels-photo-533280.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Tomate" },
-  { url: "https://images.pexels.com/photos/6157052/pexels-photo-6157052.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Mandioca" },
+  { url: "https://images.pexels.com/photos/947879/pexels-photo-947879.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Ananás" },
   { url: "https://images.pexels.com/photos/1093038/pexels-photo-1093038.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Banana" },
   { url: "https://images.pexels.com/photos/918643/pexels-photo-918643.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Manga" },
-  { url: "https://images.pexels.com/photos/46216/pexels-photo-46216.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Girassol" },
-  { url: "https://images.pexels.com/photos/5946083/pexels-photo-5946083.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Batata-doce" },
-  { url: "https://images.pexels.com/photos/8489050/pexels-photo-8489050.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Amendoim" },
-  { url: "https://images.pexels.com/photos/5945661/pexels-photo-5945661.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Abacate" },
-  { url: "https://images.pexels.com/photos/2971517/pexels-photo-2971517.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Cana-de-açúcar" },
+  { url: "https://images.pexels.com/photos/1408221/pexels-photo-1408221.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Girassol" },
+  { url: "https://images.pexels.com/photos/89247/pexels-photo-89247.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Batata-doce" },
+  { url: "https://images.pexels.com/photos/1295572/pexels-photo-1295572.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Amendoim" },
+  { url: "https://images.pexels.com/photos/1379636/pexels-photo-1379636.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Abacate" },
+  { url: "https://images.pexels.com/photos/1537726/pexels-photo-1537726.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Cana-de-açúcar" },
   { url: "https://images.pexels.com/photos/894695/pexels-photo-894695.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Café" },
+  { url: "https://images.pexels.com/photos/1300972/pexels-photo-1300972.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Hortaliças" },
+  { url: "https://images.pexels.com/photos/2255801/pexels-photo-2255801.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Soja" },
 ];
 
 const pillars = [
@@ -256,6 +270,7 @@ export default function HomePage() {
                 alt={p.label}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 loading="lazy"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
               <div className="absolute bottom-3 left-3">
@@ -296,6 +311,7 @@ export default function HomePage() {
                   alt={p.title}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   loading="lazy"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute top-3 left-3">
