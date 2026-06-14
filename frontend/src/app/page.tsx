@@ -28,7 +28,7 @@ const HERO_IMAGES = [
     caption: "Agricultura familiar"
   },
   {
-    url: "https://images.pexels.com/photos/1408221/pexels-photo-1408221.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    url: "https://tse4.mm.bing.net/th/id/OIP.kQeYzG1pXw5lo2W6Alb5xwHaE8?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
     caption: "Campos de girassol"
   },
   {
