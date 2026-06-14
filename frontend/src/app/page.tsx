@@ -12,34 +12,34 @@ import { RouteDiagram } from "@/components/RouteDiagram";
 
 const HERO_IMAGES = [
   {
-    url: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1600&q=80",
+    url: "https://images.pexels.com/photos/974314/pexels-photo-974314.jpeg?auto=compress&cs=tinysrgb&w=1600",
     caption: "Campos agrícolas de Angola"
   },
   {
-    url: "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1600&q=80",
+    url: "https://images.pexels.com/photos/547264/pexels-photo-547264.jpeg?auto=compress&cs=tinysrgb&w=1600",
     caption: "Colheita de milho"
   },
   {
-    url: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=1600&q=80",
-    caption: "Agricultura moderna"
+    url: "https://images.pexels.com/photos/1112080/pexels-photo-1112080.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    caption: "Maquinaria agrícola moderna"
   },
   {
-    url: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1600&q=80",
+    url: "https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=1600",
     caption: "Campos verdes"
   },
   {
-    url: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80",
-    caption: "Flores do campo"
+    url: "https://images.pexels.com/photos/2382665/pexels-photo-2382665.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    caption: "Agricultura familiar"
   }
 ];
 
 const PRODUCT_IMAGES = [
-  { url: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=80", label: "Milho" },
-  { url: "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=600&q=80", label: "Feijão" },
-  { url: "https://images.unsplash.com/photo-1518977822534-7049a61ee0c2?w=600&q=80", label: "Tomate" },
-  { url: "https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=600&q=80", label: "Mandioca" },
-  { url: "https://images.unsplash.com/photo-1612392062798-cd98c7c0d5e1?w=600&q=80", label: "Banana" },
-  { url: "https://images.unsplash.com/photo-1490885578174-acda8905c2c6?w=600&q=80", label: "Manga" },
+  { url: "https://images.pexels.com/photos/547264/pexels-photo-547264.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Milho" },
+  { url: "https://images.pexels.com/photos/6157051/pexels-photo-6157051.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Feijão" },
+  { url: "https://images.pexels.com/photos/533280/pexels-photo-533280.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Tomate" },
+  { url: "https://images.pexels.com/photos/6157052/pexels-photo-6157052.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Mandioca" },
+  { url: "https://images.pexels.com/photos/2872755/pexels-photo-2872755.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Banana" },
+  { url: "https://images.pexels.com/photos/918643/pexels-photo-918643.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Manga" },
 ];
 
 const pillars = [
@@ -52,7 +52,7 @@ const pillars = [
     cta: "Ver produtos",
     color: "text-harvest",
     bg: "bg-harvest/10 border-harvest/30",
-    img: "https://images.unsplash.com/photo-1488459716781-31db52582fe9?w=400&q=80"
+    img: "https://images.pexels.com/photos/2255801/pexels-photo-2255801.jpeg?auto=compress&cs=tinysrgb&w=400"
   },
   {
     icon: Truck,
@@ -63,7 +63,7 @@ const pillars = [
     cta: "Solicitar transporte",
     color: "text-field",
     bg: "bg-field/10 border-field/30",
-    img: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=400&q=80"
+    img: "https://images.pexels.com/photos/1223649/pexels-photo-1223649.jpeg?auto=compress&cs=tinysrgb&w=400"
   },
   {
     icon: Tractor,
@@ -74,7 +74,7 @@ const pillars = [
     cta: "Ver máquinas",
     color: "text-earth",
     bg: "bg-earth/10 border-earth/30",
-    img: "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&q=80"
+    img: "https://images.pexels.com/photos/1112080/pexels-photo-1112080.jpeg?auto=compress&cs=tinysrgb&w=400"
   },
 ];
 
@@ -377,7 +377,7 @@ export default function HomePage() {
         {/* Farm image background */}
         <div className="absolute inset-0 opacity-10"
           style={{
-            backgroundImage: "url(https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&q=60)",
+            backgroundImage: "url(https://images.pexels.com/photos/974314/pexels-photo-974314.jpeg?auto=compress&cs=tinysrgb&w=1200)",
             backgroundSize: "cover",
             backgroundPosition: "center",
             filter: "grayscale(100%)"
@@ -454,7 +454,7 @@ export default function HomePage() {
       <section className="relative overflow-hidden py-24">
         <div className="absolute inset-0"
           style={{
-            backgroundImage: "url(https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1200&q=70)",
+            backgroundImage: "url(https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=1200)",
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

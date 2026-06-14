@@ -7,6 +7,7 @@ import {
   myProducts, createProduct, updateProduct, deleteProduct,
   ApiError,
 } from "@/lib/api";
+import { ImageUpload } from "./ImageUpload";
 
 const categorias = [
   { value: "cereais",     label: "🌾 Cereais" },
@@ -111,6 +112,7 @@ function ProductForm({ token, onSuccess, initial }: {
   const [provincia, setProvincia] = useState(initial?.provincia ?? "");
   const [municipio, setMunicipio] = useState(initial?.municipio ?? "");
   const [descricao, setDescricao] = useState(initial?.descricao ?? "");
+  const [imagens, setImagens] = useState<string[]>(initial?.imagens ?? []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -126,6 +128,7 @@ function ProductForm({ token, onSuccess, initial }: {
         unidade: unidade as Product["unidade"],
         provincia, municipio,
         descricao: descricao || undefined,
+        imagens: imagens.length > 0 ? imagens : undefined,
       };
       if (initial) {
         await updateProduct(token, initial.id, payload);
@@ -180,6 +183,9 @@ function ProductForm({ token, onSuccess, initial }: {
           <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Descrição (opcional)</span>
           <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={2} className="field-input rounded-sm resize-none" />
         </label>
+        <div className="sm:col-span-2">
+          <ImageUpload images={imagens} onChange={setImagens} maxImages={3} label="Fotos do produto" />
+        </div>
       </div>
       {error && <p className="text-earth font-body text-sm mt-3">{error}</p>}
       <div className="mt-4">

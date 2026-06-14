@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     TRANSPORT_COMMISSION_PERCENT: float = 5.0
     MACHINE_RENTAL_COMMISSION_PERCENT: float = 10.0
 
+    # Chave secreta para promover a própria conta a administrador via /users/me/promote-admin
+    # IMPORTANTE: definir um valor forte e único na variável de ambiente ADMIN_SETUP_KEY
+    ADMIN_SETUP_KEY: str = "troque-esta-chave-admin-no-env"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

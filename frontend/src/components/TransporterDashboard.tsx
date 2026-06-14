@@ -12,6 +12,7 @@ import {
   incomingTransportRequests, acceptTransportRequest, updateRequestStatus,
   ApiError,
 } from "@/lib/api";
+import { ImageUpload } from "./ImageUpload";
 
 // ---- Constants ----
 const provincias = ["Luanda", "Huambo", "Bié", "Malanje", "Uíge", "Benguela", "Cuanza Sul"];
@@ -235,6 +236,7 @@ function VehicleForm({ token, onSuccess }: { token: string; onSuccess: () => voi
   const [matricula, setMatricula] = useState("");
   const [provincia, setProvincia] = useState("");
   const [municipio, setMunicipio] = useState("");
+  const [imagens, setImagens] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -249,6 +251,7 @@ function VehicleForm({ token, onSuccess }: { token: string; onSuccess: () => voi
         matricula,
         provincia,
         municipio,
+        imagens: imagens.length > 0 ? imagens : undefined,
       });
       onSuccess();
     } catch (err) {
@@ -308,6 +311,9 @@ function VehicleForm({ token, onSuccess }: { token: string; onSuccess: () => voi
             {provincia && municipios[provincia]?.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </label>
+        <div className="sm:col-span-2">
+          <ImageUpload images={imagens} onChange={setImagens} maxImages={4} label="Fotos do veículo" />
+        </div>
       </div>
       {error && <p className="text-earth font-body text-sm mt-3">{error}</p>}
       <div className="mt-4">
@@ -351,6 +357,19 @@ function VehicleCard({
 
   return (
     <div className="field-card rounded-sm">
+      {/* Galeria de fotos (se existir) */}
+      {vehicle.imagens && vehicle.imagens.length > 0 && (
+        <div className="flex gap-1.5 mb-3 overflow-x-auto pb-0.5">
+          {vehicle.imagens.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`Foto ${i + 1}`}
+              className="w-20 h-16 object-cover rounded-sm flex-shrink-0 border border-field/15"
+            />
+          ))}
+        </div>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <p className="font-display text-base text-field mb-0.5">

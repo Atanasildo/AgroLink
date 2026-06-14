@@ -9,6 +9,7 @@ interface AuthContextValue {
   loading: boolean;
   unreadCount: number;
   refreshUnread: () => void;
+  refreshUser: () => Promise<void>;
   signIn: (email: string, senha: string) => Promise<void>;
   signOut: () => void;
 }
@@ -66,6 +67,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.sessionStorage.setItem(STORAGE_KEY, tokenResponse.access_token);
   }
 
+  async function refreshUser() {
+    if (!token) return;
+    try {
+      const me = await getMe(token);
+      setUser(me);
+    } catch {}
+  }
+
   function signOut() {
     setUser(null);
     setToken(null);
@@ -74,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, unreadCount, refreshUnread, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, token, loading, unreadCount, refreshUnread, refreshUser, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -169,6 +169,7 @@ export interface Machine {
   preco_diaria: number;
   provincia?: string | null;
   municipio?: string | null;
+  imagens?: string[] | null;
   proprietario_id: string;
   disponivel: boolean;
   criado_em: string;
@@ -348,6 +349,7 @@ export interface Vehicle {
   matricula: string;
   provincia: string;
   municipio: string;
+  imagens?: string[] | null;
   disponivel: boolean;
   proprietario_id: string;
   criado_em: string;
@@ -363,6 +365,7 @@ export function createVehicle(token: string, payload: {
   matricula: string;
   provincia: string;
   municipio: string;
+  imagens?: string[];
 }) {
   return apiRequest<Vehicle>("/transport/vehicles", { method: "POST", body: payload, token });
 }
@@ -430,6 +433,11 @@ export function updateMyProfile(
   }>
 ) {
   return apiRequest<User>("/users/me", { method: "PUT", body: payload, token });
+}
+
+// Promove a conta autenticada a admin, usando a chave secreta ADMIN_SETUP_KEY do backend
+export function promoteToAdmin(token: string, chave: string) {
+  return apiRequest<User>("/users/me/promote-admin", { method: "POST", body: { chave }, token });
 }
 
 export function myMachines(token: string) {

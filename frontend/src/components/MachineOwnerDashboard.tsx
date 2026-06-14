@@ -11,6 +11,7 @@ import {
   myMachineRentals, updateMachineRentalStatus,
   ApiError,
 } from "@/lib/api";
+import { ImageUpload } from "./ImageUpload";
 
 // ---- Constants ----
 const provincias = ["Luanda", "Huambo", "Bié", "Malanje", "Uíge", "Benguela", "Cuanza Sul"];
@@ -182,6 +183,7 @@ function MachineForm({ token, onSuccess, initial }: {
   const [precoDiaria, setPrecoDiaria] = useState(initial?.preco_diaria?.toString() ?? "");
   const [provincia, setProvincia] = useState(initial?.provincia ?? "");
   const [municipio, setMunicipio] = useState(initial?.municipio ?? "");
+  const [imagens, setImagens] = useState<string[]>(initial?.imagens ?? []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -190,7 +192,11 @@ function MachineForm({ token, onSuccess, initial }: {
     setError(null);
     setLoading(true);
     try {
-      const payload = { nome, tipo: tipo as Machine["tipo"], descricao: descricao || undefined, preco_diaria: parseFloat(precoDiaria), provincia, municipio };
+      const payload = {
+        nome, tipo: tipo as Machine["tipo"], descricao: descricao || undefined,
+        preco_diaria: parseFloat(precoDiaria), provincia, municipio,
+        imagens: imagens.length > 0 ? imagens : undefined,
+      };
       if (initial) {
         await updateMachine(token, initial.id, payload);
       } else {
@@ -262,6 +268,9 @@ function MachineForm({ token, onSuccess, initial }: {
             className="field-input rounded-sm resize-none"
           />
         </label>
+        <div className="sm:col-span-2">
+          <ImageUpload images={imagens} onChange={setImagens} maxImages={4} label="Fotos da máquina/equipamento" />
+        </div>
       </div>
       {error && <p className="text-earth font-body text-sm mt-3">{error}</p>}
       <div className="mt-4">
@@ -321,6 +330,19 @@ function MachineCard({ machine, token, onChanged }: {
 
   return (
     <div className="field-card rounded-sm">
+      {/* Galeria de fotos (se existir) */}
+      {machine.imagens && machine.imagens.length > 0 && (
+        <div className="flex gap-1.5 mb-3 overflow-x-auto pb-0.5">
+          {machine.imagens.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={`Foto ${i + 1}`}
+              className="w-20 h-16 object-cover rounded-sm flex-shrink-0 border border-earth/15"
+            />
+          ))}
+        </div>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <p className="font-display text-base text-field mb-0.5">

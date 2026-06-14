@@ -9,24 +9,31 @@ function formatKz(value: string | number) {
   return new Intl.NumberFormat("pt-AO", { maximumFractionDigits: 0 }).format(Number(value)) + " Kz";
 }
 
-// Map product categories/names to real Unsplash images
+// Map product categories/names to reliable images (CDN pexels, não requer referer)
 function getProductImage(nome: string, categoria: string): string {
   const n = nome.toLowerCase();
   const c = categoria.toLowerCase();
 
-  if (n.includes("milho") || c === "cereais") return "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&q=70";
-  if (n.includes("feijão") || n.includes("feijao") || c === "leguminosas") return "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=400&q=70";
-  if (n.includes("mandioca") || c === "tuberculos") return "https://images.unsplash.com/photo-1518977822534-7049a61ee0c2?w=400&q=70";
-  if (n.includes("tomate") || n.includes("tomate") || c === "hortalicas") return "https://images.unsplash.com/photo-1592841200221-a6898f307baa?w=400&q=70";
-  if (n.includes("banana")) return "https://images.unsplash.com/photo-1528825871115-3581a5387919?w=400&q=70";
-  if (n.includes("manga") || c === "frutas") return "https://images.unsplash.com/photo-1553279768-865429fa0078?w=400&q=70";
-  if (n.includes("soja")) return "https://images.unsplash.com/photo-1599940824399-b87987ceb72a?w=400&q=70";
-  if (n.includes("arroz")) return "https://images.unsplash.com/photo-1536304993881-ff86e0c9b1ce?w=400&q=70";
-  if (n.includes("batata")) return "https://images.unsplash.com/photo-1518977676405-d054b161de1f?w=400&q=70";
-  if (c === "frutas") return "https://images.unsplash.com/photo-1490885578174-acda8905c2c6?w=400&q=70";
-  if (c === "hortalicas") return "https://images.unsplash.com/photo-1574316071802-0d684efa7bf5?w=400&q=70";
+  if (n.includes("milho") || c === "cereais")
+    return "https://images.pexels.com/photos/547264/pexels-photo-547264.jpeg?auto=compress&cs=tinysrgb&w=400";
+  if (n.includes("feijão") || n.includes("feijao") || c === "leguminosas")
+    return "https://images.pexels.com/photos/6157051/pexels-photo-6157051.jpeg?auto=compress&cs=tinysrgb&w=400";
+  if (n.includes("mandioca") || c === "tuberculos")
+    return "https://images.pexels.com/photos/6157052/pexels-photo-6157052.jpeg?auto=compress&cs=tinysrgb&w=400";
+  if (n.includes("tomate") || c === "hortalicas")
+    return "https://images.pexels.com/photos/533280/pexels-photo-533280.jpeg?auto=compress&cs=tinysrgb&w=400";
+  if (n.includes("banana"))
+    return "https://images.pexels.com/photos/2872755/pexels-photo-2872755.jpeg?auto=compress&cs=tinysrgb&w=400";
+  if (n.includes("manga") || c === "frutas")
+    return "https://images.pexels.com/photos/918643/pexels-photo-918643.jpeg?auto=compress&cs=tinysrgb&w=400";
+  if (n.includes("soja"))
+    return "https://images.pexels.com/photos/6157058/pexels-photo-6157058.jpeg?auto=compress&cs=tinysrgb&w=400";
+  if (n.includes("arroz"))
+    return "https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=400";
+  if (n.includes("batata"))
+    return "https://images.pexels.com/photos/144248/potatoes-vegetables-erdfrucht-bio-144248.jpeg?auto=compress&cs=tinysrgb&w=400";
   // Default farm
-  return "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=400&q=70";
+  return "https://images.pexels.com/photos/974314/pexels-photo-974314.jpeg?auto=compress&cs=tinysrgb&w=400";
 }
 
 export function ProductCard({ product }: { product: Product }) {
@@ -35,9 +42,10 @@ export function ProductCard({ product }: { product: Product }) {
   const [imgError, setImgError] = useState(false);
 
   const canInteract = user && user.role !== "agricultor";
-  const imgSrc = imgError
-    ? "https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=400&q=70"
-    : getProductImage(product.nome, product.categoria);
+  // Prioridade: imagem real carregada pelo agricultor → imagem automática por categoria
+  const autoImg = getProductImage(product.nome, product.categoria);
+  const primaryImg = product.imagens && product.imagens.length > 0 ? product.imagens[0] : autoImg;
+  const imgSrc = imgError ? autoImg : primaryImg;
 
   return (
     <div className="field-card flex flex-col gap-0 hover:border-field/40 transition-all duration-300 hover:shadow-md rounded-sm overflow-hidden p-0 group">

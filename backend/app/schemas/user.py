@@ -33,6 +33,10 @@ class UserUpdate(BaseModel):
     foto_perfil_url: str | None = None
 
 
+class AdminPromoteRequest(BaseModel):
+    chave: str = Field(min_length=1, description="Chave secreta de configuração (ADMIN_SETUP_KEY)")
+
+
 class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
 

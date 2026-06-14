@@ -24,6 +24,10 @@ def _safe_migrate():
         # transport_requests
         "ALTER TABLE transport_requests ADD COLUMN IF NOT EXISTS hora_prevista_chegada TIMESTAMP WITH TIME ZONE",
         "ALTER TABLE transport_requests ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP WITH TIME ZONE",
+        # imagens (galeria de fotos)
+        "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
+        "ALTER TABLE machines ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
     ]
     with engine.begin() as conn:
         for sql in migrations:

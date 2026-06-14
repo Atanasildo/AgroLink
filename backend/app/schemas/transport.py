@@ -16,6 +16,7 @@ class VehicleBase(BaseModel):
     matricula: str = Field(min_length=2, max_length=20)
     provincia: str | None = None
     municipio: str | None = None
+    imagens: list[str] | None = None
 
 
 class VehicleCreate(VehicleBase):
@@ -28,6 +29,7 @@ class VehicleUpdate(BaseModel):
     matricula: str | None = None
     provincia: str | None = None
     municipio: str | None = None
+    imagens: list[str] | None = None
     disponivel: bool | None = None
 
 

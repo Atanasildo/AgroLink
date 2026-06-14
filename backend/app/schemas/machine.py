@@ -13,6 +13,7 @@ class MachineBase(BaseModel):
     preco_diaria: float = Field(gt=0)  # Simples float
     provincia: str | None = None
     municipio: str | None = None
+    imagens: list[str] | None = None
 
 
 class MachineCreate(MachineBase):
@@ -26,6 +27,7 @@ class MachineUpdate(BaseModel):
     preco_diaria: float | None = Field(default=None, gt=0)
     provincia: str | None = None
     municipio: str | None = None
+    imagens: list[str] | None = None
     disponivel: bool | None = None
 
 
@@ -40,6 +42,7 @@ class MachineRead(BaseModel):
     preco_diaria: float  # BD tem isto, envia como está
     provincia: str | None = None
     municipio: str | None = None
+    imagens: list[str] | None = None
     disponivel: bool
     criado_em: datetime
 
