@@ -332,7 +332,7 @@ function RouteCard({
             <label className="flex flex-col gap-2">
               <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Peso (toneladas)</span>
               <input required type="number" min="0.1" step="0.1"
-                max={route.capacidade_disponivel_toneladas}
+                /* max removido - validação feita no submit */
                 value={peso} onChange={e => setPeso(e.target.value)}
                 placeholder={`Máx. ${route.capacidade_disponivel_toneladas}t`}
                 className="field-input rounded-sm" />
