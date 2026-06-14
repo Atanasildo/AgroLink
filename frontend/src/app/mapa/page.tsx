@@ -577,7 +577,7 @@ export default function MapaPage() {
                 className="field-input rounded-sm text-sm py-1.5"
               >
                 <option value="">Selecionar…</option>
-                {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+                {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
 

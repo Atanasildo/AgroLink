@@ -341,7 +341,7 @@ function EditProfileForm({ profile, token, onSaved, onCancel }: {
           <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Província</span>
           <select value={provincia} onChange={e => { setProvincia(e.target.value); setMunicipio(""); }} className="field-input rounded-sm">
             <option value="">Selecionar...</option>
-            {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+            {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-2">

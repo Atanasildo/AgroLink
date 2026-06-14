@@ -97,7 +97,7 @@ export default function MaquinasPage() {
               <select value={provincia} onChange={e => { setProvincia(e.target.value); setMunicipio(""); }}
                 className="field-input rounded-sm">
                 <option value="">Todas as províncias</option>
-                {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+                {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </label>
             <label className="flex flex-col gap-2 lg:col-span-2">
@@ -206,7 +206,7 @@ function PublishMachineForm({ token, onPublished }: { token: string; onPublished
           <select required value={provincia} onChange={e => { setProvincia(e.target.value); setMunicipio(""); }}
             className="field-input rounded-sm">
             <option value="">Selecionar província...</option>
-            {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+            {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-2">

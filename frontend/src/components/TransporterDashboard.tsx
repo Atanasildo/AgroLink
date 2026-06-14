@@ -289,7 +289,7 @@ function VehicleForm({ token, onSuccess }: { token: string; onSuccess: () => voi
             className="field-input rounded-sm"
           >
             <option value="">Selecionar...</option>
-            {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+            {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-2">
