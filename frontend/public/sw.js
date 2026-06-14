@@ -1,262 +1,202 @@
-// public/sw.js
 // ============================================================================
-// SERVICE WORKER - NOTIFICAÇÕES PUSH
-// AgroLink - Transporte Rural
+// SERVICE WORKER - AgroLink PWA
+// Cache inteligente para zonas rurais com má cobertura
 // ============================================================================
 
-const CACHE_NAME = 'agrolink-v1';
-const urlsToCache = [
+const CACHE_VERSION = 'v3';
+const STATIC_CACHE  = `agrolink-static-${CACHE_VERSION}`;
+const API_CACHE     = `agrolink-api-${CACHE_VERSION}`;
+const IMAGE_CACHE   = `agrolink-images-${CACHE_VERSION}`;
+
+// Páginas e assets que são sempre cacheados na instalação
+const STATIC_ASSETS = [
   '/',
-  '/index.html',
-  '/styles/main.css',
-  '/js/app.js'
+  '/marketplace',
+  '/transporte',
+  '/maquinas',
+  '/precos',
+  '/mapa',
+  '/offline',
+  '/manifest.json',
 ];
 
-// ============================================================================
-// INSTALAÇÃO
-// ============================================================================
+// Endpoints da API que devem ser cacheados (stale-while-revalidate)
+const API_CACHE_PATTERNS = [
+  /\/api\/v1\/products/,
+  /\/api\/v1\/transport\/routes/,
+  /\/api\/v1\/prices/,
+  /\/api\/v1\/transport\/requests\/me/,
+  /\/api\/v1\/machines/,
+];
+
+// ── INSTALAÇÃO ───────────────────────────────────────────────────────────────
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+    caches.open(STATIC_CACHE)
+      .then(cache => cache.addAll(STATIC_ASSETS).catch(() => {}))
       .then(() => self.skipWaiting())
   );
 });
 
-// ============================================================================
-// ATIVAÇÃO
-// ============================================================================
+// ── ACTIVAÇÃO ────────────────────────────────────────────────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(k => k.startsWith('agrolink-') && ![STATIC_CACHE, API_CACHE, IMAGE_CACHE].includes(k))
+          .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
   );
 });
 
-// ============================================================================
-// NOTIFICAÇÕES PUSH
-// ============================================================================
+// ── FETCH ─────────────────────────────────────────────────────────────────────
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
 
-/**
- * Tipos de notificações que podem ser recebidas:
- */
+  // Só interceptar GET
+  if (request.method !== 'GET') return;
 
-self.addEventListener('push', event => {
-  if (!event.data) {
-    console.log('Push recebido sem dados');
+  // 1. Imagens → cache-first com TTL longo
+  if (request.destination === 'image') {
+    event.respondWith(cacheFirst(request, IMAGE_CACHE));
     return;
   }
 
-  const data = event.data.json();
-  
-  const notificationOptions = {
-    body: data.body || 'Nova notificação AgroLink',
-    icon: '/images/agrolink-icon-192x192.png',
-    badge: '/images/agrolink-badge-72x72.png',
-    tag: data.id || 'agrolink-notification',
-    requireInteraction: data.requireInteraction || false,
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: data.id,
-      transporte_id: data.transport_id,
-      action: data.action
-    }
-  };
-
-  // Diferentes tipos de notificações
-  switch (data.type) {
-    case 'transportador_aceita':
-      notificationOptions.title = '✓ Transportador Encontrado!';
-      notificationOptions.body = `${data.transporter_name} aceitou seu pedido de transporte`;
-      notificationOptions.icon = '/images/icons/truck-check.png';
-      notificationOptions.badge = '/images/icons/truck-check-small.png';
-      notificationOptions.tag = `transport-${data.transport_id}`;
-      break;
-
-    case 'proximo_chegada':
-      notificationOptions.title = '📍 Chegada Iminente';
-      notificationOptions.body = `${data.transporter_name} está a ${data.minutes_away} minutos de distância`;
-      notificationOptions.icon = '/images/icons/location.png';
-      notificationOptions.requireInteraction = true;
-      break;
-
-    case 'entrega_concluida':
-      notificationOptions.title = '✓ Entrega Concluída!';
-      notificationOptions.body = `Seu pedido foi entregue com sucesso`;
-      notificationOptions.icon = '/images/icons/check-circle.png';
-      break;
-
-    case 'avaliar':
-      notificationOptions.title = '⭐ Avaliar Transporte';
-      notificationOptions.body = `Por favor, avalie o transportador ${data.transporter_name}`;
-      notificationOptions.requireInteraction = true;
-      break;
-
-    case 'pedido_novo':
-      notificationOptions.title = '📦 Novo Pedido Disponível';
-      notificationOptions.body = `${data.quantity} ${data.unit} de ${data.product} de ${data.origin} para ${data.destination}`;
-      notificationOptions.icon = '/images/icons/package.png';
-      break;
-
-    case 'pagamento_recebido':
-      notificationOptions.title = '💰 Pagamento Recebido!';
-      notificationOptions.body = `Você recebeu ${data.amount} pela entrega completa`;
-      notificationOptions.icon = '/images/icons/money.png';
-      break;
-
-    case 'cancelamento':
-      notificationOptions.title = '❌ Transporte Cancelado';
-      notificationOptions.body = data.reason || 'O transporte foi cancelado';
-      notificationOptions.icon = '/images/icons/cancel.png';
-      break;
-
-    default:
-      notificationOptions.title = 'AgroLink - Transporte Rural';
+  // 2. Endpoints da API → stale-while-revalidate
+  if (API_CACHE_PATTERNS.some(p => p.test(url.pathname))) {
+    event.respondWith(staleWhileRevalidate(request, API_CACHE));
+    return;
   }
 
+  // 3. Assets estáticos Next.js (_next/static) → cache-first
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    return;
+  }
+
+  // 4. Navegação (páginas HTML) → network-first, fallback offline
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirstWithOfflineFallback(request));
+    return;
+  }
+});
+
+// ── ESTRATÉGIAS DE CACHE ──────────────────────────────────────────────────────
+
+async function cacheFirst(request, cacheName) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return new Response('', { status: 503 });
+  }
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+
+  const fetchPromise = fetch(request).then(response => {
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  }).catch(() => null);
+
+  // Servir cache imediatamente, actualizar em background
+  if (cached) {
+    fetchPromise; // fire-and-forget
+    return cached;
+  }
+
+  // Sem cache — esperar pela rede
+  const fresh = await fetchPromise;
+  if (fresh) return fresh;
+
+  // Sem rede e sem cache — resposta de erro útil
+  return new Response(
+    JSON.stringify({ detail: 'Sem ligação à internet. Os dados mais recentes não estão disponíveis.' }),
+    { status: 503, headers: { 'Content-Type': 'application/json' } }
+  );
+}
+
+async function networkFirstWithOfflineFallback(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(STATIC_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // Fallback para página offline
+    return caches.match('/offline') || new Response('<h1>Sem ligação</h1>', { headers: { 'Content-Type': 'text/html' } });
+  }
+}
+
+// ── NOTIFICAÇÕES PUSH ─────────────────────────────────────────────────────────
+self.addEventListener('push', event => {
+  if (!event.data) return;
+  const data = event.data.json();
+
+  const titles = {
+    transportador_aceita: '✅ Transportador encontrado!',
+    proximo_chegada:      '📍 Chegada iminente',
+    entrega_concluida:    '✅ Entrega concluída!',
+    pedido_novo:          '📦 Novo pedido disponível',
+    pagamento_recebido:   '💰 Pagamento recebido!',
+    cancelamento:         '❌ Pedido cancelado',
+  };
+
   event.waitUntil(
-    self.registration.showNotification(notificationOptions.title, notificationOptions)
+    self.registration.showNotification(
+      titles[data.type] || 'AgroLink',
+      {
+        body:  data.body || '',
+        icon:  '/icons/icon-192x192.png',
+        badge: '/icons/icon-72x72.png',
+        tag:   data.id || 'agrolink',
+        data:  { url: data.url || '/' },
+      }
+    )
   );
 });
 
-// ============================================================================
-// CLIQUE EM NOTIFICAÇÃO
-// ============================================================================
-
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-
-  const data = event.notification.data;
-  let urlToOpen = '/';
-
-  // Redirecionar para a página apropriada baseado no tipo
-  if (data.transport_id) {
-    urlToOpen = `/transport/${data.transport_id}`;
-  } else if (data.action === 'rate') {
-    urlToOpen = `/transport/${data.transport_id}/rate`;
-  }
-
+  const url = event.notification.data?.url || '/';
   event.waitUntil(
-    clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true
-    }).then(clientList => {
-      // Verificar se já existe uma aba com a página
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
-        if (client.url === urlToOpen && 'focus' in client) {
-          return client.focus();
-        }
+    clients.matchAll({ type: 'window' }).then(cs => {
+      for (const c of cs) {
+        if (c.url === url && 'focus' in c) return c.focus();
       }
-      // Caso contrário, abrir uma nova aba
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
+      return clients.openWindow(url);
     })
   );
 });
 
-// ============================================================================
-// FETCH COM CACHE
-// ============================================================================
-
-self.addEventListener('fetch', event => {
-  // GET requests apenas
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  // Estratégia: Cache first, fallback to network
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-
-        return fetch(event.request).then(response => {
-          // Não cachear se não é uma resposta válida
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          // Clonar a resposta
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
-        });
-      })
-      .catch(() => {
-        // Fallback offline - retornar página de offline
-        return caches.match('/offline.html');
-      })
-  );
-});
-
-// ============================================================================
-// MENSAGENS DO CLIENTE
-// ============================================================================
-
-self.addEventListener('message', event => {
-  const data = event.data;
-
-  if (data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-
-  if (data.type === 'CLEAR_CACHE') {
-    caches.delete(CACHE_NAME);
-  }
-
-  if (data.type === 'PING') {
-    event.ports[0].postMessage({ success: true });
-  }
-});
-
-// ============================================================================
-// SINCRONIZAÇÃO BACKGROUND (Para quando reconectar à internet)
-// ============================================================================
-
+// ── BACKGROUND SYNC ───────────────────────────────────────────────────────────
 self.addEventListener('sync', event => {
   if (event.tag === 'sync-transport-data') {
     event.waitUntil(
-      // Sincronizar dados de transporte
-      fetch('/api/v1/transport/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          // Notificar clientes que sincronizou
-          self.clients.matchAll().then(clients => {
-            clients.forEach(client => {
-              client.postMessage({
-                type: 'SYNC_COMPLETE',
-                data: data
-              });
-            });
-          });
-        })
-        .catch(error => {
-          console.error('Erro ao sincronizar:', error);
-          // Retry mais tarde
-          return Promise.reject(error);
-        })
+      fetch('/api/v1/transport/sync', { method: 'POST' }).catch(() => {})
     );
   }
 });
 
-console.log('Service Worker carregado e ativo');
+// ── MENSAGENS ─────────────────────────────────────────────────────────────────
+self.addEventListener('message', event => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data?.type === 'CLEAR_CACHE') {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+});
