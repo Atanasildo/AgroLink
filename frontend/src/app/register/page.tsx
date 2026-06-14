@@ -45,7 +45,7 @@ export default function RegisterPage() {
     try {
       await register({ nome, email, telefone: telefone || undefined, senha, role, provincia, municipio });
       await signIn(email, senha);
-      router.push("/marketplace");
+      router.push("/onboarding");
     } catch (err) {
       if (err instanceof ApiError) {
         const detail = err.detail;
