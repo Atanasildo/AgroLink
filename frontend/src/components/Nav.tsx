@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
   Sprout, Truck, ShoppingBasket, LogOut, User,
@@ -21,6 +22,7 @@ const links = [
 export function Nav() {
   const { user, signOut, unreadCount } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <>
@@ -44,7 +46,11 @@ export function Nav() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative flex items-center gap-1 font-mono text-xs uppercase tracking-wide text-ink/60 hover:text-field hover:bg-field/5 px-2.5 py-2 transition-colors rounded-sm whitespace-nowrap"
+                className={`relative flex items-center gap-1 font-mono text-xs uppercase tracking-wide px-2.5 py-2 transition-colors rounded-sm whitespace-nowrap ${
+                  pathname === link.href
+                    ? "bg-field text-cream"
+                    : "text-ink/60 hover:text-field hover:bg-field/5"
+                }`}
               >
                 <link.icon size={13} />
                 {link.label}
@@ -134,7 +140,11 @@ export function Nav() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="relative flex items-center gap-3 px-5 py-4 font-mono text-sm uppercase tracking-wider text-ink/70 hover:bg-field/5 hover:text-field transition-colors"
+                  className={`relative flex items-center gap-3 px-5 py-4 font-mono text-sm uppercase tracking-wider transition-colors ${
+                    pathname === link.href
+                      ? "bg-field text-cream"
+                      : "text-ink/70 hover:bg-field/5 hover:text-field"
+                  }`}
                 >
                   <link.icon size={18} className="text-field/50" />
                   {link.label}

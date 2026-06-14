@@ -21,9 +21,10 @@ const TIPOS: { value: MapEntityType | ""; label: string; emoji: string; color: s
 ];
 
 const provincias = [
-  "Luanda","Huambo","Benguela","Bié","Malanje","Uíge","Cuanza Norte",
-  "Cuanza Sul","Moxico","Cuando Cubango","Cunene","Huíla","Namibe",
-  "Zaire","Cabinda","Lunda Norte","Lunda Sul","Bengo",
+  "Bengo","Benguela","Bié","Cabinda","Cuando Cubango",
+  "Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla",
+  "Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico",
+  "Namibe","Uíge","Zaire",
 ];
 
 function colorForTipo(tipo: MapEntityType) {

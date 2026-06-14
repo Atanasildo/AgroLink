@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Users, Truck, Wheat, TrendingUp,
   CreditCard, CheckCircle, XCircle, Clock, BarChart2,
-  Leaf, Package, RefreshCw, Eye, Ban
+  Leaf, Package, RefreshCw, Eye, Ban, PlusCircle, Database,
 } from "lucide-react";
+import { createPrice, seedPrices, CommodityType } from "@/lib/api";
 
 // Dados de DEMONSTRAÇÃO — claramente fictícios
 const DEMO_USERS = [
@@ -44,7 +45,7 @@ function formatKz(val: number) {
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<"dashboard" | "users" | "payments" | "routes">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "users" | "payments" | "routes" | "precos">("dashboard");
   const [users, setUsers] = useState(DEMO_USERS);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -113,6 +114,7 @@ export default function AdminPage() {
             { key: "users",     label: "Utilizadores",   icon: Users     },
             { key: "payments",  label: "Pagamentos",     icon: CreditCard},
             { key: "routes",    label: "Rotas Activas",  icon: Truck     },
+            { key: "precos",    label: "Preços",         icon: TrendingUp},
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -337,6 +339,162 @@ export default function AdminPage() {
               ))}
             </div>
           </div>
+        )}
+
+        {/* ── PREÇOS ─── */}
+        {tab === "precos" && <PrecosAdmin token={user.token} />}
+      </div>
+    </div>
+  );
+}
+
+const PROVINCIAS_AO = [
+  "Bengo","Benguela","Bié","Cabinda","Cuando Cubango",
+  "Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla",
+  "Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico",
+  "Namibe","Uíge","Zaire",
+];
+const PRODUTOS_AO = [
+  { value: "milho",      label: "Milho 🌽" },
+  { value: "feijao",     label: "Feijão 🫘" },
+  { value: "mandioca",   label: "Mandioca 🥔" },
+  { value: "soja",       label: "Soja 🌱" },
+  { value: "hortalicas", label: "Hortaliças 🥬" },
+];
+
+function PrecosAdmin({ token }: { token: string }) {
+  const [seedLoading, setSeedLoading] = useState(false);
+  const [seedMsg, setSeedMsg]         = useState("");
+  const [addLoading, setAddLoading]   = useState(false);
+  const [addMsg, setAddMsg]           = useState("");
+  const [form, setForm] = useState({
+    produto: "milho" as CommodityType,
+    provincia: "Luanda",
+    preco_kg: "",
+    fonte: "",
+  });
+
+  async function handleSeed() {
+    setSeedLoading(true); setSeedMsg("");
+    try {
+      const r = await seedPrices(token);
+      setSeedMsg(r.detail);
+    } catch (e: unknown) {
+      setSeedMsg("Erro: " + (e instanceof Error ? e.message : String(e)));
+    } finally { setSeedLoading(false); }
+  }
+
+  async function handleAdd() {
+    if (!form.preco_kg || isNaN(Number(form.preco_kg))) { setAddMsg("Introduza um preço válido."); return; }
+    setAddLoading(true); setAddMsg("");
+    try {
+      await createPrice(token, {
+        produto: form.produto,
+        provincia: form.provincia,
+        preco_kg: Number(form.preco_kg),
+        fonte: form.fonte || undefined,
+      });
+      setAddMsg(`✅ Preço de ${form.produto} em ${form.provincia} adicionado!`);
+      setForm(f => ({ ...f, preco_kg: "", fonte: "" }));
+    } catch (e: unknown) {
+      setAddMsg("Erro: " + (e instanceof Error ? e.message : String(e)));
+    } finally { setAddLoading(false); }
+  }
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl text-field mb-1">Gestão de Preços</h2>
+        <p className="font-mono text-xs text-ink/40 uppercase tracking-wider">
+          Inserir e gerir preços de referência por produto e província
+        </p>
+      </div>
+
+      {/* Seed inicial */}
+      <div className="border border-field/20 bg-field/3 p-5 rounded-sm">
+        <div className="flex items-start gap-3 mb-3">
+          <Database size={18} className="text-field mt-0.5" />
+          <div>
+            <p className="font-display text-base text-ink uppercase tracking-widest">Carregar Preços de Referência</p>
+            <p className="font-mono text-xs text-ink/50 mt-0.5">
+              Insere preços iniciais baseados em mercados reais de Angola (milho, feijão, mandioca, soja, hortaliças em várias províncias).
+              Só funciona se a base de dados estiver vazia.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleSeed}
+          disabled={seedLoading}
+          className="flex items-center gap-2 bg-field text-cream font-mono text-xs uppercase tracking-wider px-4 py-2 hover:bg-field-light transition-colors rounded-sm disabled:opacity-50"
+        >
+          <RefreshCw size={13} className={seedLoading ? "animate-spin" : ""} />
+          {seedLoading ? "A carregar…" : "Carregar preços de referência"}
+        </button>
+        {seedMsg && (
+          <p className="mt-3 font-mono text-xs text-field border border-field/20 bg-field/5 px-3 py-2 rounded-sm">{seedMsg}</p>
+        )}
+      </div>
+
+      {/* Formulário para adicionar preço manualmente */}
+      <div className="border border-field/20 p-5 rounded-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <PlusCircle size={16} className="text-harvest" />
+          <p className="font-display text-base text-ink uppercase tracking-widest">Adicionar Preço Manualmente</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block font-mono text-xs uppercase tracking-wider text-ink/50 mb-1.5">Produto</label>
+            <select
+              value={form.produto}
+              onChange={e => setForm(f => ({ ...f, produto: e.target.value as CommodityType }))}
+              className="w-full font-mono text-xs border border-field/30 bg-cream px-3 py-2 rounded-sm focus:outline-none focus:border-field"
+            >
+              {PRODUTOS_AO.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block font-mono text-xs uppercase tracking-wider text-ink/50 mb-1.5">Província</label>
+            <select
+              value={form.provincia}
+              onChange={e => setForm(f => ({ ...f, provincia: e.target.value }))}
+              className="w-full font-mono text-xs border border-field/30 bg-cream px-3 py-2 rounded-sm focus:outline-none focus:border-field"
+            >
+              {PROVINCIAS_AO.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block font-mono text-xs uppercase tracking-wider text-ink/50 mb-1.5">Preço (Kz/kg)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="ex: 250.00"
+              value={form.preco_kg}
+              onChange={e => setForm(f => ({ ...f, preco_kg: e.target.value }))}
+              className="w-full font-mono text-xs border border-field/30 bg-cream px-3 py-2 rounded-sm focus:outline-none focus:border-field"
+            />
+          </div>
+          <div>
+            <label className="block font-mono text-xs uppercase tracking-wider text-ink/50 mb-1.5">Fonte (opcional)</label>
+            <input
+              type="text"
+              placeholder="ex: Mercado Municipal Huambo"
+              value={form.fonte}
+              onChange={e => setForm(f => ({ ...f, fonte: e.target.value }))}
+              className="w-full font-mono text-xs border border-field/30 bg-cream px-3 py-2 rounded-sm focus:outline-none focus:border-field"
+            />
+          </div>
+        </div>
+        <button
+          onClick={handleAdd}
+          disabled={addLoading}
+          className="flex items-center gap-2 bg-harvest text-cream font-mono text-xs uppercase tracking-wider px-4 py-2 hover:opacity-90 transition-opacity rounded-sm disabled:opacity-50"
+        >
+          <PlusCircle size={13} />
+          {addLoading ? "A guardar…" : "Adicionar preço"}
+        </button>
+        {addMsg && (
+          <p className="mt-3 font-mono text-xs border border-field/20 bg-field/5 px-3 py-2 rounded-sm text-ink/70">{addMsg}</p>
         )}
       </div>
     </div>

@@ -21,7 +21,7 @@ const roleLabels: Record<string, { label: string; icon: typeof Leaf; color: stri
   admin:                 { label: "Administrador",         icon: Shield,      color: "text-red-700 bg-red-50 border-red-200" },
 };
 
-const provincias = ["Luanda", "Huambo", "Bié", "Malanje", "Uíge", "Benguela", "Cuanza Sul"];
+const provincias = ["Bengo","Benguela","Bié","Cabinda","Cuando Cubango","Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla","Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico","Namibe","Uíge","Zaire"];
 const municipios: Record<string, string[]> = {
   "Luanda": ["Luanda", "Cacuaco", "Viana"],
   "Huambo": ["Huambo", "Caála", "Catchiungo"],

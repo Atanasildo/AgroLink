@@ -631,3 +631,20 @@ export function createComment(token: string, postId: string, conteudo: string) {
     token,
   });
 }
+
+// ---------- Admin: Inserir Preço ----------
+
+export interface PriceRecordCreate {
+  produto: CommodityType;
+  provincia: string;
+  preco_kg: number;
+  fonte?: string;
+}
+
+export function createPrice(token: string, payload: PriceRecordCreate) {
+  return apiRequest<PriceRecord>("/prices/", { method: "POST", body: payload, token });
+}
+
+export function seedPrices(token: string) {
+  return apiRequest<{ detail: string; count: number }>("/prices/seed", { method: "POST", token });
+}

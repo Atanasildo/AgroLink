@@ -13,9 +13,10 @@ const PRODUTOS: { value: CommodityType; label: string; emoji: string }[] = [
 ];
 
 const PROVINCIAS = [
-  "Luanda","Benguela","Huambo","Bié","Malanje","Uíge","Kwanza Norte","Kwanza Sul",
-  "Lunda Norte","Lunda Sul","Moxico","Cuando Cubango","Namibe","Huíla","Cunene",
-  "Zaire","Cabinda","Bengo",
+  "Bengo","Benguela","Bié","Cabinda","Cuando Cubango",
+  "Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla",
+  "Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico",
+  "Namibe","Uíge","Zaire",
 ];
 
 function fmt(val: string | number) {
