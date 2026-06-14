@@ -2,6 +2,7 @@ import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -58,6 +59,28 @@ def promote_me_to_admin(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Chave inválida")
 
     current_user.role = UserRole.ADMIN
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+class FCMTokenUpdate(BaseModel):
+    fcm_token: str
+
+
+@router.post("/me/fcm-token", response_model=UserRead)
+def register_fcm_token(
+    payload: FCMTokenUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Registar ou atualizar o token FCM do dispositivo móvel.
+
+    Chamado pelo app Flutter após login ou quando o Firebase renova o token.
+    Necessário para receber notificações push sobre transportes.
+    """
+    current_user.fcm_token = payload.fcm_token
     db.add(current_user)
     db.commit()
     db.refresh(current_user)

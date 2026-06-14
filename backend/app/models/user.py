@@ -42,6 +42,9 @@ class User(Base):
 
     ativo = Column(Boolean, default=True, nullable=False)
 
+    # Push notifications
+    fcm_token = Column(String(512), nullable=True)
+
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
     atualizado_em = Column(DateTime(timezone=True), onupdate=func.now())
 
