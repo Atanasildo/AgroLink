@@ -47,7 +47,7 @@ const HERO_IMAGES = [
 
 const PRODUCT_IMAGES = [
   { url: "https://images.pexels.com/photos/547264/pexels-photo-547264.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Milho" },
-  { url: "https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Feijão" },
+  { url: "https://tse3.mm.bing.net/th/id/OIP.WzaOmMT6veHdiC6EVW1DqQHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3", label: "Feijão" },
   { url: "https://images.pexels.com/photos/533280/pexels-photo-533280.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Tomate" },
   { url: "https://images.pexels.com/photos/947879/pexels-photo-947879.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Ananás" },
   { url: "https://images.pexels.com/photos/1093038/pexels-photo-1093038.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Banana" },
@@ -56,10 +56,10 @@ const PRODUCT_IMAGES = [
   { url: "https://tse1.explicit.bing.net/th/id/OIP.AGRe_LKujjWmV4sSTbt4RQHaE5?r=0&rs=1&pid=ImgDetMain&o=7&rm=3", label: "Batata-doce" },
   { url: "https://images.pexels.com/photos/1295572/pexels-photo-1295572.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Amendoim" },
   { url: "https://911pharma.com/upload/O_poder_nutritivo_do_Abacate_Parte1_h_12282022113715-PM.jpg", label: "Abacate" },
-  { url: "https://media.istockphoto.com/id/1197326147/es/foto/ca%C3%B1a-de-az%C3%BAcar-plantada-para-producir-az%C3%BAcar-y-alimentos-industria-alimentaria-campos-de-ca%C3%B1a.jpg?s=170667a&w=0&k=20&c=uDagOxlT-UBbtqRgpXmQHYpo6U=", label: "Cana-de-açúcar" },
+  { url: "https://media.istockphoto.com/id/1197326147/es/foto/ca%C3%B1a-de-az%C3%BAcar-plantada-para-producir-az%C3%BAcar-y-alimentos-industria-alimentaria-campos-de-ca%C3%B1a.jpg?s=170667a&w=0&k=20&c=uDagOxlT-UBbtqRgpXmQHYq-c6q1ff66cyIHbHYpo6U=", label: "Cana-de-açúcar" },
   { url: "https://images.pexels.com/photos/894695/pexels-photo-894695.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Café" },
   { url: "https://images.pexels.com/photos/1300972/pexels-photo-1300972.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Hortaliças" },
-  { url: "https://images.pexels.com/photos/2255801/pexels-photo-2255801.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Soja" },
+  { url: "https://tse3.mm.bing.net/th/id/OIP.yQTqYdZWz3mRpdcoDz5M7AHaDt?r=0&rs=1&pid=ImgDetMain&o=7&rm=3", label: "Soja" },
 ];
 
 const pillars = [
