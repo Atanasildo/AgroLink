@@ -40,6 +40,12 @@ const PRODUCT_IMAGES = [
   { url: "https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Mandioca" },
   { url: "https://images.pexels.com/photos/1093038/pexels-photo-1093038.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Banana" },
   { url: "https://images.pexels.com/photos/918643/pexels-photo-918643.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Manga" },
+  { url: "https://images.pexels.com/photos/1598569/pexels-photo-1598569.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Girassol" },
+  { url: "https://images.pexels.com/photos/4750274/pexels-photo-4750274.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Batata-doce" },
+  { url: "https://images.pexels.com/photos/51312/pexels-photo-51312.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Amendoim" },
+  { url: "https://images.pexels.com/photos/2286776/pexels-photo-2286776.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Abacate" },
+  { url: "https://images.pexels.com/photos/1300972/pexels-photo-1300972.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Cana-de-açúcar" },
+  { url: "https://images.pexels.com/photos/209403/pexels-photo-209403.jpeg?auto=compress&cs=tinysrgb&w=600", label: "Café" },
 ];
 
 const pillars = [
