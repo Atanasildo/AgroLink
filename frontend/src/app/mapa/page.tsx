@@ -518,120 +518,120 @@ export default function MapaPage() {
           </div>
         )}
 
-        {/* Add location form — bottom sheet INSIDE map container so absolute positioning works */}
-        {showAddPanel && (
-          <div className="absolute bottom-0 left-0 right-0 bg-cream border-t-2 border-harvest/40 shadow-2xl z-30 max-h-[52vh] overflow-y-auto">
-            {/* Header */}
-            <div className="sticky top-0 bg-cream border-b border-harvest/20 px-4 py-2.5 flex items-center justify-between">
-              <div>
-                <p className="font-display text-sm uppercase tracking-widest text-harvest">Nova Localização</p>
-                <p className="font-mono text-[10px] text-ink/40 mt-0.5">
-                  {pinPos
-                    ? `📍 ${pinPos.lat.toFixed(5)}, ${pinPos.lng.toFixed(5)} ✓`
-                    : "↑ Clica no mapa acima para definir o ponto exacto"
-                  }
-                </p>
+      </div>
+      {/* Add location form — bottom sheet fixed */}
+      {showAddPanel && (
+        <div className="fixed bottom-0 left-0 right-0 bg-cream border-t-2 border-harvest/40 shadow-2xl z-[9999] max-h-[52vh] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-cream border-b border-harvest/20 px-4 py-2.5 flex items-center justify-between">
+            <div>
+              <p className="font-display text-sm uppercase tracking-widest text-harvest">Nova Localização</p>
+              <p className="font-mono text-[10px] text-ink/40 mt-0.5">
+                {pinPos
+                  ? `📍 ${pinPos.lat.toFixed(5)}, ${pinPos.lng.toFixed(5)} ✓`
+                  : "↑ Clica no mapa acima para definir o ponto exacto"
+                }
+              </p>
+            </div>
+            <button
+              onClick={() => { setShowAddPanel(false); setPinPos(null); setAddError(null); }}
+              className="text-ink/40 hover:text-ink transition-colors p-1 ml-4 flex-shrink-0"
+            >
+              <X size={18}/>
+            </button>
+          </div>
+
+          {/* Form grid */}
+          <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {pinPos && (
+              <div className="col-span-2 sm:col-span-4 bg-field/8 border border-field/20 rounded-sm px-3 py-1.5">
+                <p className="font-mono text-[9px] text-ink/40 uppercase tracking-wider">Coordenadas GPS</p>
+                <p className="font-mono text-xs text-field select-all">{pinPos.lat.toFixed(6)}, {pinPos.lng.toFixed(6)}</p>
               </div>
-              <button
-                onClick={() => { setShowAddPanel(false); setPinPos(null); setAddError(null); }}
-                className="text-ink/40 hover:text-ink transition-colors p-1 ml-4 flex-shrink-0"
+            )}
+
+            <label className="flex flex-col gap-1 col-span-2">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Nome *</span>
+              <input
+                value={addForm.nome}
+                onChange={e => setAddForm(f => ({ ...f, nome: e.target.value }))}
+                placeholder="Ex: Fazenda São João"
+                className="field-input rounded-sm text-sm py-1.5"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Tipo *</span>
+              <select
+                value={addForm.tipo}
+                onChange={e => setAddForm(f => ({ ...f, tipo: e.target.value as MapEntityType }))}
+                className="field-input rounded-sm text-sm py-1.5"
               >
-                <X size={18}/>
+                {TIPOS.filter(t => t.value !== "").map(t => (
+                  <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Província</span>
+              <select
+                value={addForm.provincia}
+                onChange={e => setAddForm(f => ({ ...f, provincia: e.target.value }))}
+                className="field-input rounded-sm text-sm py-1.5"
+              >
+                <option value="">Selecionar…</option>
+                {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Município</span>
+              <input
+                value={addForm.municipio}
+                onChange={e => setAddForm(f => ({ ...f, municipio: e.target.value }))}
+                placeholder="Ex: Caála"
+                className="field-input rounded-sm text-sm py-1.5"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 col-span-2 sm:col-span-2">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Descrição (opcional)</span>
+              <input
+                value={addForm.descricao}
+                onChange={e => setAddForm(f => ({ ...f, descricao: e.target.value }))}
+                placeholder="Culturas, capacidade, contacto…"
+                className="field-input rounded-sm text-sm py-1.5"
+              />
+            </label>
+
+            <div className="flex flex-col justify-end col-span-2 sm:col-span-1">
+              <button
+                onClick={handleAddLocation}
+                disabled={addLoading || !pinPos || !addForm.nome.trim()}
+                className="btn-harvest rounded-sm disabled:opacity-40 justify-center"
+                style={{ height: "38px" }}
+              >
+                <MapPin size={13}/>
+                {addLoading ? "A guardar…" : "Guardar no mapa"}
               </button>
             </div>
 
-            {/* Form grid */}
-            <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {pinPos && (
-                <div className="col-span-2 sm:col-span-4 bg-field/8 border border-field/20 rounded-sm px-3 py-1.5">
-                  <p className="font-mono text-[9px] text-ink/40 uppercase tracking-wider">Coordenadas GPS</p>
-                  <p className="font-mono text-xs text-field select-all">{pinPos.lat.toFixed(6)}, {pinPos.lng.toFixed(6)}</p>
-                </div>
-              )}
-
-              <label className="flex flex-col gap-1 col-span-2">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Nome *</span>
-                <input
-                  value={addForm.nome}
-                  onChange={e => setAddForm(f => ({ ...f, nome: e.target.value }))}
-                  placeholder="Ex: Fazenda São João"
-                  className="field-input rounded-sm text-sm py-1.5"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Tipo *</span>
-                <select
-                  value={addForm.tipo}
-                  onChange={e => setAddForm(f => ({ ...f, tipo: e.target.value as MapEntityType }))}
-                  className="field-input rounded-sm text-sm py-1.5"
-                >
-                  {TIPOS.filter(t => t.value !== "").map(t => (
-                    <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Província</span>
-                <select
-                  value={addForm.provincia}
-                  onChange={e => setAddForm(f => ({ ...f, provincia: e.target.value }))}
-                  className="field-input rounded-sm text-sm py-1.5"
-                >
-                  <option value="">Selecionar…</option>
-                  {provincias.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </label>
-
-              <label className="flex flex-col gap-1">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Município</span>
-                <input
-                  value={addForm.municipio}
-                  onChange={e => setAddForm(f => ({ ...f, municipio: e.target.value }))}
-                  placeholder="Ex: Caála"
-                  className="field-input rounded-sm text-sm py-1.5"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1 col-span-2 sm:col-span-2">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-ink/50">Descrição (opcional)</span>
-                <input
-                  value={addForm.descricao}
-                  onChange={e => setAddForm(f => ({ ...f, descricao: e.target.value }))}
-                  placeholder="Culturas, capacidade, contacto…"
-                  className="field-input rounded-sm text-sm py-1.5"
-                />
-              </label>
-
-              <div className="flex flex-col justify-end col-span-2 sm:col-span-1">
-                <button
-                  onClick={handleAddLocation}
-                  disabled={addLoading || !pinPos || !addForm.nome.trim()}
-                  className="btn-harvest rounded-sm disabled:opacity-40 justify-center"
-                  style={{ height: "38px" }}
-                >
-                  <MapPin size={13}/>
-                  {addLoading ? "A guardar…" : "Guardar no mapa"}
-                </button>
+            {addError && (
+              <div className="col-span-2 sm:col-span-4 flex items-start gap-2 bg-earth/8 border border-earth/25 rounded-sm p-2">
+                <AlertCircle size={12} className="text-earth mt-0.5 flex-shrink-0"/>
+                <p className="font-body text-earth text-xs">{addError}</p>
               </div>
+            )}
 
-              {addError && (
-                <div className="col-span-2 sm:col-span-4 flex items-start gap-2 bg-earth/8 border border-earth/25 rounded-sm p-2">
-                  <AlertCircle size={12} className="text-earth mt-0.5 flex-shrink-0"/>
-                  <p className="font-body text-earth text-xs">{addError}</p>
-                </div>
-              )}
-
-              {!pinPos && (
-                <p className="col-span-2 sm:col-span-4 font-mono text-[10px] text-harvest/60 text-center py-0.5">
-                  ↑ Clica em qualquer sítio do mapa acima para colocar o pin
-                </p>
-              )}
-            </div>
+            {!pinPos && (
+              <p className="col-span-2 sm:col-span-4 font-mono text-[10px] text-harvest/60 text-center py-0.5">
+                ↑ Clica em qualquer sítio do mapa acima para colocar o pin
+              </p>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Empty state */}
       {!loading && locations.length === 0 && (
