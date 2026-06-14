@@ -69,6 +69,7 @@ export default function MapaPage() {
   });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Refs to track state inside Leaflet event handlers (closures don't update)
   const showAddPanelRef = useRef(false);
