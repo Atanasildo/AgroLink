@@ -657,7 +657,7 @@ export function myBuyerTransportRequests(token: string) {
 
 export function cancelTransportRequest(token: string, requestId: string) {
   return apiRequest<TransportRequestItem>(`/transport/requests/${requestId}/status`, {
-    method: "PUT",
+    method: "PATCH",
     body: { status: "cancelado" },
     token,
   });
