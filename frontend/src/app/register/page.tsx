@@ -8,12 +8,7 @@ import {
 } from "lucide-react";
 import { ApiError, register, UserRole } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-
-const PROVINCIAS = [
-  "Bengo","Benguela","Bié","Cabinda","Cuando Cubango","Cuanza Norte",
-  "Cuanza Sul","Cunene","Huambo","Huíla","Luanda","Lunda Norte",
-  "Lunda Sul","Malanje","Moxico","Namibe","Uíge","Zaire",
-];
+import { PROVINCIAS, getMunicipios } from "@/lib/angola";
 
 const roles: { value: UserRole; label: string; icon: React.ElementType; desc: string }[] = [
   { value: "agricultor",            label: "Agricultor",               icon: Wheat,        desc: "Vendo produtos e solicito transporte" },
@@ -140,7 +135,7 @@ export default function RegisterPage() {
                 <span className="label-eyebrow">Província</span>
                 <select
                   required
-                  value={provincia} onChange={(e) => setProvincia(e.target.value)}
+                  value={provincia} onChange={(e) => { setProvincia(e.target.value); setMunicipio(""); }}
                   className="field-input rounded-sm"
                 >
                   <option value="">Selecionar...</option>
@@ -152,12 +147,17 @@ export default function RegisterPage() {
 
               <label className="flex flex-col gap-2">
                 <span className="label-eyebrow">Município</span>
-                <input
+                <select
                   required
                   value={municipio} onChange={(e) => setMunicipio(e.target.value)}
-                  placeholder="Ex: Caála"
                   className="field-input rounded-sm"
-                />
+                  disabled={!provincia}
+                >
+                  <option value="">{provincia ? "Selecionar..." : "Escolha a província primeiro"}</option>
+                  {getMunicipios(provincia).map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
               </label>
 
               <label className="flex flex-col gap-2 sm:col-span-2">

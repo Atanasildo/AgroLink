@@ -9,6 +9,7 @@ import {
   Leaf, Package, RefreshCw, Eye, Ban, PlusCircle, Database,
 } from "lucide-react";
 import { createPrice, seedPrices, CommodityType } from "@/lib/api";
+import { PROVINCIAS as PROVINCIAS_AO, getMunicipios } from "@/lib/angola";
 
 // Dados de DEMONSTRAÇÃO — claramente fictícios
 const DEMO_USERS = [
@@ -348,12 +349,6 @@ export default function AdminPage() {
   );
 }
 
-const PROVINCIAS_AO = [
-  "Bengo","Benguela","Bié","Cabinda","Cuando Cubango",
-  "Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla",
-  "Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico",
-  "Namibe","Uíge","Zaire",
-];
 const PRODUTOS_AO = [
   { value: "milho",      label: "Milho 🌽" },
   { value: "feijao",     label: "Feijão 🫘" },

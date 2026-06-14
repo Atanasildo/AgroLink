@@ -7,6 +7,7 @@ import { ApiError, Machine, createMachine, listMachines } from "@/lib/api";
 import { MachineCard } from "@/components/MachineCard";
 import { MachineOwnerDashboard } from "@/components/MachineOwnerDashboard";
 import { useAutoRetry } from "@/lib/useAutoRetry";
+import { PROVINCIAS, getMunicipios } from "@/lib/angola";
 
 const tipos = [
   { value: "trator", label: "🚜 Trator" },
@@ -17,17 +18,7 @@ const tipos = [
   { value: "outros", label: "⚙️ Outros" },
 ];
 
-const provincias = ["Bengo","Benguela","Bié","Cabinda","Cuando Cubango","Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla","Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico","Namibe","Uíge","Zaire"];
 
-const municipios: Record<string, string[]> = {
-  "Luanda": ["Luanda", "Cacuaco", "Viana"],
-  "Huambo": ["Huambo", "Caála", "Catchiungo"],
-  "Bié": ["Kuito", "Camacupa", "Chinguar"],
-  "Malanje": ["Malanje", "Calandula"],
-  "Uíge": ["Uíge", "Negage"],
-  "Benguela": ["Benguela", "Lobito"],
-  "Cuanza Sul": ["Sumbe", "Amboim"],
-};
 
 export default function MaquinasPage() {
   const { user, token } = useAuth();
@@ -114,7 +105,7 @@ export default function MaquinasPage() {
               <select value={municipio} onChange={e => setMunicipio(e.target.value)}
                 disabled={!provincia} className="field-input rounded-sm disabled:opacity-50">
                 <option value="">Todos os municípios</option>
-                {provincia && municipios[provincia]?.map(m => <option key={m} value={m}>{m}</option>)}
+                {provincia && getMunicipios(provincia).map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </label>
             <div className="sm:col-span-2 lg:col-span-4">
@@ -223,7 +214,7 @@ function PublishMachineForm({ token, onPublished }: { token: string; onPublished
           <select required value={municipio} onChange={e => setMunicipio(e.target.value)}
             disabled={!provincia} className="field-input rounded-sm disabled:opacity-50">
             <option value="">Selecionar município...</option>
-            {provincia && municipios[provincia]?.map(m => <option key={m} value={m}>{m}</option>)}
+            {provincia && getMunicipios(provincia).map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-2 lg:col-span-4">

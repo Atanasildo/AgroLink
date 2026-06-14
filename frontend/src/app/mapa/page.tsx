@@ -6,6 +6,7 @@ import {
   Layers, ChevronDown, ChevronUp, MapPin, AlertCircle
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { PROVINCIAS } from "@/lib/angola";
 import {
   MapEntityType, MapLocation,
   listMapLocations, createMapLocation,
@@ -20,12 +21,6 @@ const TIPOS: { value: MapEntityType | ""; label: string; emoji: string; color: s
   { value: "cooperativa",   label: "Cooperativas",    emoji: "🤝", color: "#8a3fa0" },
 ];
 
-const provincias = [
-  "Bengo","Benguela","Bié","Cabinda","Cuando Cubango",
-  "Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla",
-  "Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico",
-  "Namibe","Uíge","Zaire",
-];
 
 function colorForTipo(tipo: MapEntityType) {
   return TIPOS.find(t => t.value === tipo)?.color ?? "#4a7c4e";

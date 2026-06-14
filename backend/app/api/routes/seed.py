@@ -15,15 +15,35 @@ from app.models.vehicle import Vehicle, VehicleType
 
 router = APIRouter(prefix="/seed", tags=["Seed"])
 
-PROVINCIAS = ["Luanda", "Huambo", "Bié", "Malanje", "Uíge", "Benguela", "Cuanza Sul"]
+PROVINCIAS = [
+    "Bengo", "Benguela", "Bié", "Cabinda",
+    "Cuando", "Cuando Cubango", "Cuanza Norte", "Cuanza Sul",
+    "Cunene", "Huambo", "Huíla", "Icolo e Bengo",
+    "Luanda", "Lunda Norte", "Lunda Sul", "Malanje",
+    "Moxico", "Moxico Leste", "Namibe", "Uíge", "Zaire",
+]
 MUNICIPIOS = {
-    "Luanda": ["Luanda", "Cacuaco", "Viana"],
-    "Huambo": ["Huambo", "Caála", "Catchiungo"],
-    "Bié": ["Kuito", "Camacupa", "Chinguar"],
-    "Malanje": ["Malanje", "Calandula"],
-    "Uíge": ["Uíge", "Negage"],
-    "Benguela": ["Benguela", "Lobito"],
-    "Cuanza Sul": ["Sumbe", "Amboim"],
+    "Bengo": ["Ambriz", "Dande", "Dembos", "Nambuangongo", "Pango Aluquém"],
+    "Benguela": ["Benguela", "Lobito", "Catumbela", "Baía Farta", "Balombo", "Cubal", "Ganda"],
+    "Bié": ["Kuito", "Camacupa", "Chinguar", "Andulo", "Catabola", "Nharea"],
+    "Cabinda": ["Cabinda", "Cacongo", "Buco-Zau", "Belize"],
+    "Cuando": ["Menongue", "Cuito Cuanavale", "Mavinga", "Longa", "Cuangar"],
+    "Cuando Cubango": ["Calai", "Cuchi", "Dirico", "Nancova", "Rivungo"],
+    "Cuanza Norte": ["Cazengo", "Ambaca", "Golungo Alto", "Cambambe", "Lucala"],
+    "Cuanza Sul": ["Sumbe", "Porto Amboim", "Amboim", "Cela", "Libolo", "Kibala"],
+    "Cunene": ["Ondjiva", "Cahama", "Cuvelai", "Namacunde", "Ombadja"],
+    "Huambo": ["Huambo", "Caála", "Catchiungo", "Bailundo", "Longonjo", "Mungo"],
+    "Huíla": ["Lubango", "Matala", "Caconda", "Chibia", "Humpata", "Quilengues"],
+    "Icolo e Bengo": ["Viana", "Cacuaco", "Cazenga", "Icolo e Bengo"],
+    "Luanda": ["Luanda", "Kilamba Kiaxi", "Belas", "Maianga", "Rangel"],
+    "Lunda Norte": ["Lucapa", "Chitato", "Cuango", "Cambulo", "Xa-Muteba"],
+    "Lunda Sul": ["Saurimo", "Dala", "Muconda", "Cacolo"],
+    "Malanje": ["Malanje", "Calandula", "Cacuso", "Quela", "Marimba"],
+    "Moxico": ["Luena", "Léua", "Moxico", "Alto Zambeze", "Luchazes"],
+    "Moxico Leste": ["Lumeje", "Munhango", "Caluango"],
+    "Namibe": ["Moçâmedes", "Tômbua", "Bibala", "Virei", "Camucuio"],
+    "Uíge": ["Uíge", "Negage", "Maquela do Zombo", "Sanza Pombo", "Damba"],
+    "Zaire": ["M'Banza Kongo", "Soyo", "Cuimba", "Nóqui", "Tomboco"],
 }
 
 

@@ -12,18 +12,9 @@ import {
   ApiError,
 } from "@/lib/api";
 import { ImageUpload } from "./ImageUpload";
+import { PROVINCIAS, getMunicipios } from "@/lib/angola";
 
 // ---- Constants ----
-const provincias = ["Bengo","Benguela","Bié","Cabinda","Cuando Cubango","Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla","Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico","Namibe","Uíge","Zaire"];
-const municipios: Record<string, string[]> = {
-  "Luanda": ["Luanda", "Cacuaco", "Viana"],
-  "Huambo": ["Huambo", "Caála", "Catchiungo"],
-  "Bié": ["Kuito", "Camacupa", "Chinguar"],
-  "Malanje": ["Malanje", "Calandula"],
-  "Uíge": ["Uíge", "Negage"],
-  "Benguela": ["Benguela", "Lobito"],
-  "Cuanza Sul": ["Sumbe", "Amboim"],
-};
 
 const tipoMaquinaLabels: Record<string, string> = {
   trator: "🚜 Trator",
@@ -257,7 +248,7 @@ function MachineForm({ token, onSuccess, initial }: {
             className="field-input rounded-sm" disabled={!provincia}
           >
             <option value="">Selecionar...</option>
-            {provincia && municipios[provincia]?.map(m => <option key={m} value={m}>{m}</option>)}
+            {provincia && getMunicipios(provincia).map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-2 sm:col-span-2">

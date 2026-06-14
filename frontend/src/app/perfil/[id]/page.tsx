@@ -12,6 +12,7 @@ import {
   updateMyProfile,
 } from "@/lib/api";
 import { useAutoRetry } from "@/lib/useAutoRetry";
+import { PROVINCIAS, getMunicipios } from "@/lib/angola";
 
 const roleLabels: Record<string, { label: string; icon: typeof Leaf; color: string }> = {
   agricultor:            { label: "Agricultor",           icon: Leaf,        color: "text-green-700 bg-green-50 border-green-200" },
@@ -21,16 +22,6 @@ const roleLabels: Record<string, { label: string; icon: typeof Leaf; color: stri
   admin:                 { label: "Administrador",         icon: Shield,      color: "text-red-700 bg-red-50 border-red-200" },
 };
 
-const provincias = ["Bengo","Benguela","Bié","Cabinda","Cuando Cubango","Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla","Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico","Namibe","Uíge","Zaire"];
-const municipios: Record<string, string[]> = {
-  "Luanda": ["Luanda", "Cacuaco", "Viana"],
-  "Huambo": ["Huambo", "Caála", "Catchiungo"],
-  "Bié": ["Kuito", "Camacupa", "Chinguar"],
-  "Malanje": ["Malanje", "Calandula"],
-  "Uíge": ["Uíge", "Negage"],
-  "Benguela": ["Benguela", "Lobito"],
-  "Cuanza Sul": ["Sumbe", "Amboim"],
-};
 
 function Stars({ value, size = 16 }: { value: number; size?: number }) {
   return (
@@ -357,7 +348,7 @@ function EditProfileForm({ profile, token, onSaved, onCancel }: {
           <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Município</span>
           <select value={municipio} onChange={e => setMunicipio(e.target.value)} className="field-input rounded-sm" disabled={!provincia}>
             <option value="">Selecionar...</option>
-            {provincia && municipios[provincia]?.map(m => <option key={m} value={m}>{m}</option>)}
+            {provincia && getMunicipios(provincia).map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </label>
         <label className="flex flex-col gap-2 sm:col-span-2">

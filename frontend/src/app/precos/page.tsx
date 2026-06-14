@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { TrendingUp, BarChart2, MapPin, RefreshCw } from "lucide-react";
 import { CommodityType, PriceRecord, comparePrices, latestPrices } from "@/lib/api";
+import { PROVINCIAS } from "@/lib/angola";
 
 const PRODUTOS: { value: CommodityType; label: string; emoji: string }[] = [
   { value: "milho",      label: "Milho",      emoji: "🌽" },
@@ -12,12 +13,6 @@ const PRODUTOS: { value: CommodityType; label: string; emoji: string }[] = [
   { value: "hortalicas", label: "Hortaliças", emoji: "🥬" },
 ];
 
-const PROVINCIAS = [
-  "Bengo","Benguela","Bié","Cabinda","Cuando Cubango",
-  "Cuanza Norte","Cuanza Sul","Cunene","Huambo","Huíla",
-  "Luanda","Lunda Norte","Lunda Sul","Malanje","Moxico",
-  "Namibe","Uíge","Zaire",
-];
 
 function fmt(val: string | number) {
   return Number(val).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
