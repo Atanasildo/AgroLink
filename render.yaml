@@ -20,6 +20,8 @@ services:
         value: "7"
       - key: ALLOWED_ORIGINS
         value: "*"
+      - key: ADMIN_SETUP_KEY
+        sync: false
     healthCheckPath: /health
 
 databases:
