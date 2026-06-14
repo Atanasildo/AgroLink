@@ -44,7 +44,7 @@ function formatKz(val: number) {
 }
 
 export default function AdminPage() {
-  const { user, loading } = useAuth();
+  const { user, token, loading } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<"dashboard" | "users" | "payments" | "routes" | "precos">("dashboard");
   const [users, setUsers] = useState(DEMO_USERS);
@@ -343,7 +343,7 @@ export default function AdminPage() {
         )}
 
         {/* ── PREÇOS ─── */}
-        {tab === "precos" && <PrecosAdmin token={user.token} />}
+        {tab === "precos" && <PrecosAdmin token={token ?? ""} />}
       </div>
     </div>
   );
