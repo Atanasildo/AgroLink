@@ -11,6 +11,11 @@ import {
   createRating, getUser, getUserRatingSummary, getUserRatings,
   updateMyProfile,
 } from "@/lib/api";
+import { FarmerDashboard } from "@/components/FarmerDashboard";
+import { TransporterDashboard } from "@/components/TransporterDashboard";
+import { MachineOwnerDashboard } from "@/components/MachineOwnerDashboard";
+import { BuyerDashboard } from "@/components/BuyerDashboard";
+import { ReportButton } from "@/components/ReportButton";
 import { useAutoRetry } from "@/lib/useAutoRetry";
 import { PROVINCIAS, getMunicipios } from "@/lib/angola";
 
@@ -60,6 +65,7 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -233,6 +239,24 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
           </section>
         )}
 
+        {/* Dashboard do próprio utilizador */}
+        {isOwnProfile && token && showDashboard && (
+          <section className="field-card rounded-sm">
+            {profile.role === "agricultor" && (
+              <FarmerDashboard token={token} />
+            )}
+            {profile.role === "comprador" && (
+              <BuyerDashboard token={token} />
+            )}
+            {profile.role === "transportador" && (
+              <TransporterDashboard token={token} />
+            )}
+            {profile.role === "proprietario_maquinas" && (
+              <MachineOwnerDashboard token={token} />
+            )}
+          </section>
+        )}
+
         {/* Ratings section */}
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -243,14 +267,31 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
                 <span className="font-mono text-sm text-ink/40">({summary.total_avaliacoes})</span>
               )}
             </h2>
-            {!isOwnProfile && token && !showRatingForm && (
-              <button
-                onClick={() => setShowRatingForm(true)}
-                className="btn-primary rounded-sm text-xs"
-              >
-                <MessageSquare size={13} /> Avaliar
-              </button>
-            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              {!isOwnProfile && token && !showRatingForm && (
+                <button
+                  onClick={() => setShowRatingForm(true)}
+                  className="btn-primary rounded-sm text-xs"
+                >
+                  <MessageSquare size={13} /> Avaliar
+                </button>
+              )}
+              {!isOwnProfile && token && (
+                <ReportButton
+                  token={token}
+                  denunciadoId={profileId}
+                  denunciadoNome={profile.nome}
+                />
+              )}
+              {isOwnProfile && token && (
+                <button
+                  onClick={() => setShowDashboard(v => !v)}
+                  className="btn-secondary rounded-sm text-xs"
+                >
+                  {showDashboard ? "← Ocultar painel" : "📊 O meu painel"}
+                </button>
+              )}
+            </div>
           </div>
 
           {showRatingForm && token && (
