@@ -70,7 +70,7 @@ function RequestCard({ req, token, onCancelled }: {
             <p className="font-body text-sm text-field font-medium truncate">
               {req.origem} → {req.destino}
             </p>
-            <p className="font-mono text-xs text-ink/40">{formatDate(req.data_pedido)}</p>
+            <p className="font-mono text-xs text-ink/40">{formatDate(req.criado_em)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -88,7 +88,7 @@ function RequestCard({ req, token, onCancelled }: {
             <div>
               <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mb-1">Produto</p>
               <p className="font-body text-field flex items-center gap-1">
-                <Package size={13} className="text-harvest" /> {req.produto_nome ?? "—"}
+                <Package size={13} className="text-harvest" /> {req.produto ?? "—"}
               </p>
             </div>
             <div>
@@ -115,10 +115,10 @@ function RequestCard({ req, token, onCancelled }: {
                 <p className="font-body text-field font-medium">{formatKz(req.valor_total)}</p>
               </div>
             )}
-            {req.data_entrega_prevista && (
+            {req.data && (
               <div>
                 <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mb-1">Entrega prevista</p>
-                <p className="font-body text-field">{formatDate(req.data_entrega_prevista)}</p>
+                <p className="font-body text-field">{formatDate(req.data)}</p>
               </div>
             )}
           </div>
