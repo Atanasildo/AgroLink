@@ -648,3 +648,42 @@ export function createPrice(token: string, payload: PriceRecordCreate) {
 export function seedPrices(token: string) {
   return apiRequest<{ detail: string; count: number }>("/prices/seed", { method: "POST", token });
 }
+
+// ---------- Comprador: Pedidos de Transporte ----------
+
+export function myBuyerTransportRequests(token: string) {
+  return apiRequest<TransportRequestItem[]>("/transport/requests/me", { token });
+}
+
+export function cancelTransportRequest(token: string, requestId: string) {
+  return apiRequest<TransportRequestItem>(`/transport/requests/${requestId}/status`, {
+    method: "PUT",
+    body: { status: "cancelado" },
+    token,
+  });
+}
+
+// ---------- Denúncias ----------
+
+export type ReportReason =
+  | "fraude"
+  | "produto_falso"
+  | "comportamento_abusivo"
+  | "spam"
+  | "outro";
+
+export interface Report {
+  id: string;
+  denunciante_id: string;
+  denunciado_id: string;
+  motivo: ReportReason;
+  descricao?: string;
+  criado_em: string;
+}
+
+export function createReport(
+  token: string,
+  payload: { denunciado_id: string; motivo: ReportReason; descricao?: string }
+) {
+  return apiRequest<Report>("/users/reports", { method: "POST", body: payload, token });
+}
