@@ -207,19 +207,34 @@ export default function MapaPage() {
     });
   }, [locations, mapReady]);
 
-  // GPS — locate user
+  // GPS — locate user with watchPosition for real GPS accuracy
+  const watchIdRef = useRef<number | null>(null);
+  const [gpsBadAccuracy, setGpsBadAccuracy] = useState(false);
+
   function handleLocateMe() {
     if (!navigator.geolocation) {
       setGpsStatus("error");
       return;
     }
+
+    // Clear previous watch
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+
     setGpsStatus("loading");
-    navigator.geolocation.getCurrentPosition(
+    setGpsBadAccuracy(false);
+
+    // Use watchPosition so it keeps improving accuracy (network → GPS chip)
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: lat, longitude: lng, accuracy } = pos.coords;
         setUserPos({ lat, lng });
         setGpsAccuracy(Math.round(accuracy));
         setGpsStatus("active");
+
+        // Warn if accuracy is worse than 5km (probably IP-based, not real GPS)
+        setGpsBadAccuracy(accuracy > 5000);
 
         import("leaflet").then((L) => {
           if (!leafletMapRef.current) return;
@@ -227,18 +242,16 @@ export default function MapaPage() {
 
           if (userMarkerRef.current) { userMarkerRef.current.remove(); }
 
+          // Show orange warning dot when accuracy is bad, blue when good
+          const dotColor = accuracy > 5000 ? "#f59e0b" : "#2563eb";
+          const ringColor = accuracy > 5000 ? "rgba(245,158,11,0.15)" : "rgba(37,99,235,0.12)";
+
           const icon = L.divIcon({
-            html: `<div style="position:relative;">
+            html: `<div style="position:relative;width:18px;height:18px;">
               <div style="
-                width:18px;height:18px;background:#2563eb;border-radius:50%;
-                border:3px solid #fff;box-shadow:0 2px 8px rgba(37,99,235,0.5);
-              "></div>
-              <div style="
-                position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-                width:${Math.max(18, Math.min(80, accuracy / 5))}px;
-                height:${Math.max(18, Math.min(80, accuracy / 5))}px;
-                background:rgba(37,99,235,0.12);border-radius:50%;
-                border:1.5px solid rgba(37,99,235,0.3);
+                width:18px;height:18px;background:${dotColor};border-radius:50%;
+                border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);
+                position:absolute;top:0;left:0;
               "></div>
             </div>`,
             className: "",
@@ -248,17 +261,28 @@ export default function MapaPage() {
 
           userMarkerRef.current = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
           userMarkerRef.current.bindPopup(
-            `<b>A tua posição</b><br/>Precisão: ±${Math.round(accuracy)}m`
+            accuracy > 5000
+              ? `<b>⚠️ Posição imprecisa</b><br/>Precisão: ±${Math.round(accuracy / 1000)}km<br/><small>GPS do dispositivo indisponível.<br/>Ver Google Maps para posição real.</small>`
+              : `<b>✅ A tua posição</b><br/>Precisão: ±${Math.round(accuracy)}m`
           ).openPopup();
 
-          map.setView([lat, lng], 14, { animate: true });
+          // Only fly to location on first fix
+          if (gpsStatus !== "active") {
+            map.setView([lat, lng], accuracy > 5000 ? 10 : 14, { animate: true });
+          }
         });
+
+        // Stop watching once we get good accuracy (under 500m)
+        if (accuracy <= 500 && watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
+        }
       },
       (err) => {
         console.error(err);
         setGpsStatus("error");
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   }
 
@@ -346,8 +370,10 @@ export default function MapaPage() {
             disabled={gpsStatus === "loading"}
             title="Localizar-me via GPS"
             className={`flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1.5 border rounded-sm transition-colors ${
-              gpsStatus === "active"
+              gpsStatus === "active" && !gpsBadAccuracy
                 ? "border-blue-400 text-blue-600 bg-blue-50"
+                : gpsStatus === "active" && gpsBadAccuracy
+                ? "border-amber-400 text-amber-600 bg-amber-50"
                 : gpsStatus === "error"
                 ? "border-red-300 text-red-500 bg-red-50"
                 : "border-field/30 text-ink/60 hover:border-field/60"
@@ -357,8 +383,24 @@ export default function MapaPage() {
               ? <Loader2 size={12} className="animate-spin"/>
               : <LocateFixed size={12}/>
             }
-            {gpsStatus === "active" ? `GPS ±${gpsAccuracy}m` : gpsStatus === "error" ? "GPS negado" : "GPS"}
+            {gpsStatus === "active"
+              ? (gpsBadAccuracy ? `⚠️ ±${(gpsAccuracy!/1000).toFixed(0)}km` : `GPS ±${gpsAccuracy}m`)
+              : gpsStatus === "error" ? "GPS negado" : "GPS"
+            }
           </button>
+
+          {/* Google Maps fallback when GPS accuracy is bad */}
+          {gpsStatus === "active" && gpsBadAccuracy && userPos && (
+            <a
+              href={`https://www.google.com/maps?q=${userPos.lat},${userPos.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="GPS impreciso — abrir Google Maps para posição real"
+              className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1.5 border border-amber-400 rounded-sm text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+            >
+              <Navigation size={12}/> Google Maps
+            </a>
+          )}
 
           {/* Add location (authenticated only) */}
           {token && (
@@ -386,6 +428,22 @@ export default function MapaPage() {
               ? `📍 Ponto seleccionado: ${pinPos.lat.toFixed(5)}, ${pinPos.lng.toFixed(5)} — preenche o formulário abaixo`
               : "Clica no mapa para seleccionar o ponto exacto da localização"
             }
+          </p>
+        </div>
+      )}
+
+      {/* Bad GPS accuracy warning */}
+      {gpsStatus === "active" && gpsBadAccuracy && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center gap-2 shrink-0 z-10">
+          <AlertCircle size={13} className="text-amber-600 flex-shrink-0" />
+          <p className="font-mono text-[11px] text-amber-700 flex-1">
+            GPS impreciso (±{gpsAccuracy && gpsAccuracy > 1000 ? `${Math.round(gpsAccuracy/1000)}km` : `${gpsAccuracy}m`}) — o browser usou a rede em vez do chip GPS.
+            Para a posição real, usa o{" "}
+            <a
+              href={`https://www.google.com/maps?q=${userPos?.lat},${userPos?.lng}`}
+              target="_blank" rel="noopener noreferrer"
+              className="underline font-bold"
+            >Google Maps</a>{" "}ou ativa o GPS do dispositivo e tenta novamente.
           </p>
         </div>
       )}
