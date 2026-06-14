@@ -58,6 +58,12 @@ function NovoTransporteForm({ token, onDone }: { token: string; onDone: () => vo
     e.preventDefault();
     if (!selectedRoute) return;
     setError(null); setLoading(true);
+    const capacidade = parseFloat(selectedRoute.capacidade_disponivel_toneladas || selectedRoute.capacidade_total_toneladas);
+    if (capacidade > 0 && parseFloat(peso) > capacidade) {
+      setError(`Peso máximo disponível nesta rota: ${capacidade} toneladas.`);
+      setLoading(false);
+      return;
+    }
     try {
       await createTransportRequest(token, {
         produto, peso_toneladas: parseFloat(peso),
@@ -151,7 +157,7 @@ function NovoTransporteForm({ token, onDone }: { token: string; onDone: () => vo
             <label className="flex flex-col gap-1.5">
               <span className="font-mono text-xs uppercase text-ink/50">Peso (ton) *</span>
               <input required type="number" min="0.1" step="0.1"
-                max={selectedRoute.capacidade_disponivel_toneladas}
+                /* max validado no submit */
                 value={peso} onChange={e => setPeso(e.target.value)}
                 placeholder="0.0" className="field-input rounded-sm text-sm" />
             </label>
