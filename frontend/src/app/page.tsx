@@ -83,7 +83,7 @@ const pillars = [
     cta: "Solicitar transporte",
     color: "text-field",
     bg: "bg-field/10 border-field/30",
-    img: "https://images.pexels.com/photos/1427541/pexels-photo-1427541.jpeg?auto=compress&cs=tinysrgb&w=400"
+    img: "https://www.logweb.com.br/wp-content/uploads/2017/01/agricola.jpg"
   },
   {
     icon: Tractor,
@@ -94,7 +94,7 @@ const pillars = [
     cta: "Ver máquinas",
     color: "text-earth",
     bg: "bg-earth/10 border-earth/30",
-    img: "https://images.pexels.com/photos/96715/pexels-photo-96715.jpeg?auto=compress&cs=tinysrgb&w=400"
+    img: "https://imagens.mfrural.com.br/mfrural-produtos-us/119824-129312-1940673-ibb-locacao-de-trator-agricola.jpg"
   },
 ];
 
