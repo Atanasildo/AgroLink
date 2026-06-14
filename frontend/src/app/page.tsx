@@ -32,7 +32,7 @@ const HERO_IMAGES = [
     caption: "Campos de girassol"
   },
   {
-    url: "https://images.pexels.com/photos/1537726/pexels-photo-1537726.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    url: "https://media.istockphoto.com/id/1197326147/es/foto/ca%C3%B1a-de-az%C3%BAcar-plantada-para-producir-az%C3%BAcar-y-alimentos-industria-alimentaria-campos-de-ca%C3%B1a.jpg?s=170667a&w=0&k=20&c=uDagOxlT-UBbtqRgpXmQHYq-c6q1ff66cyIHbHYpo6U=",
     caption: "Plantações de cana-de-açúcar"
   }
 ];
