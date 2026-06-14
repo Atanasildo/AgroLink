@@ -16,32 +16,24 @@ const HERO_IMAGES = [
     caption: "Campos agrícolas de Angola"
   },
   {
-    url: "https://images.pexels.com/photos/547264/pexels-photo-547264.jpeg?auto=compress&cs=tinysrgb&w=1600",
-    caption: "Colheita de milho"
-  },
-  {
     url: "https://images.pexels.com/photos/1112080/pexels-photo-1112080.jpeg?auto=compress&cs=tinysrgb&w=1600",
     caption: "Maquinaria agrícola moderna"
   },
   {
     url: "https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=1600",
-    caption: "Campos verdes"
+    caption: "Campos verdes de Angola"
   },
   {
     url: "https://images.pexels.com/photos/2382665/pexels-photo-2382665.jpeg?auto=compress&cs=tinysrgb&w=1600",
     caption: "Agricultura familiar"
   },
   {
-    url: "https://images.pexels.com/photos/1537726/pexels-photo-1537726.jpeg?auto=compress&cs=tinysrgb&w=1600",
-    caption: "Plantações de cana-de-açúcar"
-  },
-  {
     url: "https://images.pexels.com/photos/1408221/pexels-photo-1408221.jpeg?auto=compress&cs=tinysrgb&w=1600",
     caption: "Campos de girassol"
   },
   {
-    url: "https://images.pexels.com/photos/1379636/pexels-photo-1379636.jpeg?auto=compress&cs=tinysrgb&w=1600",
-    caption: "Produtos frescos do campo"
+    url: "https://images.pexels.com/photos/1537726/pexels-photo-1537726.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    caption: "Plantações de cana-de-açúcar"
   }
 ];
 
@@ -162,27 +154,21 @@ export default function HomePage() {
       {/* ── HERO com imagens reais animadas ─────────────────── */}
       <section className="relative overflow-hidden" style={{ minHeight: "90vh" }}>
         {/* Background slideshow — crossfade stack */}
-        <div className="absolute inset-0 overflow-hidden">
-          {HERO_IMAGES.map((img, i) => (
-            <div
-              key={i}
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url(${img.url})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                opacity: i === heroIndex ? 1 : (i === prevIndex ? 0 : 0),
-                transition: i === heroIndex
-                  ? "opacity 900ms cubic-bezier(0.4,0,0.2,1)"
-                  : i === prevIndex
-                  ? "opacity 900ms cubic-bezier(0.4,0,0.2,1)"
-                  : "none",
-                zIndex: i === heroIndex ? 2 : i === prevIndex ? 1 : 0,
-                willChange: "opacity",
-              }}
-            />
-          ))}
-        </div>
+        {HERO_IMAGES.map((img, i) => (
+          <div
+            key={i}
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url(${img.url})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center top",
+              opacity: i === heroIndex ? 1 : 0,
+              transition: "opacity 1000ms cubic-bezier(0.4,0,0.2,1)",
+              zIndex: i === heroIndex ? 2 : i === prevIndex ? 1 : 0,
+              willChange: "opacity",
+            }}
+          />
+        ))}
         {/* Dark overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/20" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
