@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { Search, Send, Truck, Leaf, MapPin, Weight, Clock, CheckCircle, XCircle, Loader } from "lucide-react";
+import { Search, Send, Truck, Leaf, MapPin, Weight, Clock, CheckCircle, XCircle, Loader, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   ApiError, TransportRequestItem, TransportRoute,
@@ -52,7 +52,7 @@ export default function TransportePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadRoutes(); }, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user?.role === "agricultor") loadMyRequests(); }, [user]);
+  useEffect(() => { if (user?.role === "agricultor" || user?.role === "comprador") loadMyRequests(); }, [user]);
 
   function handleSearch(e: FormEvent) { e.preventDefault(); loadRoutes(); }
 
@@ -68,6 +68,12 @@ export default function TransportePage() {
           <p className="font-body text-ink/55 mt-1">
             Partilhe carga e reduza os custos de transporte agrícola
           </p>
+          {user?.role === "comprador" && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-sm px-4 py-2 text-sm font-body">
+              <ShoppingCart size={14} />
+              Como comprador, podes solicitar transporte para os produtos que adquiriste.
+            </div>
+          )}
         </div>
       </div>
 
@@ -158,7 +164,7 @@ export default function TransportePage() {
                   key={route.id}
                   route={route}
                   token={token}
-                  isAgricultor={user?.role === "agricultor"}
+                  isAgricultor={user?.role === "agricultor" || user?.role === "comprador"}
                   onRequested={loadMyRequests}
                 />
               ))}
@@ -166,7 +172,7 @@ export default function TransportePage() {
           )}
         </div>
 
-        {user?.role === "agricultor" && myRequests.length > 0 && (
+        {(user?.role === "agricultor" || user?.role === "comprador") && myRequests.length > 0 && (
           <div>
             <h2 className="text-2xl text-field mb-5">As minhas solicitações</h2>
             <div className="space-y-4">
