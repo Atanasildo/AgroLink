@@ -510,102 +510,120 @@ export default function MapaPage() {
           </div>
         )}
 
-        {/* Add location form panel */}
+        {/* Add location form — bottom sheet, always visible */}
         {showAddPanel && (
-          <div className="absolute right-0 top-0 bottom-0 w-80 border-l border-harvest/20 bg-cream/97 overflow-y-auto shadow-lg z-20 p-4 flex flex-col gap-4">
-            <div>
-              <p className="label-eyebrow mb-1">Nova Localização</p>
-              <p className="font-mono text-[11px] text-ink/40">
-                {pinPos ? "Coordenadas confirmadas ✓" : "Clica no mapa para escolher o ponto"}
-              </p>
-            </div>
-
-            {pinPos && (
-              <div className="bg-field/8 border border-field/20 rounded-sm px-3 py-2">
-                <p className="font-mono text-[10px] text-ink/40 uppercase tracking-wider mb-0.5">GPS Seleccionado</p>
-                <p className="font-mono text-xs text-field select-all">
-                  {pinPos.lat.toFixed(6)}, {pinPos.lng.toFixed(6)}
+          <div className="absolute bottom-0 left-0 right-0 bg-cream border-t-2 border-harvest/40 shadow-2xl z-30 max-h-[55vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-cream border-b border-harvest/20 px-4 py-3 flex items-center justify-between">
+              <div>
+                <p className="font-display text-sm uppercase tracking-widest text-harvest">Nova Localização</p>
+                <p className="font-mono text-[10px] text-ink/40 mt-0.5">
+                  {pinPos
+                    ? `📍 ${pinPos.lat.toFixed(5)}, ${pinPos.lng.toFixed(5)}`
+                    : "↑ Clica no mapa para definir o ponto exacto"
+                  }
                 </p>
               </div>
-            )}
-
-            <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Nome *</span>
-              <input
-                required value={addForm.nome}
-                onChange={e => setAddForm(f => ({ ...f, nome: e.target.value }))}
-                placeholder="Ex: Fazenda São João"
-                className="field-input rounded-sm text-sm"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Tipo *</span>
-              <select
-                value={addForm.tipo}
-                onChange={e => setAddForm(f => ({ ...f, tipo: e.target.value as MapEntityType }))}
-                className="field-input rounded-sm text-sm"
+              <button
+                onClick={() => { setShowAddPanel(false); setPinPos(null); setAddError(null); }}
+                className="text-ink/40 hover:text-ink transition-colors p-1"
               >
-                {TIPOS.filter(t => t.value !== "").map(t => (
-                  <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
-                ))}
-              </select>
-            </label>
+                <X size={18}/>
+              </button>
+            </div>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Província</span>
-              <select
-                value={addForm.provincia}
-                onChange={e => setAddForm(f => ({ ...f, provincia: e.target.value }))}
-                className="field-input rounded-sm text-sm"
-              >
-                <option value="">Selecionar…</option>
-                {provincias.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </label>
+            {/* Form */}
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* Coords display */}
+              {pinPos && (
+                <div className="col-span-2 sm:col-span-4 bg-field/8 border border-field/20 rounded-sm px-3 py-2">
+                  <p className="font-mono text-[10px] text-ink/40 uppercase tracking-wider">GPS Seleccionado</p>
+                  <p className="font-mono text-xs text-field select-all">
+                    {pinPos.lat.toFixed(6)}, {pinPos.lng.toFixed(6)}
+                  </p>
+                </div>
+              )}
 
-            <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Município</span>
-              <input
-                value={addForm.municipio}
-                onChange={e => setAddForm(f => ({ ...f, municipio: e.target.value }))}
-                placeholder="Ex: Caála"
-                className="field-input rounded-sm text-sm"
-              />
-            </label>
+              <label className="flex flex-col gap-1.5 col-span-2">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Nome *</span>
+                <input
+                  value={addForm.nome}
+                  onChange={e => setAddForm(f => ({ ...f, nome: e.target.value }))}
+                  placeholder="Ex: Fazenda São João"
+                  className="field-input rounded-sm text-sm"
+                />
+              </label>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Descrição</span>
-              <textarea
-                value={addForm.descricao}
-                onChange={e => setAddForm(f => ({ ...f, descricao: e.target.value }))}
-                rows={2}
-                placeholder="Opcional — culturas, capacidade, etc."
-                className="field-input rounded-sm resize-none text-sm"
-              />
-            </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Tipo *</span>
+                <select
+                  value={addForm.tipo}
+                  onChange={e => setAddForm(f => ({ ...f, tipo: e.target.value as MapEntityType }))}
+                  className="field-input rounded-sm text-sm"
+                >
+                  {TIPOS.filter(t => t.value !== "").map(t => (
+                    <option key={t.value} value={t.value}>{t.emoji} {t.label}</option>
+                  ))}
+                </select>
+              </label>
 
-            {addError && (
-              <div className="flex items-start gap-2 bg-earth/8 border border-earth/25 rounded-sm p-2.5">
-                <AlertCircle size={13} className="text-earth mt-0.5 flex-shrink-0"/>
-                <p className="font-body text-earth text-xs">{addError}</p>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Província</span>
+                <select
+                  value={addForm.provincia}
+                  onChange={e => setAddForm(f => ({ ...f, provincia: e.target.value }))}
+                  className="field-input rounded-sm text-sm"
+                >
+                  <option value="">Selecionar…</option>
+                  {provincias.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Município</span>
+                <input
+                  value={addForm.municipio}
+                  onChange={e => setAddForm(f => ({ ...f, municipio: e.target.value }))}
+                  placeholder="Ex: Caála"
+                  className="field-input rounded-sm text-sm"
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 col-span-2 sm:col-span-3">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-ink/50">Descrição (opcional)</span>
+                <input
+                  value={addForm.descricao}
+                  onChange={e => setAddForm(f => ({ ...f, descricao: e.target.value }))}
+                  placeholder="Culturas, capacidade, contacto…"
+                  className="field-input rounded-sm text-sm"
+                />
+              </label>
+
+              {/* Save button */}
+              <div className="flex flex-col justify-end col-span-2 sm:col-span-1">
+                <button
+                  onClick={handleAddLocation}
+                  disabled={addLoading || !pinPos || !addForm.nome.trim()}
+                  className="btn-harvest rounded-sm disabled:opacity-40 justify-center h-[42px]"
+                >
+                  <MapPin size={13}/>
+                  {addLoading ? "A guardar…" : "Guardar"}
+                </button>
               </div>
-            )}
 
-            <button
-              onClick={handleAddLocation}
-              disabled={addLoading || !pinPos || !addForm.nome.trim()}
-              className="btn-harvest rounded-sm disabled:opacity-50 justify-center mt-auto"
-            >
-              <MapPin size={13}/>
-              {addLoading ? "A guardar…" : "Guardar no mapa"}
-            </button>
+              {addError && (
+                <div className="col-span-2 sm:col-span-4 flex items-start gap-2 bg-earth/8 border border-earth/25 rounded-sm p-2.5">
+                  <AlertCircle size={13} className="text-earth mt-0.5 flex-shrink-0"/>
+                  <p className="font-body text-earth text-xs">{addError}</p>
+                </div>
+              )}
 
-            {!pinPos && (
-              <p className="font-mono text-[10px] text-ink/35 text-center">
-                ← Clica no mapa para definir a posição exacta
-              </p>
-            )}
+              {!pinPos && (
+                <p className="col-span-2 sm:col-span-4 font-mono text-[11px] text-harvest/70 text-center py-1">
+                  ↑ Clica em qualquer ponto do mapa para definir a localização exacta
+                </p>
+              )}
+            </div>
           </div>
         )}
       </div>
