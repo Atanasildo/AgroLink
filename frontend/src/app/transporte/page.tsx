@@ -348,15 +348,15 @@ function RouteCard({
             <div className="grid grid-cols-3 gap-3 bg-field/5 border border-field/15 p-4 rounded-sm font-mono text-sm">
               <div>
                 <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Estimativa total</p>
-                <p className="text-field font-bold">{precoEstimado.toLocaleString("pt-AO")} Kz</p>
+                <p className="text-field font-bold">{formatKz(String(precoEstimado))}</p>
               </div>
               <div>
                 <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Comissão (5%)</p>
-                <p className="text-harvest">{comissao.toLocaleString("pt-AO")} Kz</p>
+                <p className="text-harvest">{formatKz(String(comissao))}</p>
               </div>
               <div>
                 <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Para transportador</p>
-                <p className="text-earth">{(precoEstimado - comissao).toLocaleString("pt-AO")} Kz</p>
+                <p className="text-earth">{formatKz(String((precoEstimado - comissao)))}</p>
               </div>
             </div>
           )}
