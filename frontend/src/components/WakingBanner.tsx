@@ -71,8 +71,8 @@ export function WakingBanner() {
         <span className="text-harvest uppercase tracking-wider text-xs">Servidor a acordar</span>
       </div>
       <p className="text-cream/70 text-xs leading-relaxed">
-        O servidor está a iniciar (plano gratuito do Render).<br />
-        Aguarde ~30–60s — a página vai carregar automaticamente.
+        O servidor está a iniciar.<br />
+        Aguarde uns momentos — a página vai carregar automaticamente.
       </p>
       <div className="mt-2 h-1 bg-cream/10 rounded-full overflow-hidden">
         <div

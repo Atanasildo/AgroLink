@@ -1,7 +1,7 @@
 "use client";
 
 import { Product } from "@/lib/api";
-import { MapPin, Package, MessageSquare, ShoppingCart, Star } from "lucide-react";
+import { MapPin, Package, MessageSquare, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 
@@ -88,14 +88,6 @@ export function ProductCard({ product }: { product: Product }) {
             <Package size={11} className="text-harvest" />
             {Number(product.quantidade).toLocaleString("pt-AO")} {product.unidade}
           </span>
-        </div>
-
-        {/* Fake rating */}
-        <div className="flex items-center gap-1">
-          {[1,2,3,4,5].map(s => (
-            <Star key={s} size={11} className={s <= 4 ? "text-harvest fill-harvest" : "text-ink/20"} />
-          ))}
-          <span className="font-mono text-xs text-ink/40 ml-1">(4.2)</span>
         </div>
 
         {/* Actions */}

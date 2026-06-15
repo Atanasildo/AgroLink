@@ -51,7 +51,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
   if (lastErr !== null) {
     console.error(`[apiRequest] Todas as ${delays.length} tentativas falharam:`, lastErr);
-    throw new ApiError(0, "O servidor está a iniciar (plano gratuito). Aguarde ~60s e tente novamente.");
+    throw new ApiError(0, "O servidor está a iniciar. Aguarde uns momentos e tente novamente.");
   }
 
   if (!res.ok) {

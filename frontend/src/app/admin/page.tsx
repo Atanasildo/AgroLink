@@ -1,64 +1,184 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Users, Truck, Wheat, TrendingUp,
   CreditCard, CheckCircle, XCircle, Clock, BarChart2,
-  Leaf, Package, RefreshCw, Eye, Ban, PlusCircle, Database,
+  Leaf, Package, RefreshCw, Eye, Ban, PlusCircle, Database, Tractor,
 } from "lucide-react";
-import { createPrice, seedPrices, CommodityType } from "@/lib/api";
-import { PROVINCIAS as PROVINCIAS_AO, getMunicipios } from "@/lib/angola";
-
-// Dados de DEMONSTRAÇÃO — claramente fictícios
-const DEMO_USERS = [
-  { id: "1", nome: "Utilizador Demo A", email: "demo-a@exemplo.demo", role: "agricultor",    status: "activo",  criado: "2024-01-15", provincia: "Huambo"   },
-  { id: "2", nome: "Utilizador Demo B", email: "demo-b@exemplo.demo", role: "comprador",     status: "activo",  criado: "2024-02-03", provincia: "Luanda"   },
-  { id: "3", nome: "Utilizador Demo C", email: "demo-c@exemplo.demo", role: "transportador", status: "activo",  criado: "2024-01-28", provincia: "Benguela" },
-  { id: "4", nome: "Utilizador Demo D", email: "demo-d@exemplo.demo", role: "cooperativa",   status: "suspenso",criado: "2024-03-10", provincia: "Bié"      },
-  { id: "5", nome: "Utilizador Demo E", email: "demo-e@exemplo.demo", role: "agricultor",    status: "activo",  criado: "2024-03-22", provincia: "Malanje"  },
-];
-
-const DEMO_PAYMENTS = [
-  { id: "DEMO-001", descricao: "Transporte Caála → Huambo",   valor: 30000, comissao: 1500, status: "concluido", data: "2024-03-15", metodo: "Multicaixa"   },
-  { id: "DEMO-002", descricao: "Aluguel Tractor — 2 dias",    valor: 25000, comissao: 2500, status: "pendente",  data: "2024-03-18", metodo: "Transferência" },
-  { id: "DEMO-003", descricao: "Transporte Kuito → Luanda",   valor: 80000, comissao: 4000, status: "concluido", data: "2024-03-20", metodo: "Referência"   },
-  { id: "DEMO-004", descricao: "Marketplace — Milho 500 kg",  valor: 15000, comissao: 750,  status: "concluido", data: "2024-03-21", metodo: "Multicaixa"   },
-  { id: "DEMO-005", descricao: "Transporte Benguela → Luanda",valor: 60000, comissao: 3000, status: "cancelado", data: "2024-03-22", metodo: "Transferência" },
-];
-
-const DEMO_STATS = {
-  totalUtilizadores: 1247,
-  transacoesMes: 89,
-  receitaMes: 145000,
-  comissaoMes: 7250,
-  agricultores: 623,
-  compradores: 440,
-  transportadores: 184,
-  rotasActivas: 34,
-};
+import { apiRequest, createPrice, seedPrices, CommodityType, User as ApiUser } from "@/lib/api";
+import { PROVINCIAS as PROVINCIAS_AO } from "@/lib/angola";
 
 function formatKz(val: number) {
   return new Intl.NumberFormat("pt-AO", { maximumFractionDigits: 0 }).format(val) + " Kz";
 }
 
+// ─── Tipos das respostas do backend ───────────────────────────────────────────
+
+interface AdminStats {
+  utilizadores: {
+    total: number;
+    ativos: number;
+    por_role: {
+      agricultor: number;
+      comprador: number;
+      transportador: number;
+      proprietario_maquinas: number;
+      admin: number;
+    };
+  };
+  transporte: {
+    total_pedidos: number;
+    rotas_ativas: number;
+    por_status: {
+      pendente: number;
+      aceite: number;
+      em_andamento: number;
+      concluido: number;
+      cancelado: number;
+    };
+  };
+  marketplace: { produtos_ativos: number };
+  maquinas: { disponiveis: number };
+  pagamentos: { total_transacoes: number; receita_total: number };
+}
+
+interface TransportRoute {
+  id: string;
+  origem: string;
+  destino: string;
+  data: string;
+  capacidade_total_toneladas: string;
+  capacidade_disponivel_toneladas: string;
+  criado_em: string;
+}
+
+interface TransportRequest {
+  id: string;
+  produto: string;
+  origem: string;
+  destino: string;
+  data: string;
+  status: string;
+  peso_toneladas: string;
+  criado_em: string;
+}
+
 export default function AdminPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<"dashboard" | "users" | "payments" | "routes" | "precos">("dashboard");
-  const [users, setUsers] = useState(DEMO_USERS);
-  const [refreshing, setRefreshing] = useState(false);
+  const [tab, setTab] = useState<"dashboard" | "users" | "routes" | "requests" | "precos">("dashboard");
+
+  // Stats reais
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  // Utilizadores reais
+  const [realUsers, setRealUsers] = useState<ApiUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  // Rotas reais
+  const [routes, setRoutes] = useState<TransportRoute[]>([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
+
+  // Pedidos reais
+  const [requests, setRequests] = useState<TransportRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
 
   useEffect(() => {
     if (loading) return;
-    // Redireciona se não estiver autenticado ou não for admin
     if (!user || user.role !== "admin") {
       router.replace("/");
     }
   }, [user, loading, router]);
 
-  // Enquanto verifica autenticação, não mostra nada
+  const loadStats = useCallback(async () => {
+    if (!token) return;
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      const data = await apiRequest<AdminStats>("/admin/stats", { token });
+      setStats(data);
+    } catch {
+      setStatsError("Não foi possível carregar as estatísticas.");
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [token]);
+
+  const loadUsers = useCallback(async () => {
+    if (!token) return;
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const data = await apiRequest<ApiUser[]>("/admin/users?limit=100", { token });
+      setRealUsers(data);
+    } catch {
+      setUsersError("Não foi possível carregar os utilizadores.");
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [token]);
+
+  const loadRoutes = useCallback(async () => {
+    if (!token) return;
+    setRoutesLoading(true);
+    try {
+      const data = await apiRequest<TransportRoute[]>("/admin/transport/routes?limit=50", { token });
+      setRoutes(data);
+    } catch {
+      setRoutes([]);
+    } finally {
+      setRoutesLoading(false);
+    }
+  }, [token]);
+
+  const loadRequests = useCallback(async () => {
+    if (!token) return;
+    setRequestsLoading(true);
+    try {
+      const data = await apiRequest<TransportRequest[]>("/admin/transport/requests?limit=50", { token });
+      setRequests(data);
+    } catch {
+      setRequests([]);
+    } finally {
+      setRequestsLoading(false);
+    }
+  }, [token]);
+
+  // Carrega stats ao entrar
+  useEffect(() => {
+    if (user?.role === "admin" && token) {
+      loadStats();
+    }
+  }, [user, token, loadStats]);
+
+  // Carrega dados conforme o tab activo
+  useEffect(() => {
+    if (!token || user?.role !== "admin") return;
+    if (tab === "users" && realUsers.length === 0) loadUsers();
+    if (tab === "routes" && routes.length === 0) loadRoutes();
+    if (tab === "requests" && requests.length === 0) loadRequests();
+  }, [tab, token, user]);
+
+  async function toggleUserActive(userId: string) {
+    if (!token) return;
+    setTogglingId(userId);
+    try {
+      const updated = await apiRequest<ApiUser>(`/admin/users/${userId}/toggle-active`, { method: "PATCH", token });
+      setRealUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+    } catch {
+      // silencioso
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   if (loading || !user || user.role !== "admin") {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -70,18 +190,20 @@ export default function AdminPage() {
     );
   }
 
-  function toggleUserStatus(id: string) {
-    setUsers(prev => prev.map(u =>
-      u.id === id ? { ...u, status: u.status === "activo" ? "suspenso" : "activo" } : u
-    ));
-  }
-
   const roleColor: Record<string, string> = {
-    agricultor:    "bg-field/10 text-field border-field/30",
-    transportador: "bg-sky-100 text-sky-700 border-sky-200",
-    comprador:     "bg-harvest/10 text-harvest-dark border-harvest/30",
-    cooperativa:   "bg-purple-100 text-purple-700 border-purple-200",
-    admin:         "bg-red-100 text-red-700 border-red-200",
+    agricultor:           "bg-field/10 text-field border-field/30",
+    transportador:        "bg-sky-100 text-sky-700 border-sky-200",
+    comprador:            "bg-harvest/10 text-harvest-dark border-harvest/30",
+    proprietario_maquinas:"bg-purple-100 text-purple-700 border-purple-200",
+    admin:                "bg-red-100 text-red-700 border-red-200",
+  };
+
+  const statusColor: Record<string, string> = {
+    pendente:     "bg-harvest/10 text-harvest-dark border-harvest/30",
+    aceite:       "bg-sky-100 text-sky-700 border-sky-200",
+    em_andamento: "bg-field/10 text-field border-field/30",
+    concluido:    "bg-green-100 text-green-700 border-green-200",
+    cancelado:    "bg-earth/10 text-earth border-earth/30",
   };
 
   return (
@@ -99,10 +221,7 @@ export default function AdminPage() {
             </div>
           </div>
           <p className="font-body text-ink/50 mt-1">
-            Gestão completa da plataforma ·{" "}
-            <span className="text-harvest font-mono text-xs uppercase tracking-wider">
-              ⚠ Dados de demonstração — não reflectem utilizadores reais
-            </span>
+            Gestão completa da plataforma · dados reais em tempo real
           </p>
         </div>
       </div>
@@ -111,11 +230,11 @@ export default function AdminPage() {
       <div className="border-b border-field/15 bg-cream sticky top-0 z-10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 flex gap-0 overflow-x-auto">
           {[
-            { key: "dashboard", label: "Dashboard",      icon: BarChart2 },
-            { key: "users",     label: "Utilizadores",   icon: Users     },
-            { key: "payments",  label: "Pagamentos",     icon: CreditCard},
-            { key: "routes",    label: "Rotas Activas",  icon: Truck     },
-            { key: "precos",    label: "Preços",         icon: TrendingUp},
+            { key: "dashboard", label: "Dashboard",     icon: BarChart2 },
+            { key: "users",     label: "Utilizadores",  icon: Users     },
+            { key: "routes",    label: "Rotas",         icon: Truck     },
+            { key: "requests",  label: "Pedidos",       icon: Package   },
+            { key: "precos",    label: "Preços",        icon: TrendingUp},
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -132,217 +251,318 @@ export default function AdminPage() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8">
 
-        {/* ── DASHBOARD ─── */}
+        {/* ── DASHBOARD ── */}
         {tab === "dashboard" && (
           <div className="space-y-8">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: "Total Utilizadores",  value: DEMO_STATS.totalUtilizadores.toLocaleString(), icon: Users,      color: "text-field"   },
-                { label: "Transacções / Mês",   value: DEMO_STATS.transacoesMes,                      icon: TrendingUp,  color: "text-harvest" },
-                { label: "Receita do Mês",       value: formatKz(DEMO_STATS.receitaMes),               icon: CreditCard,  color: "text-earth"   },
-                { label: "Comissão do Mês",      value: formatKz(DEMO_STATS.comissaoMes),              icon: Leaf,        color: "text-harvest" },
-              ].map(s => (
-                <div key={s.label} className="field-card rounded-sm">
-                  <div className="flex items-start justify-between mb-3">
-                    <s.icon size={20} className={s.color} />
-                    <span className="font-mono text-xs text-ink/30 uppercase tracking-wider">Demo</span>
-                  </div>
-                  <p className={`font-display text-2xl ${s.color}`}>{s.value}</p>
-                  <p className="font-mono text-xs text-ink/50 uppercase tracking-wider mt-1">{s.label}</p>
-                </div>
-              ))}
+            <div className="flex items-center justify-between">
+              <p className="label-eyebrow">Estatísticas da plataforma</p>
+              <button onClick={loadStats} disabled={statsLoading} className="btn-secondary rounded-sm text-xs">
+                <RefreshCw size={13} className={statsLoading ? "animate-spin" : ""} /> Actualizar
+              </button>
             </div>
 
-            <div className="grid sm:grid-cols-3 gap-4">
-              {[
-                { label: "Agricultores",    value: DEMO_STATS.agricultores,    icon: Wheat,    color: "text-field",   pct: 50 },
-                { label: "Compradores",     value: DEMO_STATS.compradores,     icon: Package,  color: "text-harvest", pct: 35 },
-                { label: "Transportadores", value: DEMO_STATS.transportadores, icon: Truck,    color: "text-sky-600", pct: 15 },
-              ].map(s => (
-                <div key={s.label} className="field-card rounded-sm">
-                  <div className="flex items-center gap-2 mb-4">
-                    <s.icon size={16} className={s.color} />
-                    <span className="font-mono text-xs uppercase tracking-wider text-ink/60">{s.label}</span>
-                  </div>
-                  <p className={`font-display text-3xl ${s.color} mb-3`}>{s.value}</p>
-                  <div className="h-2 bg-field/10 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full bg-current ${s.color}`} style={{ width: `${s.pct}%`, opacity: 0.6 }} />
-                  </div>
-                  <p className="font-mono text-xs text-ink/40 mt-1">{s.pct}% do total</p>
+            {statsError && (
+              <div className="border border-earth/20 bg-earth/5 text-earth p-4 rounded-sm font-mono text-sm">
+                {statsError}
+              </div>
+            )}
+
+            {statsLoading && !stats ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="field-card rounded-sm animate-pulse h-24 bg-field/5" />
+                ))}
+              </div>
+            ) : stats ? (
+              <>
+                {/* KPIs principais */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {[
+                    { label: "Total Utilizadores",   value: stats.utilizadores.total.toLocaleString(),          icon: Users,     color: "text-field"   },
+                    { label: "Utilizadores Activos", value: stats.utilizadores.ativos.toLocaleString(),          icon: CheckCircle, color: "text-harvest" },
+                    { label: "Receita Total",         value: formatKz(stats.pagamentos.receita_total),           icon: CreditCard, color: "text-earth"   },
+                    { label: "Total Transacções",     value: stats.pagamentos.total_transacoes.toLocaleString(), icon: Leaf,       color: "text-harvest" },
+                  ].map(s => (
+                    <div key={s.label} className="field-card rounded-sm">
+                      <div className="flex items-start justify-between mb-3">
+                        <s.icon size={20} className={s.color} />
+                      </div>
+                      <p className={`font-display text-2xl ${s.color}`}>{s.value}</p>
+                      <p className="font-mono text-xs text-ink/50 uppercase tracking-wider mt-1">{s.label}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
+
+                {/* Distribuição por papel */}
+                <div className="grid sm:grid-cols-3 gap-4">
+                  {[
+                    { label: "Agricultores",     value: stats.utilizadores.por_role.agricultor,           icon: Wheat,    color: "text-field"   },
+                    { label: "Compradores",       value: stats.utilizadores.por_role.comprador,            icon: Package,  color: "text-harvest" },
+                    { label: "Transportadores",   value: stats.utilizadores.por_role.transportador,        icon: Truck,    color: "text-sky-600" },
+                  ].map(s => {
+                    const total = stats.utilizadores.total || 1;
+                    const pct = Math.round((s.value / total) * 100);
+                    return (
+                      <div key={s.label} className="field-card rounded-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                          <s.icon size={16} className={s.color} />
+                          <span className="font-mono text-xs uppercase tracking-wider text-ink/60">{s.label}</span>
+                        </div>
+                        <p className={`font-display text-3xl ${s.color} mb-3`}>{s.value}</p>
+                        <div className="h-2 bg-field/10 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full bg-current ${s.color}`} style={{ width: `${pct}%`, opacity: 0.6 }} />
+                        </div>
+                        <p className="font-mono text-xs text-ink/40 mt-1">{pct}% do total</p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Transporte */}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="field-card rounded-sm">
+                    <p className="label-eyebrow mb-4 flex items-center gap-2">
+                      <Truck size={14} /> Transporte Rural
+                    </p>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Total pedidos",   value: stats.transporte.total_pedidos },
+                        { label: "Rotas activas",   value: stats.transporte.rotas_ativas  },
+                        { label: "Pendentes",        value: stats.transporte.por_status.pendente },
+                        { label: "Em andamento",     value: stats.transporte.por_status.em_andamento },
+                        { label: "Concluídos",       value: stats.transporte.por_status.concluido },
+                      ].map(r => (
+                        <div key={r.label} className="flex justify-between items-center py-1 border-b border-field/10">
+                          <span className="font-mono text-xs text-ink/50">{r.label}</span>
+                          <span className="font-display text-base text-field">{r.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="field-card rounded-sm">
+                    <p className="label-eyebrow mb-4 flex items-center gap-2">
+                      <BarChart2 size={14} /> Plataforma
+                    </p>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Produtos activos",  value: stats.marketplace.produtos_ativos },
+                        { label: "Máquinas disponíveis", value: stats.maquinas.disponiveis },
+                        { label: "Prop. de máquinas", value: stats.utilizadores.por_role.proprietario_maquinas },
+                        { label: "Admins",             value: stats.utilizadores.por_role.admin },
+                      ].map(r => (
+                        <div key={r.label} className="flex justify-between items-center py-1 border-b border-field/10">
+                          <span className="font-mono text-xs text-ink/50">{r.label}</span>
+                          <span className="font-display text-base text-harvest">{r.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </div>
+        )}
+
+        {/* ── UTILIZADORES ── */}
+        {tab === "users" && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl text-field">
+                  Utilizadores {realUsers.length > 0 && `(${realUsers.length})`}
+                </h2>
+                <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-0.5">
+                  Dados reais da base de dados
+                </p>
+              </div>
+              <button onClick={loadUsers} disabled={usersLoading} className="btn-secondary rounded-sm text-xs">
+                <RefreshCw size={13} className={usersLoading ? "animate-spin" : ""} /> Actualizar
+              </button>
             </div>
 
-            <div className="field-card rounded-sm">
-              <p className="label-eyebrow mb-4 flex items-center gap-2">
-                <BarChart2 size={14} /> Actividade simulada — Últimos 7 dias
-              </p>
-              <div className="flex items-end gap-2 h-32">
-                {[12, 8, 15, 23, 18, 31, 27].map((v, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                    <div
-                      className="w-full bg-field/30 hover:bg-field transition-colors rounded-sm cursor-default"
-                      style={{ height: `${(v / 31) * 100}%` }}
-                      title={`${v} transacções (demo)`}
-                    />
-                    <span className="font-mono text-xs text-ink/30">
-                      {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"][i]}
-                    </span>
+            {usersError && (
+              <div className="border border-earth/20 bg-earth/5 text-earth p-4 rounded-sm font-mono text-sm mb-4">
+                {usersError}
+              </div>
+            )}
+
+            {usersLoading && realUsers.length === 0 ? (
+              <div className="space-y-2">
+                {[1,2,3,4,5].map(i => <div key={i} className="h-14 bg-field/5 animate-pulse rounded-sm" />)}
+              </div>
+            ) : realUsers.length === 0 ? (
+              <div className="field-card text-center py-16 rounded-sm">
+                <Users size={32} className="text-field/30 mx-auto mb-3" />
+                <p className="font-display text-xl text-field">Nenhum utilizador encontrado</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-field/15">
+                      {["Nome", "Email", "Papel", "Província", "Estado", "Registado", "Acções"].map(h => (
+                        <th key={h} className="px-3 py-3 text-left font-mono text-xs uppercase tracking-wider text-ink/50">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {realUsers.map(u => (
+                      <tr key={u.id} className="border-b border-field/10 hover:bg-field/3 transition-colors">
+                        <td className="px-3 py-3 font-display text-sm text-ink">{u.nome}</td>
+                        <td className="px-3 py-3 font-mono text-xs text-ink/50">{u.email}</td>
+                        <td className="px-3 py-3">
+                          <span className={`font-mono text-xs px-2 py-0.5 border rounded-sm ${roleColor[u.role] ?? ""}`}>
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 font-mono text-xs text-ink/60">{u.provincia || "—"}</td>
+                        <td className="px-3 py-3">
+                          <span className={`inline-flex items-center gap-1 font-mono text-xs ${u.ativo ? "text-field" : "text-earth"}`}>
+                            {u.ativo ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                            {u.ativo ? "activo" : "suspenso"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 font-mono text-xs text-ink/40">
+                          {new Date(u.criado_em).toLocaleDateString("pt-AO")}
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => toggleUserActive(u.id)}
+                              disabled={togglingId === u.id || u.role === "admin"}
+                              title={u.ativo ? "Suspender utilizador" : "Activar utilizador"}
+                              className={`p-1.5 border rounded-sm transition-colors disabled:opacity-40 ${
+                                u.ativo
+                                  ? "border-earth/20 hover:border-earth text-earth/60 hover:text-earth"
+                                  : "border-field/20 hover:border-field text-field/60 hover:text-field"
+                              }`}
+                            >
+                              {togglingId === u.id
+                                ? <RefreshCw size={13} className="animate-spin" />
+                                : <Ban size={13} />
+                              }
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── ROTAS ── */}
+        {tab === "routes" && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl text-field">
+                  Rotas de Transporte {routes.length > 0 && `(${routes.length})`}
+                </h2>
+                <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-0.5">Dados reais</p>
+              </div>
+              <button onClick={loadRoutes} disabled={routesLoading} className="btn-secondary rounded-sm text-xs">
+                <RefreshCw size={13} className={routesLoading ? "animate-spin" : ""} /> Actualizar
+              </button>
+            </div>
+
+            {routesLoading ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {[1,2,3,4].map(i => <div key={i} className="h-32 bg-field/5 animate-pulse rounded-sm" />)}
+              </div>
+            ) : routes.length === 0 ? (
+              <div className="field-card text-center py-16 rounded-sm">
+                <Truck size={32} className="text-field/30 mx-auto mb-3" />
+                <p className="font-display text-xl text-field">Sem rotas registadas</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {routes.map(r => {
+                  const total = Number(r.capacidade_total_toneladas);
+                  const disp  = Number(r.capacidade_disponivel_toneladas);
+                  const used  = total - disp;
+                  return (
+                    <div key={r.id} className="field-card rounded-sm">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Truck size={16} className="text-field" />
+                        <p className="font-display text-base text-field">{r.origem} → {r.destino}</p>
+                      </div>
+                      <div className="mb-2">
+                        <div className="flex justify-between font-mono text-xs text-ink/50 mb-1">
+                          <span>Capacidade usada</span>
+                          <span>{used.toFixed(1)}t / {total.toFixed(1)}t</span>
+                        </div>
+                        <div className="h-2 bg-field/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-field/50 rounded-full" style={{ width: `${total > 0 ? (used/total)*100 : 0}%` }} />
+                        </div>
+                      </div>
+                      <p className="font-mono text-xs text-ink/40">
+                        Partida: {new Date(r.data).toLocaleDateString("pt-AO")}
+                      </p>
+                      <p className="font-mono text-xs text-ink/30 mt-0.5">
+                        Disponível: {disp.toFixed(1)}t
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── PEDIDOS ── */}
+        {tab === "requests" && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl text-field">
+                  Pedidos de Transporte {requests.length > 0 && `(${requests.length})`}
+                </h2>
+                <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-0.5">Dados reais</p>
+              </div>
+              <button onClick={loadRequests} disabled={requestsLoading} className="btn-secondary rounded-sm text-xs">
+                <RefreshCw size={13} className={requestsLoading ? "animate-spin" : ""} /> Actualizar
+              </button>
+            </div>
+
+            {requestsLoading ? (
+              <div className="space-y-3">
+                {[1,2,3].map(i => <div key={i} className="h-20 bg-field/5 animate-pulse rounded-sm" />)}
+              </div>
+            ) : requests.length === 0 ? (
+              <div className="field-card text-center py-16 rounded-sm">
+                <Package size={32} className="text-field/30 mx-auto mb-3" />
+                <p className="font-display text-xl text-field">Sem pedidos registados</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {requests.map(req => (
+                  <div key={req.id} className="field-card rounded-sm flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`font-mono text-xs px-2 py-0.5 border rounded-sm ${statusColor[req.status] ?? ""}`}>
+                          {req.status}
+                        </span>
+                        <span className="font-mono text-xs text-ink/40">{req.peso_toneladas}t</span>
+                      </div>
+                      <p className="font-display text-sm text-ink">{req.produto}</p>
+                      <p className="font-mono text-xs text-ink/40 mt-0.5">
+                        {req.origem} → {req.destino} · {new Date(req.data).toLocaleDateString("pt-AO")}
+                      </p>
+                    </div>
+                    <div className="font-mono text-xs text-ink/30">
+                      {new Date(req.criado_em).toLocaleDateString("pt-AO")}
+                    </div>
                   </div>
                 ))}
               </div>
-              <p className="font-mono text-xs text-ink/30 mt-3 uppercase tracking-wider">⚠ Valores simulados para demonstração</p>
-            </div>
+            )}
           </div>
         )}
 
-        {/* ── USERS ─── */}
-        {tab === "users" && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-2xl text-field">Utilizadores ({users.length})</h2>
-                <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-0.5">
-                  ⚠ Dados fictícios de demonstração — não são utilizadores reais
-                </p>
-              </div>
-              <button
-                onClick={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 800); }}
-                className="btn-secondary rounded-sm text-xs"
-              >
-                <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} /> Actualizar
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-field/15">
-                    {["Nome", "Email", "Papel", "Província", "Estado", "Registado", "Acções"].map(h => (
-                      <th key={h} className="px-3 py-3 text-left font-mono text-xs uppercase tracking-wider text-ink/50">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => (
-                    <tr key={u.id} className="border-b border-field/10 hover:bg-field/3 transition-colors">
-                      <td className="px-3 py-3 font-display text-sm text-ink">{u.nome}</td>
-                      <td className="px-3 py-3 font-mono text-xs text-ink/40 italic">{u.email}</td>
-                      <td className="px-3 py-3">
-                        <span className={`font-mono text-xs px-2 py-0.5 border rounded-sm ${roleColor[u.role] ?? ""}`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 font-mono text-xs text-ink/60">{u.provincia}</td>
-                      <td className="px-3 py-3">
-                        <span className={`inline-flex items-center gap-1 font-mono text-xs ${u.status === "activo" ? "text-field" : "text-earth"}`}>
-                          {u.status === "activo" ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                          {u.status}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 font-mono text-xs text-ink/40">{u.criado}</td>
-                      <td className="px-3 py-3">
-                        <div className="flex gap-2">
-                          <button className="p-1.5 border border-field/20 hover:border-field rounded-sm text-field/60 hover:text-field transition-colors" title="Ver detalhes (demo)">
-                            <Eye size={13} />
-                          </button>
-                          <button
-                            onClick={() => toggleUserStatus(u.id)}
-                            title={u.status === "activo" ? "Suspender (demo)" : "Activar (demo)"}
-                            className={`p-1.5 border rounded-sm transition-colors ${u.status === "activo" ? "border-earth/20 hover:border-earth text-earth/60 hover:text-earth" : "border-field/20 hover:border-field text-field/60 hover:text-field"}`}
-                          >
-                            <Ban size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ── PAYMENTS ─── */}
-        {tab === "payments" && (
-          <div>
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl text-field">Pagamentos</h2>
-                <div className="font-mono text-sm text-harvest">
-                  Comissões demo: {formatKz(DEMO_PAYMENTS.reduce((s, p) => s + (p.status === "concluido" ? p.comissao : 0), 0))}
-                </div>
-              </div>
-              <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-1">
-                ⚠ Transacções fictícias de demonstração
-              </p>
-            </div>
-            <div className="space-y-4">
-              {DEMO_PAYMENTS.map(p => (
-                <div key={p.id} className="field-card rounded-sm flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-xs text-ink/40">{p.id}</span>
-                      <span className={`inline-flex items-center gap-1 font-mono text-xs px-2 py-0.5 rounded-sm ${
-                        p.status === "concluido" ? "bg-field/10 text-field border border-field/30" :
-                        p.status === "pendente"  ? "bg-harvest/10 text-harvest-dark border border-harvest/30" :
-                                                   "bg-earth/10 text-earth border border-earth/30"
-                      }`}>
-                        {p.status === "concluido" ? <CheckCircle size={10} /> : p.status === "pendente" ? <Clock size={10} /> : <XCircle size={10} />}
-                        {p.status}
-                      </span>
-                    </div>
-                    <p className="font-display text-base text-ink">{p.descricao}</p>
-                    <p className="font-mono text-xs text-ink/40 mt-0.5">{p.data} · {p.metodo}</p>
-                  </div>
-                  <div className="text-right font-mono">
-                    <p className="text-xl text-field font-bold">{formatKz(p.valor)}</p>
-                    <p className="text-xs text-harvest">Comissão: {formatKz(p.comissao)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── ROUTES ─── */}
-        {tab === "routes" && (
-          <div>
-            <div className="mb-6">
-              <h2 className="text-2xl text-field">Rotas Activas ({DEMO_STATS.rotasActivas})</h2>
-              <p className="font-mono text-xs text-ink/40 uppercase tracking-wider mt-1">
-                ⚠ Rotas de demonstração
-              </p>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                { origem: "Caála",   destino: "Huambo", transp: "Transportador Demo 1", cap: 10, disp: 4,  data: "2024-03-25" },
-                { origem: "Kuito",   destino: "Luanda", transp: "Transportador Demo 2", cap: 15, disp: 8,  data: "2024-03-26" },
-                { origem: "Malanje", destino: "Luanda", transp: "Transportador Demo 3", cap: 8,  disp: 2,  data: "2024-03-27" },
-                { origem: "Lobito",  destino: "Luanda", transp: "Transportador Demo 4", cap: 20, disp: 15, data: "2024-03-28" },
-              ].map((r, i) => (
-                <div key={i} className="field-card rounded-sm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Truck size={16} className="text-field" />
-                    <p className="font-display text-base text-field">{r.origem} → {r.destino}</p>
-                  </div>
-                  <p className="font-mono text-xs text-ink/50 mb-3">Transportador: {r.transp}</p>
-                  <div className="mb-2">
-                    <div className="flex justify-between font-mono text-xs text-ink/50 mb-1">
-                      <span>Capacidade</span>
-                      <span>{r.disp}t / {r.cap}t disponíveis</span>
-                    </div>
-                    <div className="h-2 bg-field/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-field/50 rounded-full" style={{ width: `${((r.cap - r.disp) / r.cap) * 100}%` }} />
-                    </div>
-                  </div>
-                  <p className="font-mono text-xs text-ink/40">Partida: {r.data}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── PREÇOS ─── */}
+        {/* ── PREÇOS ── */}
         {tab === "precos" && <PrecosAdmin token={token ?? ""} />}
       </div>
     </div>
@@ -405,15 +625,13 @@ function PrecosAdmin({ token }: { token: string }) {
         </p>
       </div>
 
-      {/* Seed inicial */}
       <div className="border border-field/20 bg-field/3 p-5 rounded-sm">
         <div className="flex items-start gap-3 mb-3">
           <Database size={18} className="text-field mt-0.5" />
           <div>
             <p className="font-display text-base text-ink uppercase tracking-widest">Carregar Preços de Referência</p>
             <p className="font-mono text-xs text-ink/50 mt-0.5">
-              Insere preços iniciais baseados em mercados reais de Angola (milho, feijão, mandioca, soja, hortaliças em várias províncias).
-              Só funciona se a base de dados estiver vazia.
+              Insere preços iniciais baseados em mercados reais de Angola. Só funciona se a base de dados estiver vazia.
             </p>
           </div>
         </div>
@@ -430,7 +648,6 @@ function PrecosAdmin({ token }: { token: string }) {
         )}
       </div>
 
-      {/* Formulário para adicionar preço manualmente */}
       <div className="border border-field/20 p-5 rounded-sm">
         <div className="flex items-center gap-2 mb-4">
           <PlusCircle size={16} className="text-harvest" />
@@ -460,10 +677,7 @@ function PrecosAdmin({ token }: { token: string }) {
           <div>
             <label className="block font-mono text-xs uppercase tracking-wider text-ink/50 mb-1.5">Preço (Kz/kg)</label>
             <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="ex: 250.00"
+              type="number" min="0" step="0.01" placeholder="ex: 250.00"
               value={form.preco_kg}
               onChange={e => setForm(f => ({ ...f, preco_kg: e.target.value }))}
               className="w-full font-mono text-xs border border-field/30 bg-cream px-3 py-2 rounded-sm focus:outline-none focus:border-field"
@@ -472,8 +686,7 @@ function PrecosAdmin({ token }: { token: string }) {
           <div>
             <label className="block font-mono text-xs uppercase tracking-wider text-ink/50 mb-1.5">Fonte (opcional)</label>
             <input
-              type="text"
-              placeholder="ex: Mercado Municipal Huambo"
+              type="text" placeholder="ex: Mercado Municipal Huambo"
               value={form.fonte}
               onChange={e => setForm(f => ({ ...f, fonte: e.target.value }))}
               className="w-full font-mono text-xs border border-field/30 bg-cream px-3 py-2 rounded-sm focus:outline-none focus:border-field"

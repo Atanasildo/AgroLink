@@ -391,9 +391,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── PAGAMENTO (Fake) + COMISSÃO ──────────────────────── */}
+      {/* ── COMISSÃO ──────────────────────────────────────────── */}
       <section className="dark-section bg-earth relative overflow-hidden">
-        {/* Farm image background */}
         <div className="absolute inset-0 opacity-10"
           style={{
             backgroundImage: "url(https://images.pexels.com/photos/974314/pexels-photo-974314.jpeg?auto=compress&cs=tinysrgb&w=1200)",
@@ -405,46 +404,6 @@ export default function HomePage() {
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6 py-14 sm:py-20">
           <p className="label-eyebrow text-harvest mb-4">Transparência financeira</p>
           <h2 className="text-cream text-2xl sm:text-4xl mb-10">Como funciona o pagamento</h2>
-
-          {/* Payment flow fake UI */}
-          <div className="bg-cream/5 border border-cream/15 backdrop-blur rounded-sm p-6 mb-8 max-w-2xl">
-            <p className="font-mono text-xs uppercase tracking-wider text-cream/50 mb-4 flex items-center gap-2">
-              <CreditCard size={14} className="text-harvest" />
-              Simulação de pagamento — AgroLink Pay
-            </p>
-            <div className="space-y-3 font-mono text-sm">
-              <div className="flex justify-between items-center py-2 border-b border-cream/10">
-                <span className="text-cream/60">Serviço</span>
-                <span className="text-cream">Transporte Caála → Huambo</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-cream/10">
-                <span className="text-cream/60">Carga</span>
-                <span className="text-cream">3 toneladas de Milho</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-cream/10">
-                <span className="text-cream/60">Subtotal</span>
-                <span className="text-cream">30.000 Kz</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-cream/10">
-                <span className="text-harvest">Comissão AgroLink (5%)</span>
-                <span className="text-harvest">1.500 Kz</span>
-              </div>
-              <div className="flex justify-between items-center py-3">
-                <span className="text-cream text-base font-bold">Total a pagar</span>
-                <span className="text-cream text-xl font-bold">31.500 Kz</span>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {["Multicaixa Express", "Transferência", "Referência"].map(m => (
-                <div key={m} className="border border-cream/20 bg-cream/5 py-2 px-3 text-center rounded-sm">
-                  <p className="font-mono text-xs text-cream/60">{m}</p>
-                </div>
-              ))}
-            </div>
-            <button className="mt-4 w-full bg-harvest text-black py-3 font-mono text-sm uppercase tracking-wider font-bold rounded-sm hover:bg-harvest/90 transition-colors flex items-center justify-center gap-2">
-              <CreditCard size={16} /> Pagar agora (Demo)
-            </button>
-          </div>
 
           <div className="grid gap-4 sm:grid-cols-3 font-mono">
             <div className="border border-cream/15 bg-cream/5 p-6 rounded-sm">
