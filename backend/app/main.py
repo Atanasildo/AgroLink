@@ -2,14 +2,18 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import admin, auth, chat, diagnostic, machines, map as map_routes, payments, prices, products, ratings, seed, social, test, transport, users
+from app.api.routes import (
+    admin, auth, chat, machines,
+    map as map_routes, payments, prices,
+    products, ratings, social, transport, users,
+)
 from app.core.config import settings
 from app.core.database import Base, engine
 
 # Cria as tabelas automaticamente se não existirem
 Base.metadata.create_all(bind=engine)
 
-# Adiciona colunas novas de forma segura (idempotente)
+
 def _safe_migrate():
     import logging
     logger = logging.getLogger(__name__)
@@ -37,7 +41,7 @@ def _safe_migrate():
             except Exception as e:
                 logger.warning(f"Migration skip: {e}")
 
-    # ALTER TYPE ADD VALUE must run outside a transaction block (each in its own connection)
+    # ALTER TYPE ADD VALUE must run outside a transaction block
     enum_values = ["soja", "hortalicas"]
     for val in enum_values:
         try:
@@ -48,6 +52,7 @@ def _safe_migrate():
         except Exception as e:
             logger.warning(f"Enum migration skip ({val}): {e}")
 
+
 _safe_migrate()
 
 app = FastAPI(
@@ -57,10 +62,9 @@ app = FastAPI(
         "compradores, transportadores, proprietários de máquinas agrícolas e "
         "cooperativas. O módulo de Transporte Rural é a prioridade máxima da plataforma."
     ),
-    version="0.1.0",
+    version="1.0.0",
 )
 
-# CORS - aceita todos os domínios (ajustar em produção enterprise)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -83,28 +87,18 @@ app.include_router(prices.router, prefix=api_prefix)
 app.include_router(map_routes.router, prefix=api_prefix)
 app.include_router(social.router, prefix=api_prefix)
 app.include_router(payments.router, prefix=api_prefix)
-app.include_router(seed.router, prefix=api_prefix)
-app.include_router(test.router, prefix=api_prefix)
-app.include_router(diagnostic.router, prefix=api_prefix)
-# TODO: Adicionar rota de diagnóstico (temporariamente desabilitada)
 
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    """Garante que respostas 500 passem pelo CORSMiddleware e com logging.
-
-    Sem este handler, exceções não tratadas propagam até o
-    ServerErrorMiddleware (fora do CORSMiddleware) e o navegador
-    reporta "bloqueado por CORS", escondendo o erro real (500).
-    """
+    """Garante que respostas 500 passem pelo CORSMiddleware com logging."""
     import logging
     logger = logging.getLogger(__name__)
     logger.error(f"Erro 500 não tratado: {type(exc).__name__}: {str(exc)}", exc_info=exc)
-    
-    # Retorna com headers CORS explícitos
+
     response = JSONResponse(
         status_code=500,
-        content={"detail": "Erro interno no servidor. Tente novamente mais tarde.", "error": str(exc)[:100]},
+        content={"detail": "Erro interno no servidor. Tente novamente mais tarde."},
     )
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "*"
@@ -117,7 +111,7 @@ def root():
     return {
         "app": settings.PROJECT_NAME,
         "status": "online",
-        "docs": "/docs",
+        "version": "1.0.0",
     }
 
 
@@ -125,7 +119,7 @@ def root():
 def health_check():
     return {"status": "ok"}
 
-# Startup confirmation log
+
 import logging as _logging
 _logging.basicConfig(level=_logging.INFO)
-_logging.getLogger(__name__).info("AgroLink API iniciada - migracoes aplicadas")
+_logging.getLogger(__name__).info("AgroLink API iniciada")
