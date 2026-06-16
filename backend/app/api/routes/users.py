@@ -98,9 +98,10 @@ def read_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
 
 # ─── Denúncias ───────────────────────────────────────────────────────────────
 
-from app.models.report import Report, ReportReason as ReportReasonEnum
-from pydantic import BaseModel as _BaseModel
 import uuid as _uuid_mod
+from datetime import datetime as _datetime
+from pydantic import BaseModel as _BaseModel, ConfigDict as _ConfigDict
+from app.models.report import Report, ReportReason as ReportReasonEnum
 
 
 class ReportCreate(_BaseModel):
@@ -110,15 +111,14 @@ class ReportCreate(_BaseModel):
 
 
 class ReportRead(_BaseModel):
-    from pydantic import ConfigDict
-    model_config = ConfigDict(from_attributes=True)
+    model_config = _ConfigDict(from_attributes=True)
+
     id: _uuid_mod.UUID
     denunciante_id: _uuid_mod.UUID
     denunciado_id: _uuid_mod.UUID
     motivo: ReportReasonEnum
     descricao: str | None = None
-    from datetime import datetime
-    criado_em: datetime
+    criado_em: _datetime
 
 
 @router.post("/reports", status_code=status.HTTP_201_CREATED)
