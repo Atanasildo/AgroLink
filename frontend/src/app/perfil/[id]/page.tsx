@@ -513,6 +513,9 @@ function ChangePasswordForm({ token, onSaved, onCancel }: {
       </div>
     </form>
   );
+}
+
+// ---- Rating Card ----
 function RatingCard({ rating }: { rating: Rating }) {
   return (
     <div className="field-card rounded-sm">
