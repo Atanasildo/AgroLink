@@ -7,7 +7,7 @@ from app.core.security import create_access_token, create_refresh_token, decode_
 from app.crud.user import authenticate_user, create_user, get_user_by_email, get_user_by_id
 from app.models.user import User
 from app.schemas.token import Token, TokenRefreshRequest
-from app.schemas.user import UserCreate, UserLogin, UserRead
+from app.schemas.user import UserCreate, UserLogin, UserRead, ChangePasswordRequest
 
 router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
@@ -94,3 +94,34 @@ def reset_password(payload: dict, db: Session = Depends(get_db)):
         "detail": "Senha temporária gerada com sucesso.",
         "temp_password": temp_password,
     }
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Mudar a senha do utilizador autenticado (a partir de senha atual ou temporária)."""
+    from app.core.security import hash_password, verify_password
+    
+    # Verificar que a senha atual está correta
+    if not verify_password(payload.senha_atual, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Senha atual incorreta"
+        )
+    
+    # Garantir que a nova senha é diferente da antiga
+    if payload.senha_atual == payload.senha_nova:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A nova senha deve ser diferente da senha atual"
+        )
+    
+    # Atualizar a senha
+    current_user.hashed_password = hash_password(payload.senha_nova)
+    db.add(current_user)
+    db.commit()
+    
+    return {"detail": "Senha alterada com sucesso."}

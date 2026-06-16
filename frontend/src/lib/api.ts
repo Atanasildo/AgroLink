@@ -284,6 +284,14 @@ export function getMe(token: string) {
   return apiRequest<User>("/auth/me", { token });
 }
 
+export function changePassword(token: string, senha_atual: string, senha_nova: string) {
+  return apiRequest<{ detail: string }>("/auth/change-password", {
+    method: "POST",
+    token,
+    body: { senha_atual, senha_nova },
+  });
+}
+
 // ---------- Marketplace ----------
 
 export function myProducts(token: string) {
@@ -686,4 +694,19 @@ export function createReport(
   payload: { denunciado_id: string; motivo: ReportReason; descricao?: string }
 ) {
   return apiRequest<Report>("/users/reports", { method: "POST", body: payload, token });
+}
+
+export function listReportsAdmin(token: string) {
+  return apiRequest<
+    {
+      id: string;
+      denunciante_id: string;
+      denunciante_nome: string;
+      denunciado_id: string;
+      denunciado_nome: string;
+      motivo: ReportReason;
+      descricao?: string;
+      criado_em: string;
+    }[]
+  >("/users/reports/admin/all", { token });
 }

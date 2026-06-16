@@ -46,15 +46,15 @@ def get_latest_prices(
 
 def get_price_history(
     db: Session,
-    produto: CommodityType,
-    provincia: str,
+    produto: CommodityType | None = None,
+    provincia: str | None = None,
 ) -> list[PriceRecord]:
-    return (
-        db.query(PriceRecord)
-        .filter(PriceRecord.produto == produto, PriceRecord.provincia.ilike(provincia))
-        .order_by(PriceRecord.criado_em.asc())
-        .all()
-    )
+    query = db.query(PriceRecord)
+    if produto:
+        query = query.filter(PriceRecord.produto == produto)
+    if provincia:
+        query = query.filter(PriceRecord.provincia.ilike(provincia))
+    return query.order_by(PriceRecord.criado_em.asc()).all()
 
 
 def compare_regions(db: Session, produto: CommodityType) -> list[PriceRecord]:

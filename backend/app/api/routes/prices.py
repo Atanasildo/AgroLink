@@ -81,11 +81,11 @@ def latest_prices(
 
 @router.get("/history", response_model=list[PriceRecordRead])
 def price_history(
-    produto: CommodityType,
-    provincia: str,
+    produto: CommodityType | None = Query(default=None),
+    provincia: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    """Histórico de preços de um produto numa província."""
+    """Histórico de preços de um produto numa província (ambos opcionais para filtros flexíveis)."""
     return get_price_history(db, produto=produto, provincia=provincia)
 
 

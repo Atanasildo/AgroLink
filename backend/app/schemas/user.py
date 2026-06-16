@@ -24,6 +24,12 @@ class UserLogin(BaseModel):
     senha: str
 
 
+class ChangePasswordRequest(BaseModel):
+    """Request para mudar a senha (autenticado ou com senha temporária)."""
+    senha_atual: str = Field(min_length=1, description="Senha atual ou temporária")
+    senha_nova: str = Field(min_length=8, max_length=128, description="Nova senha")
+
+
 class UserUpdate(BaseModel):
     nome: str | None = Field(default=None, min_length=2, max_length=150)
     telefone: str | None = None

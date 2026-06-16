@@ -9,7 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   ApiError, Rating, User, UserRatingSummary,
   createRating, getUser, getUserRatingSummary, getUserRatings,
-  updateMyProfile,
+  updateMyProfile, changePassword,
 } from "@/lib/api";
 import { FarmerDashboard } from "@/components/FarmerDashboard";
 import { TransporterDashboard } from "@/components/TransporterDashboard";
@@ -66,6 +66,7 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
   const [showRatingForm, setShowRatingForm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -185,17 +186,39 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
             }}
             onCancel={() => setEditing(false)}
           />
-        ) : (
+        ) : null}
+
+        {/* Change Password Form */}
+        {isOwnProfile && showChangePassword && token ? (
+          <ChangePasswordForm
+            token={token}
+            onSaved={() => {
+              setShowChangePassword(false);
+            }}
+            onCancel={() => setShowChangePassword(false)}
+          />
+        ) : null}
+
+        {/* View profile info */}
+        {!editing ? (
           <section className="field-card rounded-sm">
             <div className="flex items-center justify-between mb-4">
               <p className="label-eyebrow">Informações de contacto</p>
               {isOwnProfile && (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="flex items-center gap-1.5 font-mono text-xs text-ink/50 hover:text-field transition-colors"
-                >
-                  <Edit2 size={13} /> Editar perfil
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowChangePassword(true)}
+                    className="flex items-center gap-1.5 font-mono text-xs text-amber-600 hover:text-amber-700 transition-colors"
+                  >
+                    🔐 Mudar Senha
+                  </button>
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="flex items-center gap-1.5 font-mono text-xs text-ink/50 hover:text-field transition-colors"
+                  >
+                    <Edit2 size={13} /> Editar perfil
+                  </button>
+                </div>
               )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -411,7 +434,85 @@ function EditProfileForm({ profile, token, onSaved, onCancel }: {
   );
 }
 
-// ---- Rating Card ----
+// ---- Change Password Form ----
+function ChangePasswordForm({ token, onSaved, onCancel }: {
+  token: string;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [senhaNova, setSenhaNova] = useState("");
+  const [senhaConfirm, setSenhaConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+    
+    if (senhaNova !== senhaConfirm) {
+      setError("As senhas novas não correspondem");
+      return;
+    }
+    
+    if (senhaNova.length < 8) {
+      setError("A senha deve ter no mínimo 8 caracteres");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await changePassword(token, senhaAtual, senhaNova);
+      setSuccess(true);
+      setTimeout(() => {
+        setSenhaAtual("");
+        setSenhaNova("");
+        setSenhaConfirm("");
+        onSaved();
+      }, 2000);
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : "Erro ao mudar senha.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="field-card rounded-sm bg-amber-50 border-2 border-amber-200">
+      <div className="flex items-center justify-between mb-4">
+        <p className="label-eyebrow text-amber-700">🔐 Mudar Senha</p>
+        <button type="button" onClick={onCancel} className="text-ink/40 hover:text-field transition-colors">
+          <X size={16} />
+        </button>
+      </div>
+      <div className="grid gap-4">
+        <label className="flex flex-col gap-2">
+          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Senha Atual</span>
+          <input type="password" required value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)} placeholder="Introduza a sua senha atual" className="field-input rounded-sm" />
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Nova Senha</span>
+          <input type="password" required value={senhaNova} onChange={e => setSenhaNova(e.target.value)} placeholder="Mínimo 8 caracteres" className="field-input rounded-sm" />
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Confirmar Nova Senha</span>
+          <input type="password" required value={senhaConfirm} onChange={e => setSenhaConfirm(e.target.value)} placeholder="Repita a nova senha" className="field-input rounded-sm" />
+        </label>
+      </div>
+      {error && <p className="text-earth font-body text-sm mt-3">{error}</p>}
+      {success && <p className="text-harvest font-body text-sm mt-3">✅ Senha alterada com sucesso!</p>}
+      <div className="flex gap-2 mt-4">
+        <button type="submit" disabled={loading || success} className="btn-harvest rounded-sm disabled:opacity-50">
+          {loading ? "A mudar..." : success ? "✅ Alterada!" : "Mudar Senha"}
+        </button>
+        <button type="button" onClick={onCancel} className="btn-secondary rounded-sm">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
 function RatingCard({ rating }: { rating: Rating }) {
   return (
     <div className="field-card rounded-sm">

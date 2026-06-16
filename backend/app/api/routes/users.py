@@ -159,3 +159,29 @@ def list_my_reports(
         }
         for r in reports
     ]
+
+
+@router.get("/reports/admin/all", response_model=list[dict])
+def list_all_reports_admin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN)),
+):
+    """Listar todas as denúncias da plataforma (apenas admin)."""
+    from app.crud.user import get_user_by_id
+    
+    reports = db.query(Report).order_by(Report.criado_em.desc()).all()
+    result = []
+    for r in reports:
+        denunciante = get_user_by_id(db, r.denunciante_id)
+        denunciado = get_user_by_id(db, r.denunciado_id)
+        result.append({
+            "id": str(r.id),
+            "denunciante_id": str(r.denunciante_id),
+            "denunciante_nome": denunciante.nome if denunciante else "N/A",
+            "denunciado_id": str(r.denunciado_id),
+            "denunciado_nome": denunciado.nome if denunciado else "N/A",
+            "motivo": r.motivo.value,
+            "descricao": r.descricao,
+            "criado_em": r.criado_em.isoformat() if r.criado_em else None,
+        })
+    return result

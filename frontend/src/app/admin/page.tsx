@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   ShieldCheck, Users, Truck, Wheat, TrendingUp,
   CreditCard, CheckCircle, XCircle, Clock, BarChart2,
-  Leaf, Package, RefreshCw, Eye, Ban, PlusCircle, Database, Tractor,
+  Leaf, Package, RefreshCw, Eye, Ban, PlusCircle, Database, Tractor, Flag,
 } from "lucide-react";
-import { apiRequest, createPrice, seedPrices, CommodityType, User as ApiUser } from "@/lib/api";
+import { apiRequest, createPrice, seedPrices, CommodityType, User as ApiUser, listReportsAdmin } from "@/lib/api";
 import { PROVINCIAS as PROVINCIAS_AO } from "@/lib/angola";
 
 function formatKz(val: number) {
@@ -69,7 +69,7 @@ interface TransportRequest {
 export default function AdminPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<"dashboard" | "users" | "routes" | "requests" | "precos">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "users" | "routes" | "requests" | "precos" | "denuncias">("dashboard");
 
   // Stats reais
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -89,6 +89,10 @@ export default function AdminPage() {
   // Pedidos reais
   const [requests, setRequests] = useState<TransportRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
+
+  // Denúncias
+  const [reports, setReports] = useState<any[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -151,6 +155,19 @@ export default function AdminPage() {
     }
   }, [token]);
 
+  const loadReports = useCallback(async () => {
+    if (!token) return;
+    setReportsLoading(true);
+    try {
+      const data = await listReportsAdmin(token);
+      setReports(data);
+    } catch {
+      setReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  }, [token]);
+
   // Carrega stats ao entrar
   useEffect(() => {
     if (user?.role === "admin" && token) {
@@ -164,6 +181,7 @@ export default function AdminPage() {
     if (tab === "users" && realUsers.length === 0) loadUsers();
     if (tab === "routes" && routes.length === 0) loadRoutes();
     if (tab === "requests" && requests.length === 0) loadRequests();
+    if (tab === "denuncias" && reports.length === 0) loadReports();
   }, [tab, token, user]);
 
   async function toggleUserActive(userId: string) {
@@ -235,6 +253,7 @@ export default function AdminPage() {
             { key: "routes",    label: "Rotas",         icon: Truck     },
             { key: "requests",  label: "Pedidos",       icon: Package   },
             { key: "precos",    label: "Preços",        icon: TrendingUp},
+            { key: "denuncias", label: "Denúncias",     icon: Flag      },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -564,6 +583,63 @@ export default function AdminPage() {
 
         {/* ── PREÇOS ── */}
         {tab === "precos" && <PrecosAdmin token={token ?? ""} />}
+
+        {/* ── DENÚNCIAS ── */}
+        {tab === "denuncias" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <p className="label-eyebrow">Denúncias reportadas</p>
+              <button onClick={loadReports} disabled={reportsLoading} className="btn-secondary rounded-sm text-xs">
+                <RefreshCw size={13} className={reportsLoading ? "animate-spin" : ""} /> Actualizar
+              </button>
+            </div>
+
+            {reportsLoading && !reports.length ? (
+              <div className="text-center py-12">
+                <div className="animate-pulse text-ink/30">A carregar denúncias...</div>
+              </div>
+            ) : reports.length === 0 ? (
+              <div className="field-card rounded-sm text-center py-8">
+                <Flag size={32} className="mx-auto mb-2 text-ink/20" />
+                <p className="font-body text-ink/40">Nenhuma denúncia neste momento</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+                {reports.map((report) => (
+                  <div key={report.id} className="field-card rounded-sm border-l-4 border-earth/30">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="px-2 py-1 bg-earth/10 rounded text-earth text-xs font-mono font-bold">
+                            {report.motivo}
+                          </div>
+                          <span className="font-mono text-xs text-ink/40">
+                            {new Date(report.criado_em).toLocaleDateString("pt-AO")}
+                          </span>
+                        </div>
+                        <div className="grid gap-2 mb-3">
+                          <div>
+                            <p className="font-mono text-xs uppercase tracking-wider text-ink/50 mb-1">Denunciante</p>
+                            <p className="font-body text-sm text-field">{report.denunciante_nome}</p>
+                          </div>
+                          <div>
+                            <p className="font-mono text-xs uppercase tracking-wider text-ink/50 mb-1">Denunciado</p>
+                            <p className="font-body text-sm text-field">{report.denunciado_nome}</p>
+                          </div>
+                        </div>
+                        {report.descricao && (
+                          <div className="bg-ink/2 p-3 rounded-sm border border-field/10">
+                            <p className="font-body text-sm text-ink/70">{report.descricao}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
