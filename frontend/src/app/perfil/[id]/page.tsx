@@ -260,7 +260,7 @@ export default function PerfilPage({ params }: { params: { id: string } }) {
               </div>
             )}
           </section>
-        )}
+        ) : null}
 
         {/* Dashboard do próprio utilizador */}
         {isOwnProfile && token && showDashboard && (
