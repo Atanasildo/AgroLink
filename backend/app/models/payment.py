@@ -37,8 +37,22 @@ class Payment(Base):
         nullable=False,
         default=PaymentStatus.PENDENTE,
     )
-    referencia_externa = Column(String(200), nullable=True)
+    
+    # Referência do gateway de pagamento (ProxyPay/Multicaixa EMIS)
+    referencia_externa = Column(String(200), nullable=True)  # transaction_id do ProxyPay
+    gateway_ref = Column(String(200), nullable=True)  # ID único da transação no gateway
+    
+    # Comissão da plataforma (retida quando pagamento é confirmado)
+    comissao_percent = Column(Numeric(5, 2), nullable=True, default=0)
+    comissao_valor = Column(Numeric(14, 2), nullable=True)
+    
+    # Valor líquido para o prestador (valor - comissão)
+    valor_liquido = Column(Numeric(14, 2), nullable=True)
+    
+    # Saldo do prestador (atualizado quando pagamento é confirmado)
+    saldo_prestador_atualizado = Column(String(1), nullable=False, default='0')  # '0' = não, '1' = sim
 
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
+    pago_em = Column(DateTime(timezone=True), nullable=True)  # Data quando status = pago
 
     utilizador = relationship("User", foreign_keys=[utilizador_id])

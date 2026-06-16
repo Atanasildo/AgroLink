@@ -3,6 +3,7 @@ import uuid
 
 from sqlalchemy import (
     ARRAY,
+    Boolean,
     Column,
     DateTime,
     Enum,
@@ -41,12 +42,19 @@ class Post(Base):
         default=PostType.EXPERIENCIA,
     )
     imagens = Column(ARRAY(String), nullable=True)
+    videos = Column(ARRAY(String), nullable=True)  # URLs de vídeos
+
+    # Campos de moderation (admin aprova antes de publicar)
+    aprovado = Column(Boolean, nullable=False, default=False)  # False = aguardando aprovação
+    flagged = Column(Boolean, nullable=False, default=False)  # True = denunciado/suspeito
+    flag_reason = Column(String(500), nullable=True)  # Motivo da denúncia
 
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
     autor = relationship("User")
     likes = relationship("PostLike", cascade="all, delete-orphan", backref="post")
     comentarios = relationship("PostComment", cascade="all, delete-orphan", backref="post")
+    shares = relationship("PostShare", cascade="all, delete-orphan", backref="post_original")
 
 
 class PostLike(Base):
@@ -78,3 +86,29 @@ class PostComment(Base):
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
     autor = relationship("User")
+
+
+class PostShare(Base):
+    """Compartilhamento (share) de uma publicação por outro utilizador.
+    
+    Permite rastrear quem partilhou uma publicação (sem quebrar a ligação
+    ao original).
+    """
+
+    __tablename__ = "social_post_shares"
+    __table_args__ = (UniqueConstraint("post_id", "utilizador_id", name="uq_social_post_share"),)
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # Post original (que está a ser partilhado)
+    post_id = Column(UUID(as_uuid=True), ForeignKey("social_posts.id", ondelete="CASCADE"), nullable=False)
+
+    # Utilizador que fez a partilha
+    utilizador_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+    # Comentário adicional do utilizador ao compartilhar (opcional)
+    comentario = Column(String(500), nullable=True)
+
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
+    utilizador = relationship("User")

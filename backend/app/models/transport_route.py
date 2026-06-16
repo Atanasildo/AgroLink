@@ -10,7 +10,10 @@ from app.core.database import Base
 
 class TransportRoute(Base):
     """Rota publicada por um transportador, com capacidade disponível
-    para compartilhamento de carga entre vários agricultores."""
+    para compartilhamento de carga entre vários agricultores.
+    
+    Latitude/longitude permitem busca por proximidade geográfica com PostGIS.
+    """
 
     __tablename__ = "transport_routes"
 
@@ -26,6 +29,10 @@ class TransportRoute(Base):
     capacidade_total_toneladas = Column(Numeric(10, 2), nullable=False)
     capacidade_disponivel_toneladas = Column(Numeric(10, 2), nullable=False)
     preco_por_tonelada = Column(Numeric(12, 2), nullable=False)
+
+    # Coordenadas geográficas da origem para busca por proximidade
+    latitude = Column(Numeric(10, 8), nullable=True)  # ex: -8.8383
+    longitude = Column(Numeric(11, 8), nullable=True)  # ex: 13.2344
 
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
     atualizado_em = Column(DateTime(timezone=True), onupdate=func.now())

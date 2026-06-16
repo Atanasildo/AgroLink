@@ -48,6 +48,11 @@ class Product(Base):
 
     ativo = Column(Boolean, default=True, nullable=False)
 
+    # Campos de moderation (admin aprova antes de publicar)
+    aprovado = Column(Boolean, nullable=False, default=False)  # False = aguardando aprovação
+    flagged = Column(Boolean, nullable=False, default=False)  # True = denunciado/suspeito
+    flag_reason = Column(String(500), nullable=True)  # Motivo da denúncia
+
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
     atualizado_em = Column(DateTime(timezone=True), onupdate=func.now())
 

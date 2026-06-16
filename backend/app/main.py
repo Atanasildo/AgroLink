@@ -3,9 +3,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import (
-    admin, auth, chat, machines,
-    map as map_routes, payments, prices,
-    products, ratings, social, transport, users,
+    admin,
+    auth,
+    chat,
+    machines,
+    map as map_routes,
+    payments,
+    prices,
+    products,
+    ratings,
+    social,
+    transport,
+    users,
+)
+from app.api.routes import (
+    admin_moderation,
+    payments_gateway,
+    prices_trends,
+    social_shares,
+    uploads,
+    verification,
 )
 from app.core.config import settings
 from app.core.database import Base, engine
@@ -25,6 +42,8 @@ def _safe_migrate():
         "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS municipio VARCHAR(100)",
         # transport_routes
         "ALTER TABLE transport_routes ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP WITH TIME ZONE",
+        "ALTER TABLE transport_routes ADD COLUMN IF NOT EXISTS latitude NUMERIC(10, 8)",
+        "ALTER TABLE transport_routes ADD COLUMN IF NOT EXISTS longitude NUMERIC(11, 8)",
         # transport_requests
         "ALTER TABLE transport_requests ADD COLUMN IF NOT EXISTS hora_prevista_chegada TIMESTAMP WITH TIME ZONE",
         "ALTER TABLE transport_requests ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP WITH TIME ZONE",
@@ -32,7 +51,7 @@ def _safe_migrate():
         "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
         "ALTER TABLE machines ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
-        # fcm_token para notificacoes push (migracao 0003)
+        # fcm_token para notificacoes push
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR(512)",
         # Tabela de denuncias
         """CREATE TABLE IF NOT EXISTS reports (
@@ -42,6 +61,48 @@ def _safe_migrate():
             motivo VARCHAR(50) NOT NULL,
             descricao VARCHAR(1000),
             criado_em TIMESTAMPTZ DEFAULT now()
+        )""",
+        # Rating: adicionar critérios (confiança, qualidade, pontualidade, atendimento)
+        "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS criterio_confianca INTEGER",
+        "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS criterio_qualidade INTEGER",
+        "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS criterio_pontualidade INTEGER",
+        "ALTER TABLE ratings ADD COLUMN IF NOT EXISTS criterio_atendimento INTEGER",
+        # Social: adicionar campo vídeos, aprovação e flagging
+        "ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS videos VARCHAR[]",
+        "ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS aprovado BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS flagged BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS flag_reason VARCHAR(500)",
+        # Product: adicionar aprovação e flagging
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS aprovado BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS flagged BOOLEAN NOT NULL DEFAULT FALSE",
+        "ALTER TABLE products ADD COLUMN IF NOT EXISTS flag_reason VARCHAR(500)",
+        # Payment: adicionar campos de gateway e comissão
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS gateway_ref VARCHAR(200)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS comissao_percent NUMERIC(5, 2)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS comissao_valor NUMERIC(14, 2)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS valor_liquido NUMERIC(14, 2)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS saldo_prestador_atualizado VARCHAR(1) DEFAULT '0'",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS pago_em TIMESTAMP WITH TIME ZONE",
+        # Criar tabela de códigos de verificação (OTP)
+        """CREATE TABLE IF NOT EXISTS verification_codes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            utilizador_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            canal VARCHAR(20) NOT NULL,
+            destino VARCHAR(255) NOT NULL,
+            codigo_hash VARCHAR(128) NOT NULL,
+            tentativas INTEGER NOT NULL DEFAULT 0,
+            usado INTEGER NOT NULL DEFAULT 0,
+            expira_em TIMESTAMP WITH TIME ZONE NOT NULL,
+            criado_em TIMESTAMP WITH TIME ZONE DEFAULT now()
+        )""",
+        # Criar tabela de compartilhamentos (PostShare)
+        """CREATE TABLE IF NOT EXISTS social_post_shares (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            post_id UUID NOT NULL REFERENCES social_posts(id) ON DELETE CASCADE,
+            utilizador_id UUID NOT NULL REFERENCES users(id),
+            comentario VARCHAR(500),
+            criado_em TIMESTAMP WITH TIME ZONE DEFAULT now(),
+            UNIQUE(post_id, utilizador_id)
         )""",
     ]
     with engine.begin() as conn:
@@ -88,6 +149,7 @@ api_prefix = settings.API_V1_PREFIX
 
 app.include_router(admin.router, prefix=api_prefix)
 app.include_router(auth.router, prefix=api_prefix)
+app.include_router(verification.router, prefix=api_prefix)
 app.include_router(users.router, prefix=api_prefix)
 app.include_router(products.router, prefix=api_prefix)
 app.include_router(transport.router, prefix=api_prefix)
@@ -95,9 +157,14 @@ app.include_router(machines.router, prefix=api_prefix)
 app.include_router(ratings.router, prefix=api_prefix)
 app.include_router(chat.router, prefix=api_prefix)
 app.include_router(prices.router, prefix=api_prefix)
+app.include_router(prices_trends.router, prefix=api_prefix)
 app.include_router(map_routes.router, prefix=api_prefix)
 app.include_router(social.router, prefix=api_prefix)
+app.include_router(social_shares.router, prefix=api_prefix)
 app.include_router(payments.router, prefix=api_prefix)
+app.include_router(payments_gateway.router, prefix=api_prefix)
+app.include_router(uploads.router, prefix=api_prefix)
+app.include_router(admin_moderation.router, prefix=api_prefix)
 
 
 @app.exception_handler(Exception)
