@@ -8,9 +8,7 @@ entity_type: "products", "machines", "vehicles", "social"
 """
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
-from sqlalchemy.orm import Session
 
-from app.core.database import get_db
 from app.utils.storage import delete_image, upload_image
 
 router = APIRouter(prefix="/uploads", tags=["Armazenamento"])
@@ -20,7 +18,6 @@ router = APIRouter(prefix="/uploads", tags=["Armazenamento"])
 async def upload_image_endpoint(
     entity_type: str,
     file: UploadFile = File(...),
-    db: Session = None,
 ) -> dict:
     """Faz upload de imagem para S3/MinIO (ou disco local em dev).
     
