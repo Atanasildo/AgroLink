@@ -57,7 +57,6 @@ const PRODUCT_IMAGES = [
 const pillars = [
   {
     icon: Wheat,
-    eyebrow: "Módulo 01",
     title: "Mercado Agrícola",
     description: "Agricultores publicam produtos com preço, quantidade e localização. Compradores pesquisam por categoria, província e município.",
     href: "/marketplace",
@@ -68,7 +67,6 @@ const pillars = [
   },
   {
     icon: Truck,
-    eyebrow: "Módulo 02 · Prioridade",
     title: "Transporte Rural",
     description: "O coração do AgroLink. Agricultores solicitam transporte, transportadores publicam rotas com capacidade disponível, e várias cargas partilham o mesmo veículo.",
     href: "/transporte",
@@ -79,7 +77,6 @@ const pillars = [
   },
   {
     icon: Tractor,
-    eyebrow: "Módulo 03",
     title: "Aluguel de Máquinas",
     description: "Tratores, colheitadeiras, pulverizadores e sistemas de irrigação disponíveis por dia, com reserva e aprovação do proprietário.",
     href: "/maquinas",
@@ -311,11 +308,6 @@ export default function HomePage() {
                   onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute top-3 left-3">
-                  <span className="font-mono text-xs uppercase tracking-wider text-white/70 bg-black/30 px-2 py-0.5 rounded-sm backdrop-blur-sm">
-                    {p.eyebrow}
-                  </span>
-                </div>
                 <div className="absolute bottom-3 left-3">
                   <div className={`inline-flex p-2 rounded-sm bg-cream/90`}>
                     <p.icon size={20} strokeWidth={1.5} className={p.color} />
