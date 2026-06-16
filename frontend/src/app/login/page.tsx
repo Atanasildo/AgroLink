@@ -30,7 +30,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md animate-fade-in">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center bg-field rounded-sm p-3 mb-4">
@@ -48,6 +48,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="agricultor@exemplo.ao"
@@ -60,6 +61,7 @@ export default function LoginPage() {
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -68,7 +70,7 @@ export default function LoginPage() {
             </label>
 
             {error && (
-              <div className="flex items-center gap-2 bg-earth/8 border border-earth/25 text-earth px-3 py-2.5 rounded-sm">
+              <div className="flex items-center gap-2 bg-earth/8 border border-earth/25 text-earth px-3 py-2.5 rounded-sm animate-fade-in">
                 <AlertCircle size={15} />
                 <p className="font-body text-sm">{error}</p>
               </div>
@@ -77,16 +79,21 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full justify-center rounded-sm disabled:opacity-50"
+              className="btn-primary w-full justify-center rounded-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <LogIn size={16} />
-              {loading ? "A entrar..." : "Entrar"}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block w-3 h-3 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
+                  A entrar...
+                </span>
+              ) : "Entrar"}
             </button>
           </form>
         </div>
 
-        <p className="text-center font-mono text-xs text-ink/40 mt-2">
-          <Link href="/recuperar-senha" className="hover:text-field transition-colors">
+        <p className="text-center font-mono text-xs text-ink/40 mt-3">
+          <Link href="/recuperar-senha" className="hover:text-field transition-colors underline underline-offset-2">
             Esqueci a senha
           </Link>
         </p>

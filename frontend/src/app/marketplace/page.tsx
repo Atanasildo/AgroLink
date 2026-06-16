@@ -58,11 +58,7 @@ export default function MarketplacePage() {
       <div className="border-b border-field/15 bg-sky-light">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="label-eyebrow mb-2">
-              <Leaf size={12} className="inline mr-1" />
-              Módulo 01 · Mercado Agrícola
-            </p>
-            <h1 className="text-2xl sm:text-4xl text-field">Produtos disponíveis</h1>
+            <h1 className="text-2xl sm:text-4xl text-field">Mercado Agrícola</h1>
             <p className="font-body text-ink/55 mt-1">
               Produtos frescos directamente dos agricultores angolanos
             </p>
@@ -125,29 +121,57 @@ export default function MarketplacePage() {
         </form>
 
         {error && (
-          <div className="border border-earth/25 bg-earth/8 text-earth px-4 py-3 rounded-sm mb-6 font-body text-sm">
-            {error}
+          <div className="flex items-start gap-3 border border-earth/25 bg-earth/8 text-earth px-4 py-3 rounded-sm mb-6">
+            <span className="text-lg mt-0.5">⚠️</span>
+            <div>
+              <p className="font-mono text-xs uppercase tracking-wider font-bold mb-0.5">Erro ao carregar</p>
+              <p className="font-body text-sm">{error}</p>
+              <button onClick={loadProducts} className="font-mono text-xs underline mt-1 hover:no-underline">
+                Tentar novamente
+              </button>
+            </div>
           </div>
         )}
 
         {loading ? (
-          <div className="text-center py-20">
-            <div className="inline-flex items-center gap-2 font-mono text-sm text-field/60">
-              <Leaf size={16} className="animate-pulse" />
-              A carregar produtos...
-            </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="skeleton-card animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
+                <div className="skeleton-img" />
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="skeleton-text w-3/4" />
+                  <div className="skeleton-text-sm w-full" />
+                  <div className="skeleton-text-sm w-1/2" />
+                  <div className="skeleton h-9 w-full mt-2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="field-card text-center py-16 rounded-sm">
-            <Leaf size={32} className="text-field/30 mx-auto mb-3" />
-            <p className="font-display text-2xl text-field mb-2">Nenhum produto encontrado</p>
-            <p className="font-body text-ink/50">
-              Ajuste os filtros ou seja o primeiro a publicar um produto desta categoria.
+          <div className="empty-state field-card rounded-sm">
+            <div className="empty-state-icon">
+              <Leaf size={28} className="text-field/50" />
+            </div>
+            <p className="empty-state-title">Nenhum produto encontrado</p>
+            <p className="empty-state-desc">
+              Tente ajustar os filtros ou remova a pesquisa para ver todos os produtos disponíveis.
             </p>
+            {(nome || categoria || provincia || precoMax) && (
+              <button
+                onClick={() => { setNome(""); setCategoria(""); setProvincia(""); setPrecoMax(""); setTimeout(loadProducts, 0); }}
+                className="btn-secondary rounded-sm mt-5 text-xs"
+              >
+                <X size={13} /> Limpar filtros
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map(p => <ProductCard key={p.id} product={p} />)}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in">
+            {products.map((p, i) => (
+              <div key={p.id} style={{ animationDelay: `${i * 40}ms` }} className="animate-fade-in">
+                <ProductCard product={p} />
+              </div>
+            ))}
           </div>
         )}
       </div>

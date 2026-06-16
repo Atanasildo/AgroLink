@@ -131,9 +131,9 @@ export function Nav() {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex flex-col" style={{ top: "57px" }}>
           {/* backdrop */}
-          <div className="absolute inset-0 bg-ink/40" onClick={() => setMobileOpen(false)} />
+          <div className="absolute inset-0 bg-ink/40 animate-fade-in" onClick={() => setMobileOpen(false)} />
           {/* panel */}
-          <div className="relative bg-cream border-b border-field/20 shadow-lg overflow-y-auto max-h-[calc(100vh-57px)]">
+          <div className="relative bg-cream border-b border-field/20 shadow-lg overflow-y-auto max-h-[calc(100vh-57px)] animate-fade-in">
             <nav className="flex flex-col divide-y divide-field/10">
               {links.map((link) => (
                 <Link

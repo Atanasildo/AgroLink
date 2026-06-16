@@ -46,11 +46,7 @@ export default function MaquinasPage() {
       {/* Page header */}
       <div className="border-b border-field/15 bg-sky-light">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10">
-          <p className="label-eyebrow mb-2">
-            <Tractor size={12} className="inline mr-1" />
-            Módulo 04 · Aluguel de Máquinas Agrícolas
-          </p>
-          <h1 className="text-4xl text-field">Máquinas disponíveis</h1>
+          <h1 className="text-4xl text-field">Aluguel de Máquinas</h1>
           <p className="font-body text-ink/55 mt-1">
             Tratores, colheitadeiras e outros equipamentos para alugar diretamente dos proprietários
           </p>
@@ -105,23 +101,36 @@ export default function MaquinasPage() {
         )}
 
         {loading ? (
-          <div className="text-center py-20">
-            <div className="inline-flex items-center gap-2 font-mono text-sm text-field/60">
-              <Tractor size={16} className="animate-pulse" />
-              A carregar máquinas...
-            </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="skeleton-card animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
+                <div className="skeleton-img" />
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="skeleton-text w-3/4" />
+                  <div className="skeleton-text-sm w-full" />
+                  <div className="skeleton-text-sm w-1/2" />
+                  <div className="skeleton h-9 w-full mt-2" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : machines.length === 0 ? (
-          <div className="field-card text-center py-16 rounded-sm">
-            <Tractor size={32} className="text-field/30 mx-auto mb-3" />
-            <p className="font-display text-2xl text-field mb-2">Nenhuma máquina encontrada</p>
-            <p className="font-body text-ink/50">
-              Ajuste os filtros ou seja o primeiro a anunciar um equipamento nesta região.
+          <div className="empty-state field-card rounded-sm">
+            <div className="empty-state-icon">
+              <Tractor size={28} className="text-field/50" />
+            </div>
+            <p className="empty-state-title">Nenhuma máquina encontrada</p>
+            <p className="empty-state-desc">
+              Tente ajustar os filtros ou remova a pesquisa para ver todos os equipamentos disponíveis.
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {machines.map(m => <MachineCard key={m.id} machine={m} />)}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in">
+            {machines.map((m, i) => (
+              <div key={m.id} style={{ animationDelay: `${i * 40}ms` }} className="animate-fade-in">
+                <MachineCard machine={m} />
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -281,17 +281,27 @@ export default function ChatPage() {
 
           <div className="flex-1 overflow-y-auto">
             {loadingConvs && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 size={20} className="animate-spin text-field/40" />
+              <div className="p-3 space-y-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 animate-fade-in" style={{ animationDelay: `${i * 70}ms` }}>
+                    <div className="skeleton w-9 h-9 rounded-full flex-shrink-0" />
+                    <div className="flex-1 flex flex-col gap-1.5">
+                      <div className="skeleton-text w-1/2" />
+                      <div className="skeleton-text-sm w-3/4" />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             {!loadingConvs && conversations.length === 0 && !showSearch && (
               <div className="py-12 px-4 text-center">
-                <MessageCircle size={28} className="mx-auto text-field/20 mb-2" />
-                <p className="font-mono text-xs text-ink/40 uppercase tracking-wider">
+                <div className="w-12 h-12 rounded-full bg-field/8 border border-field/15 flex items-center justify-center mx-auto mb-3">
+                  <MessageCircle size={22} className="text-field/50" />
+                </div>
+                <p className="font-mono text-xs text-ink/60 uppercase tracking-wider font-bold mb-1">
                   Sem conversas ainda
                 </p>
-                <p className="font-mono text-[10px] text-ink/30 mt-1">
+                <p className="font-mono text-[10px] text-ink/35 mt-1">
                   Clique em <strong>Nova</strong> para começar
                 </p>
               </div>
@@ -387,14 +397,21 @@ export default function ChatPage() {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {loadingMsgs && (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 size={20} className="animate-spin text-field/40" />
+                  <div className="space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className={`flex ${i % 2 === 0 ? "justify-start" : "justify-end"} animate-fade-in`} style={{ animationDelay: `${i * 60}ms` }}>
+                        <div className="skeleton h-10 rounded-sm" style={{ width: `${40 + Math.random() * 30}%` }} />
+                      </div>
+                    ))}
                   </div>
                 )}
                 {!loadingMsgs && messages.length === 0 && (
-                  <div className="text-center py-8">
-                    <p className="font-mono text-xs text-ink/30 uppercase tracking-wider">
-                      Nenhuma mensagem ainda. Diga olá!
+                  <div className="text-center py-12">
+                    <div className="w-12 h-12 rounded-full bg-field/8 border border-field/15 flex items-center justify-center mx-auto mb-3">
+                      <MessageCircle size={20} className="text-field/40" />
+                    </div>
+                    <p className="font-mono text-xs text-ink/40 uppercase tracking-wider">
+                      Sem mensagens ainda — diga olá! 👋
                     </p>
                   </div>
                 )}

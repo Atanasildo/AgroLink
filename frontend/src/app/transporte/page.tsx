@@ -60,11 +60,7 @@ export default function TransportePage() {
     <div>
       <div className="border-b border-field/15 bg-sky-light">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10">
-          <p className="label-eyebrow mb-2">
-            <Truck size={12} className="inline mr-1" />
-            Módulo 02 · Transporte Rural
-          </p>
-          <h1 className="text-4xl text-field">Rotas disponíveis</h1>
+          <h1 className="text-4xl text-field">Transporte Rural</h1>
           <p className="font-body text-ink/55 mt-1">
             Partilhe carga e reduza os custos de transporte agrícola
           </p>
@@ -140,33 +136,60 @@ export default function TransportePage() {
         </form>
 
         <div>
-          <h2 className="text-2xl text-field mb-5">
+          <h2 className="text-xl text-field mb-5 font-display uppercase tracking-wide">
             {loadingRoutes
-              ? "A carregar..."
-              : `${routes.length} rota${routes.length !== 1 ? "s" : ""} encontrada${routes.length !== 1 ? "s" : ""}`}
+              ? <span className="skeleton inline-block h-7 w-48" />
+              : routes.length > 0
+                ? `${routes.length} rota${routes.length !== 1 ? "s" : ""} disponíve${routes.length !== 1 ? "is" : "l"}`
+                : "Rotas disponíveis"
+            }
           </h2>
 
           {loadingRoutes ? (
-            <div className="text-center py-16">
-              <Leaf size={28} className="text-field/30 mx-auto mb-2 animate-pulse" />
-              <p className="font-mono text-sm text-ink/40">A carregar rotas...</p>
+            <div className="space-y-5">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="field-card rounded-sm animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
+                  <div className="flex flex-col gap-3">
+                    <div className="skeleton-text w-2/3" />
+                    <div className="skeleton-text-sm w-full" />
+                    <div className="skeleton-text-sm w-1/3" />
+                    <div className="flex gap-3 mt-2">
+                      <div className="skeleton h-9 w-32 rounded-sm" />
+                      <div className="skeleton h-9 w-24 rounded-sm" />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : routes.length === 0 ? (
-            <div className="field-card text-center py-16 rounded-sm">
-              <Truck size={32} className="text-field/30 mx-auto mb-3" />
-              <p className="font-display text-2xl text-field mb-2">Nenhuma rota disponível</p>
-              <p className="font-body text-ink/50">Ajuste os filtros de origem e destino.</p>
+            <div className="empty-state field-card rounded-sm">
+              <div className="empty-state-icon">
+                <Truck size={28} className="text-field/50" />
+              </div>
+              <p className="empty-state-title">Nenhuma rota encontrada</p>
+              <p className="empty-state-desc">
+                Não há rotas disponíveis para estes filtros. Tente pesquisar sem filtros ou volte mais tarde.
+              </p>
+              {(origemFilter || destinoFilter) && (
+                <button
+                  onClick={() => { setOrigemFilter(""); setDestinoFilter(""); setTimeout(loadRoutes, 0); }}
+                  className="btn-secondary rounded-sm mt-5 text-xs"
+                >
+                  <Search size={13} /> Ver todas as rotas
+                </button>
+              )}
             </div>
           ) : (
-            <div className="space-y-5">
-              {routes.map(route => (
-                <RouteCard
-                  key={route.id}
-                  route={route}
-                  token={token}
-                  isAgricultor={user?.role === "agricultor" || user?.role === "comprador"}
-                  onRequested={loadMyRequests}
-                />
+            <div className="space-y-5 animate-fade-in">
+              {routes.map((route, i) => (
+                <div key={route.id} style={{ animationDelay: `${i * 50}ms` }} className="animate-fade-in">
+                  <RouteCard
+                    route={route}
+                    token={token}
+                    isAgricultor={user?.role === "agricultor" || user?.role === "comprador"}
+                    onRequested={loadMyRequests}
+                  />
+                </div>
               ))}
             </div>
           )}

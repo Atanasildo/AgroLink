@@ -133,7 +133,7 @@ html, body {
 /* Ensure buttons and links have minimum tap target size */
 @media (max-width: 768px) {
   button, a {
-    min-height: 36px;
+    min-height: 40px;
   }
 }
 
@@ -148,4 +148,125 @@ html, body {
   .field-card {
     padding: 1rem;
   }
+}
+
+/* ── ANIMAÇÕES & TRANSIÇÕES ──────────────────────────────── */
+
+/* Fade-in suave para conteúdo carregado */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.35s ease-out both;
+}
+
+/* Shimmer para skeleton loaders */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    theme("colors.cream.dark") 25%,
+    theme("colors.cream.DEFAULT") 50%,
+    theme("colors.cream.dark") 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+/* Pulse suave para badges e estados ativos */
+@keyframes softPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+.animate-soft-pulse {
+  animation: softPulse 2s ease-in-out infinite;
+}
+
+/* ── SKELETON LOADER COMPONENTS ─────────────────────────── */
+.skeleton-card {
+  @apply field-card rounded-sm overflow-hidden p-0;
+}
+.skeleton-img  { @apply skeleton h-44 w-full; }
+.skeleton-text { @apply skeleton h-4 w-full rounded-sm; }
+.skeleton-text-sm { @apply skeleton h-3 rounded-sm; }
+
+/* ── TOAST / NOTIFICAÇÃO ────────────────────────────────── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.toast {
+  animation: slideUp 0.3s ease-out both;
+  @apply fixed bottom-4 right-4 z-50 max-w-sm px-4 py-3 rounded-sm shadow-xl font-mono text-sm;
+}
+.toast-success { @apply bg-field text-cream border border-harvest/30; }
+.toast-error   { @apply bg-earth text-cream border border-earth/40; }
+.toast-info    { @apply bg-field/90 text-cream border border-field/30; }
+
+/* ── EMPTY STATE ─────────────────────────────────────────── */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-20 px-6 text-center;
+}
+.empty-state-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 9999px;
+  background-color: rgba(26, 58, 31, 0.08);
+  border: 1px solid rgba(26, 58, 31, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1.25rem;
+}
+.empty-state-title {
+  @apply font-display text-xl text-field mb-2;
+}
+.empty-state-desc {
+  @apply font-body text-sm text-ink/50 max-w-xs leading-relaxed;
+}
+
+/* ── MELHORIAS DE FOCUS / ACESSIBILIDADE ────────────────── */
+.field-input:focus {
+  outline: none;
+  border-color: theme("colors.field.DEFAULT");
+  box-shadow: 0 0 0 3px rgba(26,58,31,0.08);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Hover em botões mais suave */
+.btn-primary, .btn-secondary, .btn-harvest {
+  transition: all 0.15s ease;
+}
+.btn-primary:hover  { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,58,31,0.2); }
+.btn-harvest:hover  { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(200,134,26,0.25); }
+
+/* ── SCROLLBAR PERSONALIZADA ────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: theme("colors.field.DEFAULT");
+  opacity: 0.3;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: theme("colors.field.light"); }
+
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── PAGE TRANSITIONS ────────────────────────────────────── */
+main > * {
+  animation: fadeIn 0.25s ease-out both;
+}
+
+/* ── DARK SECTION WRAPPER ───────────────────────────────── */
+.dark-section-wrapper section {
+  transition: background-color 0.2s ease;
 }

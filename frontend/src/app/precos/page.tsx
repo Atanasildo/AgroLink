@@ -127,17 +127,30 @@ export default function PrecosPage() {
       </div>
 
       {error && (
-        <div className="mb-4 border border-earth/30 bg-earth/5 px-4 py-3 font-mono text-sm text-earth">{error}</div>
+        <div className="flex items-start gap-3 mb-4 border border-earth/30 bg-earth/5 px-4 py-3 rounded-sm">
+          <span>⚠️</span>
+          <div>
+            <p className="font-mono text-sm text-earth">{error}</p>
+            <button onClick={load} className="font-mono text-xs underline mt-1 text-earth hover:no-underline">Tentar novamente</button>
+          </div>
+        </div>
       )}
       {loading && (
-        <div className="text-center py-16 font-mono text-sm text-ink/40 uppercase tracking-widest animate-pulse">
-          A carregar preços…
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="skeleton h-14 w-full rounded-sm animate-fade-in" style={{ animationDelay: `${i * 60}ms` }} />
+          ))}
         </div>
       )}
       {!loading && !error && records.length === 0 && (
-        <div className="text-center py-16 border border-field/10">
-          <TrendingUp size={32} className="mx-auto text-field/20 mb-3" />
-          <p className="font-mono text-sm text-ink/40 uppercase tracking-widest">Sem registos de preços para esta seleção</p>
+        <div className="empty-state border border-field/10">
+          <div className="empty-state-icon">
+            <TrendingUp size={28} className="text-field/50" />
+          </div>
+          <p className="empty-state-title">Sem registos de preços</p>
+          <p className="empty-state-desc">
+            Não há dados para esta seleção. Tente um produto diferente ou aguarde que o administrador adicione preços.
+          </p>
         </div>
       )}
 

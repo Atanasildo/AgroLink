@@ -324,29 +324,47 @@ export default function SocialPage() {
 
       {/* Loading */}
       {loading && (
-        <div className="text-center py-16 font-mono text-sm text-ink/40 uppercase tracking-widest animate-pulse">
-          A carregar publicações…
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="border border-field/20 bg-cream p-4 animate-fade-in" style={{ animationDelay: `${i * 80}ms` }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="skeleton w-9 h-9 rounded-full" />
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="skeleton-text w-1/3" />
+                  <div className="skeleton-text-sm w-1/4" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="skeleton-text w-full" />
+                <div className="skeleton-text w-5/6" />
+                <div className="skeleton-text w-3/4" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Empty */}
       {!loading && !error && posts.length === 0 && (
-        <div className="text-center py-16 border border-field/10 bg-field/2">
-          <Users size={32} className="mx-auto text-field/20 mb-3" />
-          <p className="font-mono text-sm text-ink/40 uppercase tracking-widest">
-            Sem publicações nesta categoria. Seja o primeiro!
+        <div className="empty-state border border-field/10 bg-field/2">
+          <div className="empty-state-icon">
+            <Users size={28} className="text-field/50" />
+          </div>
+          <p className="empty-state-title">Sem publicações ainda</p>
+          <p className="empty-state-desc">
+            Seja o primeiro a partilhar uma dúvida, dica ou experiência com a comunidade agrícola.
           </p>
         </div>
       )}
 
       {/* Feed */}
       {!loading && posts.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-fade-in">
           {posts.map((post) => {
             const Icon = TIPO_ICON[post.tipo];
             const isOpen = !!openComments[post.id];
             return (
-              <div key={post.id} className="border border-field/20 bg-cream p-4">
+              <div key={post.id} className="border border-field/20 bg-cream p-4 hover:border-field/35 transition-colors">
                 {/* Author */}
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
