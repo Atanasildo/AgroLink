@@ -32,6 +32,8 @@ def _safe_migrate():
         "ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
         "ALTER TABLE machines ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
+        # fcm_token para notificacoes push (migracao 0003)
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR(512)",
     ]
     with engine.begin() as conn:
         for sql in migrations:
