@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, BarChart2, MapPin, RefreshCw } from "lucide-react";
-import { CommodityType, PriceRecord, comparePrices, latestPrices } from "@/lib/api";
+import { TrendingUp, BarChart2, MapPin, RefreshCw, History } from "lucide-react";
+import { CommodityType, PriceRecord, comparePrices, latestPrices, priceHistory } from "@/lib/api";
 import { PROVINCIAS } from "@/lib/angola";
 
 const PRODUTOS: { value: CommodityType; label: string; emoji: string }[] = [
@@ -13,15 +13,16 @@ const PRODUTOS: { value: CommodityType; label: string; emoji: string }[] = [
   { value: "hortalicas", label: "Hortaliças", emoji: "🥬" },
 ];
 
-
 function fmt(val: string | number) {
   return Number(val).toLocaleString("pt-AO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function produtoLabel(p: CommodityType) { return PRODUTOS.find((x) => x.value === p)?.label ?? p; }
 function produtoEmoji(p: CommodityType) { return PRODUTOS.find((x) => x.value === p)?.emoji ?? "📦"; }
 
+type Tab = "latest" | "compare" | "history";
+
 export default function PrecosPage() {
-  const [tab, setTab] = useState<"latest" | "compare">("latest");
+  const [tab, setTab] = useState<Tab>("latest");
   const [produto, setProduto] = useState<CommodityType>("milho");
   const [provincia, setProvincia] = useState("");
   const [records, setRecords] = useState<PriceRecord[]>([]);
@@ -31,9 +32,14 @@ export default function PrecosPage() {
   async function load() {
     setLoading(true); setError("");
     try {
-      const data = tab === "latest"
-        ? await latestPrices({ produto, provincia: provincia || undefined })
-        : await comparePrices({ produto });
+      let data: PriceRecord[];
+      if (tab === "latest") {
+        data = await latestPrices({ produto, provincia: provincia || undefined });
+      } else if (tab === "compare") {
+        data = await comparePrices({ produto });
+      } else {
+        data = await priceHistory({ produto, provincia: provincia || undefined, limit: "30" });
+      }
       setRecords(data);
     } catch { setError("Erro ao carregar preços. Tente novamente."); }
     finally { setLoading(false); }
@@ -42,6 +48,7 @@ export default function PrecosPage() {
   useEffect(() => { load(); }, [tab, produto, provincia]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maxPreco = records.length > 0 ? Math.max(...records.map((r) => Number(r.preco_kg))) : 1;
+  const minPreco = records.length > 0 ? Math.min(...records.map((r) => Number(r.preco_kg))) : 0;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 sm:py-8">
@@ -65,10 +72,11 @@ export default function PrecosPage() {
         {[
           { key: "latest",  label: "Preços Actuais",   icon: TrendingUp },
           { key: "compare", label: "Comparar Regiões", icon: BarChart2 },
+          { key: "history", label: "Histórico",        icon: History },
         ].map(({ key, label, icon: Icon }) => (
           <button
             key={key}
-            onClick={() => setTab(key as "latest" | "compare")}
+            onClick={() => setTab(key as Tab)}
             className={`flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider px-3 sm:px-4 py-2.5 border-b-2 transition-colors -mb-px whitespace-nowrap ${
               tab === key ? "border-field text-field" : "border-transparent text-ink/50 hover:text-ink/70"
             }`}
@@ -80,7 +88,6 @@ export default function PrecosPage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-6">
-        {/* Product buttons — scrollable on mobile */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap">
           {PRODUTOS.map((p) => (
             <button
@@ -98,7 +105,7 @@ export default function PrecosPage() {
         </div>
 
         <div className="flex gap-2 items-center">
-          {tab === "latest" && (
+          {(tab === "latest" || tab === "history") && (
             <select
               value={provincia}
               onChange={(e) => setProvincia(e.target.value)}
@@ -136,7 +143,56 @@ export default function PrecosPage() {
 
       {!loading && records.length > 0 && (
         <>
-          {tab === "compare" ? (
+          {/* HISTÓRICO — linha do tempo visual */}
+          {tab === "history" && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-4">
+                <History size={14} className="text-field" />
+                <span className="font-mono text-xs uppercase tracking-wider text-ink/50">
+                  Histórico de preços — {produtoEmoji(produto)} {produtoLabel(produto)} (Kz/kg) · últimos 30 registos
+                </span>
+              </div>
+              {/* Mini sparkline visual */}
+              <div className="border border-field/20 bg-cream p-4 mb-4">
+                <div className="flex items-end gap-1 h-20">
+                  {records.slice().reverse().map((r, i) => {
+                    const range = maxPreco - minPreco || 1;
+                    const h = Math.max(8, ((Number(r.preco_kg) - minPreco) / range) * 100);
+                    return (
+                      <div
+                        key={i}
+                        title={`${r.provincia}: ${fmt(r.preco_kg)} Kz — ${new Date(r.criado_em).toLocaleDateString("pt-AO")}`}
+                        className="flex-1 bg-field/40 hover:bg-field transition-colors rounded-sm cursor-default"
+                        style={{ height: `${h}%` }}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="font-mono text-[10px] text-ink/30">Mais antigo</span>
+                  <span className="font-mono text-[10px] text-ink/30">Mais recente</span>
+                </div>
+              </div>
+              {/* Lista */}
+              <div className="space-y-2">
+                {records.map((r) => (
+                  <div key={r.id} className="flex items-center gap-3 border border-field/10 bg-cream px-4 py-3 hover:border-field/30 transition-colors">
+                    <div className="font-mono text-[10px] text-ink/40 w-24 shrink-0">
+                      {new Date(r.criado_em).toLocaleDateString("pt-AO")}
+                    </div>
+                    <div className="flex-1">
+                      <span className="font-mono text-xs text-ink/70">{r.provincia}</span>
+                      {r.fonte && <span className="font-mono text-[10px] text-ink/30 ml-2">· {r.fonte}</span>}
+                    </div>
+                    <div className="font-mono text-sm font-bold text-field shrink-0">{fmt(r.preco_kg)} Kz/kg</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* COMPARAR REGIÕES */}
+          {tab === "compare" && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-4">
                 <MapPin size={14} className="text-field" />
@@ -157,7 +213,10 @@ export default function PrecosPage() {
                 );
               })}
             </div>
-          ) : (
+          )}
+
+          {/* PREÇOS ACTUAIS */}
+          {tab === "latest" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {records.map((r) => (
                 <div key={r.id} className="border border-field/20 bg-cream p-4 hover:border-field/40 transition-colors">

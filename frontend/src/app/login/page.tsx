@@ -85,7 +85,13 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center font-body text-sm text-ink/50 mt-6">
+        <p className="text-center font-mono text-xs text-ink/40 mt-2">
+          <Link href="/recuperar-senha" className="hover:text-field transition-colors">
+            Esqueci a senha
+          </Link>
+        </p>
+
+        <p className="text-center font-body text-sm text-ink/50 mt-4">
           Ainda não tem conta?{" "}
           <Link href="/register" className="text-field font-medium hover:underline">
             Criar conta gratuita

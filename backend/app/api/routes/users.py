@@ -94,3 +94,68 @@ def read_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
     return user
+
+
+# ─── Denúncias ───────────────────────────────────────────────────────────────
+
+from app.models.report import Report, ReportReason as ReportReasonEnum
+from pydantic import BaseModel as _BaseModel
+import uuid as _uuid_mod
+
+
+class ReportCreate(_BaseModel):
+    denunciado_id: _uuid_mod.UUID
+    motivo: ReportReasonEnum
+    descricao: str | None = None
+
+
+class ReportRead(_BaseModel):
+    from pydantic import ConfigDict
+    model_config = ConfigDict(from_attributes=True)
+    id: _uuid_mod.UUID
+    denunciante_id: _uuid_mod.UUID
+    denunciado_id: _uuid_mod.UUID
+    motivo: ReportReasonEnum
+    descricao: str | None = None
+    from datetime import datetime
+    criado_em: datetime
+
+
+@router.post("/reports", status_code=status.HTTP_201_CREATED)
+def create_report(
+    payload: ReportCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Criar uma denúncia contra outro utilizador."""
+    if payload.denunciado_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Não é possível denunciar a si mesmo.")
+    report = Report(
+        denunciante_id=current_user.id,
+        denunciado_id=payload.denunciado_id,
+        motivo=payload.motivo,
+        descricao=payload.descricao,
+    )
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return {"id": str(report.id), "detail": "Denúncia registada com sucesso."}
+
+
+@router.get("/reports", response_model=list[dict])
+def list_my_reports(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Listar as denúncias feitas pelo utilizador autenticado."""
+    reports = db.query(Report).filter(Report.denunciante_id == current_user.id).all()
+    return [
+        {
+            "id": str(r.id),
+            "denunciado_id": str(r.denunciado_id),
+            "motivo": r.motivo.value,
+            "descricao": r.descricao,
+            "criado_em": r.criado_em.isoformat() if r.criado_em else None,
+        }
+        for r in reports
+    ]

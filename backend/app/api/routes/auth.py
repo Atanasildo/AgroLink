@@ -61,3 +61,36 @@ def refresh_token(payload: TokenRefreshRequest, db: Session = Depends(get_db)):
 def read_current_user(current_user: User = Depends(get_current_user)):
     """Retorna os dados do utilizador autenticado."""
     return current_user
+
+
+@router.post("/reset-password")
+def reset_password(payload: dict, db: Session = Depends(get_db)):
+    """Gerar uma senha temporária para o utilizador.
+    MVP: devolve a senha temporária na resposta (sem SMTP configurado).
+    Em produção com SMTP configurado, enviar por email e não devolver na resposta.
+    """
+    import secrets
+    import string
+
+    email = payload.get("email", "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email é obrigatório.")
+
+    user = get_user_by_email(db, email)
+    if not user:
+        # Resposta genérica por segurança (não revelar se o email existe)
+        return {"detail": "Se o email existir, receberás instruções em breve."}
+
+    # Gerar senha temporária segura: 10 caracteres alfanuméricos
+    alphabet = string.ascii_letters + string.digits
+    temp_password = "".join(secrets.choice(alphabet) for _ in range(10))
+
+    from app.core.security import hash_password
+    user.hashed_password = hash_password(temp_password)
+    db.commit()
+
+    # MVP: devolver a senha na resposta (substituir por email quando SMTP estiver configurado)
+    return {
+        "detail": "Senha temporária gerada com sucesso.",
+        "temp_password": temp_password,
+    }

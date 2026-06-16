@@ -34,6 +34,15 @@ def _safe_migrate():
         "ALTER TABLE products ADD COLUMN IF NOT EXISTS imagens VARCHAR[]",
         # fcm_token para notificacoes push (migracao 0003)
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_token VARCHAR(512)",
+        # Tabela de denuncias
+        """CREATE TABLE IF NOT EXISTS reports (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            denunciante_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            denunciado_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            motivo VARCHAR(50) NOT NULL,
+            descricao VARCHAR(1000),
+            criado_em TIMESTAMPTZ DEFAULT now()
+        )""",
     ]
     with engine.begin() as conn:
         for sql in migrations:

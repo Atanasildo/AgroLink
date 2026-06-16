@@ -5,6 +5,7 @@ from app.models.payment import Payment, PaymentStatus, PaymentType
 from app.models.price import CommodityType, PriceRecord
 from app.models.product import Product, ProductCategory, ProductUnit
 from app.models.rating import Rating
+from app.models.report import Report, ReportReason
 from app.models.social import Post, PostComment, PostLike, PostType
 from app.models.transport_request import TransportRequest, TransportStatus
 from app.models.transport_route import TransportRoute
@@ -40,4 +41,6 @@ __all__ = [
     "Payment",
     "PaymentType",
     "PaymentStatus",
+    "Report",
+    "ReportReason",
 ]
