@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -24,4 +24,7 @@ class PaymentRead(BaseModel):
     valor: Decimal
     status: PaymentStatus
     referencia_externa: str | None = None
+    entidade: str | None = None
+    referencia: str | None = None
+    validade: date | None = None
     criado_em: datetime

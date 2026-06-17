@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     PROXYPAY_CALLBACK_URL: str = "https://api.agrolink.ao/api/v1/payments/webhook/multicaixa"
     PROXYPAY_WEBHOOK_SECRET: str = ""
 
+    # Gateway de pagamento simulado (enquanto o contrato/acesso real à ProxyPay
+    # RPS não está disponível). Gera referências Multicaixa fictícias e permite
+    # "simular" a confirmação do pagamento. DEVE ser False em produção real.
+    PAYMENT_SANDBOX_MODE: bool = True
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

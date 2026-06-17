@@ -345,6 +345,30 @@ export function createTransportRequest(
   return apiRequest<TransportRequestItem>("/transport/requests", { method: "POST", body: payload, token });
 }
 
+// ---------- Pagamentos (referência Multicaixa sandbox) ----------
+
+export interface PaymentReference {
+  id: string;
+  utilizador_id: string;
+  referencia_id?: string | null;
+  tipo: string;
+  valor: string;
+  status: "pendente" | "pago" | "falhado" | "reembolsado";
+  referencia_externa?: string | null;
+  entidade?: string | null;
+  referencia?: string | null;
+  validade?: string | null;
+  criado_em: string;
+}
+
+export function getTransportPaymentReference(token: string, requestId: string) {
+  return apiRequest<PaymentReference>(`/payments/transport/${requestId}`, { token });
+}
+
+export function simulateConfirmPayment(token: string, paymentId: string) {
+  return apiRequest<PaymentReference>(`/payments/${paymentId}/simulate-confirm`, { method: "POST", token });
+}
+
 export function myTransportRequests(token: string) {
   return apiRequest<TransportRequestItem[]>("/transport/requests/me", { token });
 }

@@ -83,6 +83,10 @@ def _safe_migrate():
         "ALTER TABLE payments ADD COLUMN IF NOT EXISTS valor_liquido NUMERIC(14, 2)",
         "ALTER TABLE payments ADD COLUMN IF NOT EXISTS saldo_prestador_atualizado VARCHAR(1) DEFAULT '0'",
         "ALTER TABLE payments ADD COLUMN IF NOT EXISTS pago_em TIMESTAMP WITH TIME ZONE",
+        # Payment: referência Multicaixa estilo RPS (gateway simulado/sandbox)
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS entidade VARCHAR(10)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS referencia VARCHAR(20)",
+        "ALTER TABLE payments ADD COLUMN IF NOT EXISTS validade DATE",
         # Criar tabela de códigos de verificação (OTP)
         """CREATE TABLE IF NOT EXISTS verification_codes (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -13,13 +13,24 @@ Fluxo:
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
+import uuid
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
+from app.crud.payment import (
+    create_or_get_transport_payment,
+    get_payment,
+    simulate_payment_confirmation,
+)
+from app.crud.transport import get_transport_request
 from app.models.payment import Payment, PaymentStatus
+from app.models.user import User, UserRole
+from app.schemas.payment import PaymentRead
 from app.utils.payment_gateway import handle_payment_webhook, proxypay_client
 
 router = APIRouter(prefix="/payments", tags=["Pagamentos"])
@@ -146,7 +157,7 @@ async def initiate_payment(
     return {
         "transaction_id": transaction.get("transaction_id"),
         "status": "criada",
-        "referencia_paga: dor": transaction.get("reference"),
+        "referencia_pagamento": transaction.get("reference"),
         "mensagem": "Envie o código para completar o pagamento (via *144#, SMS, app, etc)",
     }
 
@@ -179,3 +190,66 @@ async def get_payment_status(
         "valor": float(payment.valor),
         "criado_em": payment.criado_em,
     }
+
+
+# ---------- Gateway simulado (sandbox) — referência por transporte ----------
+#
+# Enquanto o acesso real à ProxyPay RPS (que exige contrato comercial) não
+# está disponível, este fluxo gera uma referência Multicaixa simulada para o
+# agricultor pagar a solicitação de transporte, e permite "simular" a
+# confirmação do pagamento para destravar o teste do fluxo completo.
+
+
+@router.get("/transport/{request_id}", response_model=PaymentRead)
+def get_transport_payment_reference(
+    request_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Payment:
+    """Devolve (criando se necessário) a referência de pagamento sandbox para
+    uma solicitação de transporte.
+
+    Idempotente: chamadas repetidas devolvem sempre a mesma referência,
+    enquanto o pagamento não estiver pago.
+    """
+    transport_request = get_transport_request(db, request_id)
+    if not transport_request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
+
+    if transport_request.agricultor_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
+
+    return create_or_get_transport_payment(
+        db,
+        transport_request,
+        agricultor_id=transport_request.agricultor_id,
+        comissao_percent=transport_request.comissao_percentual,
+    )
+
+
+@router.post("/{payment_id}/simulate-confirm", response_model=PaymentRead)
+def simulate_confirm_payment(
+    payment_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Payment:
+    """[SANDBOX] Simula a confirmação do pagamento de uma referência Multicaixa,
+    como se o agricultor a tivesse pago num ATM/app bancário/*144#.
+
+    Bloqueado automaticamente se settings.PAYMENT_SANDBOX_MODE estiver
+    desativado (ex: em produção real, após integração com a ProxyPay).
+    """
+    if not settings.PAYMENT_SANDBOX_MODE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Simulação de pagamento desativada (PAYMENT_SANDBOX_MODE=False).",
+        )
+
+    payment = get_payment(db, payment_id)
+    if not payment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pagamento não encontrado")
+
+    if payment.utilizador_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
+
+    return simulate_payment_confirmation(db, payment)

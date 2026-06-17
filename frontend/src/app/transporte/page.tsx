@@ -4,8 +4,9 @@ import { useEffect, useState, FormEvent } from "react";
 import { Search, Send, Truck, Leaf, MapPin, Weight, Clock, CheckCircle, XCircle, Loader, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  ApiError, TransportRequestItem, TransportRoute,
+  ApiError, TransportRequestItem, TransportRoute, PaymentReference,
   createTransportRequest, myTransportRequests, searchRoutes,
+  getTransportPaymentReference, simulateConfirmPayment,
 } from "@/lib/api";
 import { RouteDiagram } from "@/components/RouteDiagram";
 import { TransporterDashboard } from "@/components/TransporterDashboard";
@@ -21,6 +22,11 @@ const statusConfig: Record<string, { label: string; icon: typeof Clock; cls: str
 function formatKz(value?: string | null) {
   if (!value) return "—";
   return new Intl.NumberFormat("pt-AO", { maximumFractionDigits: 0 }).format(parseFloat(value)) + " Kz";
+}
+
+function formatReferencia(value?: string | null) {
+  if (!value) return "—";
+  return value.replace(/(\d{3})(?=\d)/g, "$1 ").trim();
 }
 
 export default function TransportePage() {
@@ -263,6 +269,9 @@ function RouteCard({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [payment, setPayment] = useState<PaymentReference | null>(null);
+  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [simulating, setSimulating] = useState(false);
 
   async function handleRequest(e: FormEvent) {
     e.preventDefault();
@@ -270,7 +279,7 @@ function RouteCard({
     setError(null);
     setLoading(true);
     try {
-      await createTransportRequest(token, {
+      const created = await createTransportRequest(token, {
         produto,
         peso_toneladas: parseFloat(peso),
         origem: route.origem,
@@ -281,10 +290,35 @@ function RouteCard({
       setDone(true);
       setOpen(false);
       onRequested();
+
+      // Busca a referência de pagamento (gerada no backend ao criar o pedido)
+      setLoadingPayment(true);
+      try {
+        const ref = await getTransportPaymentReference(token, created.id);
+        setPayment(ref);
+      } catch {
+        // Sem referência disponível (ex: valor ainda não definido) — sem problema,
+        // o pagamento pode ser tratado mais tarde na lista "Minhas solicitações".
+      } finally {
+        setLoadingPayment(false);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? String(err.detail) : "Não foi possível solicitar o transporte.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSimulatePayment() {
+    if (!token || !payment) return;
+    setSimulating(true);
+    try {
+      const updated = await simulateConfirmPayment(token, payment.id);
+      setPayment(updated);
+    } catch {
+      // Falha ao simular — o agricultor pode tentar novamente.
+    } finally {
+      setSimulating(false);
     }
   }
 
@@ -391,6 +425,60 @@ function RouteCard({
             {loading ? "A enviar..." : "Confirmar solicitação"}
           </button>
         </form>
+      )}
+
+      {done && (loadingPayment || payment) && (
+        <div className="mt-5 pt-5 border-t border-field/15 space-y-3">
+          <p className="label-eyebrow">Pagamento do transporte</p>
+
+          {loadingPayment && !payment && (
+            <p className="font-body text-sm text-ink/55">A gerar referência de pagamento...</p>
+          )}
+
+          {payment && payment.status === "pago" && (
+            <div className="flex items-center gap-2 bg-field/5 border border-field/20 text-field rounded-sm px-4 py-3 font-body text-sm">
+              <CheckCircle size={16} />
+              Pagamento confirmado — o transportador já pode aceitar este pedido.
+            </div>
+          )}
+
+          {payment && payment.status !== "pago" && (
+            <div className="bg-harvest/5 border border-harvest/25 rounded-sm p-4 space-y-3">
+              <p className="font-body text-xs text-ink/55">
+                Ambiente de testes (sandbox) — pague esta referência num ATM/app Multicaixa quando a
+                integração real estiver disponível. Por agora, usa o botão abaixo para simular o pagamento.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-sm">
+                <div>
+                  <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Entidade</p>
+                  <p className="text-field font-bold">{payment.entidade ?? "—"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Referência</p>
+                  <p className="text-field font-bold">{formatReferencia(payment.referencia)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-ink/40 uppercase tracking-wider mb-1">Valor</p>
+                  <p className="text-harvest font-bold">{formatKz(payment.valor)}</p>
+                </div>
+              </div>
+              {payment.validade && (
+                <p className="font-mono text-xs text-ink/45">
+                  Válida até {new Date(payment.validade).toLocaleDateString("pt-AO")}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={handleSimulatePayment}
+                disabled={simulating}
+                className="btn-primary rounded-sm text-xs disabled:opacity-50"
+              >
+                <CheckCircle size={14} />
+                {simulating ? "A confirmar..." : "Simular pagamento (sandbox)"}
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 import enum
 import uuid
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Numeric, String
+from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -41,6 +41,12 @@ class Payment(Base):
     # Referência do gateway de pagamento (ProxyPay/Multicaixa EMIS)
     referencia_externa = Column(String(200), nullable=True)  # transaction_id do ProxyPay
     gateway_ref = Column(String(200), nullable=True)  # ID único da transação no gateway
+
+    # Referência Multicaixa estilo RPS (entidade + referência), usada no fluxo
+    # de pagamento por referência (real ou simulado em sandbox).
+    entidade = Column(String(10), nullable=True)
+    referencia = Column(String(20), nullable=True)
+    validade = Column(Date, nullable=True)
     
     # Comissão da plataforma (retida quando pagamento é confirmado)
     comissao_percent = Column(Numeric(5, 2), nullable=True, default=0)

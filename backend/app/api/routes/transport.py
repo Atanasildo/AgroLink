@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, require_roles
 from app.core.database import SessionLocal, get_db
 from app.core.security import decode_token
+from app.crud.payment import create_or_get_transport_payment
 from app.crud.transport import (
     accept_transport_request,
     create_route,
@@ -180,6 +181,11 @@ async def request_transport(
     """
     db_request = create_transport_request(db, request_in, agricultor_id=current_user.id)
 
+    # Gera já a referência de pagamento (sandbox) se o valor for conhecido
+    # nesta fase (solicitação associada a uma rota com preço definido).
+    if db_request.valor_total is not None:
+        create_or_get_transport_payment(db, db_request, agricultor_id=current_user.id)
+
     # Push FCM ao transportador se a solicitação está ligada a uma rota
     if db_request.rota_id:
         rota = get_route(db, db_request.rota_id)
@@ -229,6 +235,16 @@ async def accept_request(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
 
     db_request = accept_transport_request(db, db_request, transportador_id=current_user.id)
+
+    # Fallback: se a solicitação não estava ligada a uma rota na criação, o
+    # valor só fica definido agora — gera a referência de pagamento aqui.
+    if db_request.valor_total is not None:
+        create_or_get_transport_payment(
+            db,
+            db_request,
+            agricultor_id=db_request.agricultor_id,
+            comissao_percent=db_request.comissao_percentual,
+        )
 
     agricultor = get_user_by_id(db, db_request.agricultor_id)
 
