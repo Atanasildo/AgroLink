@@ -425,6 +425,14 @@ export function createRoute(token: string, payload: {
   return apiRequest<TransportRoute>("/transport/routes", { method: "POST", body: payload, token });
 }
 
+export function updateRoute(token: string, routeId: string, payload: { data?: string; preco_por_tonelada?: number }) {
+  return apiRequest<TransportRoute>(`/transport/routes/${routeId}`, { method: "PUT", body: payload, token });
+}
+
+export function deleteRoute(token: string, routeId: string) {
+  return apiRequest<void>(`/transport/routes/${routeId}`, { method: "DELETE", token });
+}
+
 export function incomingTransportRequests(token: string) {
   return apiRequest<TransportRequestItem[]>("/transport/requests/incoming", { token });
 }

@@ -4,12 +4,12 @@ import { useEffect, useState, FormEvent } from "react";
 import {
   Truck, Plus, Trash2, CheckCircle, XCircle, Clock, Loader,
   MapPin, Weight, Package, ChevronDown, ChevronUp, ToggleLeft, ToggleRight,
-  Wifi, WifiOff,
+  Wifi, WifiOff, Pencil, Save,
 } from "lucide-react";
 import {
   Vehicle, TransportRoute, TransportRequestItem,
   myVehicles, createVehicle, deleteVehicle, updateVehicle,
-  myRoutes, createRoute,
+  myRoutes, createRoute, updateRoute, deleteRoute,
   incomingTransportRequests, acceptTransportRequest, updateRequestStatus,
   ApiError,
 } from "@/lib/api";
@@ -172,21 +172,12 @@ export function TransporterDashboard({ token }: { token: string }) {
         ) : (
           <div className="space-y-4">
             {routes.map(route => (
-              <div key={route.id} className="field-card rounded-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <MapPin size={14} className="text-harvest" />
-                      <p className="font-display text-base text-field">{route.origem} → {route.destino}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-4 font-mono text-xs text-ink/50 mt-2">
-                      <span>📅 {new Date(route.data).toLocaleDateString("pt-AO")}</span>
-                      <span>⚖️ {route.capacidade_disponivel_toneladas}t disponíveis de {route.capacidade_total_toneladas}t</span>
-                      <span className="text-harvest font-bold">{formatKz(route.preco_por_tonelada)}/t</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <RouteCard
+                key={route.id}
+                route={route}
+                token={token}
+                onUpdated={loadAll}
+              />
             ))}
           </div>
         )}
@@ -508,6 +499,124 @@ function RouteForm({
         </button>
       </div>
     </form>
+  );
+}
+
+// ---- Route Card ----
+function RouteCard({
+  route, token, onUpdated,
+}: {
+  route: TransportRoute;
+  token: string;
+  onUpdated: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [data, setData] = useState(route.data.slice(0, 10));
+  const [preco, setPreco] = useState(route.preco_por_tonelada);
+
+  async function handleDelete() {
+    if (!confirm(`Remover a rota ${route.origem} → ${route.destino}?`)) return;
+    setError(null);
+    setDeleting(true);
+    try {
+      await deleteRoute(token, route.id);
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : "Erro ao remover rota.");
+      setDeleting(false);
+    }
+  }
+
+  async function handleSave(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSaving(true);
+    try {
+      await updateRoute(token, route.id, { data, preco_por_tonelada: parseFloat(preco) });
+      setEditing(false);
+      onUpdated();
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : "Erro ao guardar alterações.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <form onSubmit={handleSave} className="field-card rounded-sm space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <MapPin size={14} className="text-harvest" />
+          <p className="font-display text-base text-field">{route.origem} → {route.destino}</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Data</span>
+            <input required type="date" value={data} onChange={e => setData(e.target.value)}
+              className="field-input rounded-sm" />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Preço por tonelada (Kz)</span>
+            <input required type="number" min="1" step="100" value={preco} onChange={e => setPreco(e.target.value)}
+              className="field-input rounded-sm" />
+          </label>
+        </div>
+        {error && <p className="text-earth font-body text-sm">{error}</p>}
+        <div className="flex gap-2">
+          <button type="submit" disabled={saving} className="btn-harvest rounded-sm text-xs disabled:opacity-50">
+            <Save size={13} />
+            {saving ? "A guardar..." : "Guardar"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setEditing(false); setError(null); }}
+            className="text-xs rounded-sm px-3 py-1.5 border border-field/20 text-ink/60 hover:bg-field/5 transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="field-card rounded-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <MapPin size={14} className="text-harvest" />
+            <p className="font-display text-base text-field">{route.origem} → {route.destino}</p>
+          </div>
+          <div className="flex flex-wrap gap-4 font-mono text-xs text-ink/50 mt-2">
+            <span>📅 {new Date(route.data).toLocaleDateString("pt-AO")}</span>
+            <span>⚖️ {route.capacidade_disponivel_toneladas}t disponíveis de {route.capacidade_total_toneladas}t</span>
+            <span className="text-harvest font-bold">{formatKz(route.preco_por_tonelada)}/t</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button
+            onClick={() => setEditing(true)}
+            title="Editar data/preço"
+            className="p-1.5 text-ink/40 hover:text-field transition-colors"
+          >
+            <Pencil size={15} />
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Remover rota"
+            className="p-1.5 text-ink/40 hover:text-earth transition-colors disabled:opacity-50"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      </div>
+      {error && <p className="text-earth font-body text-xs mt-2">{error}</p>}
+    </div>
   );
 }
 

@@ -13,6 +13,7 @@ from app.schemas.transport import (
     TransportRequestCreate,
     TransportRequestLocationUpdate,
     TransportRouteCreate,
+    TransportRouteUpdate,
 )
 
 
@@ -43,6 +44,42 @@ def create_route(db: Session, route_in: TransportRouteCreate, transportador_id: 
 
 def get_route(db: Session, route_id: uuid.UUID) -> TransportRoute | None:
     return db.query(TransportRoute).filter(TransportRoute.id == route_id).first()
+
+
+def update_route(db: Session, db_route: TransportRoute, route_in: TransportRouteUpdate) -> TransportRoute:
+    """Edita data e/ou preço por tonelada de uma rota já publicada."""
+    update_data = route_in.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_route, field, value)
+    db.add(db_route)
+    db.commit()
+    db.refresh(db_route)
+    return db_route
+
+
+def delete_route(db: Session, db_route: TransportRoute) -> None:
+    """Remove uma rota publicada.
+
+    Bloqueado se já existir alguma solicitação associada (mesmo cancelada):
+    a relação TransportRoute.solicitacoes usa cascade="all, delete-orphan",
+    o que apagaria esse histórico (incluindo transportes já concluídos e a
+    ligação aos pagamentos) junto com a rota. Mais seguro recusar e deixar o
+    transportador editar o preço/data, ou simplesmente deixar a rota "expirar".
+    """
+    tem_solicitacoes = (
+        db.query(TransportRequest).filter(TransportRequest.rota_id == db_route.id).count() > 0
+    )
+    if tem_solicitacoes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Não é possível remover esta rota porque já tem solicitações associadas "
+                "(isso apagaria esse histórico). Podes editar a data/preço, ou aguardar "
+                "que a data da rota passe."
+            ),
+        )
+    db.delete(db_route)
+    db.commit()
 
 
 def search_routes(

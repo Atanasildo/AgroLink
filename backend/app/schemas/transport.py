@@ -55,6 +55,11 @@ class TransportRouteCreate(TransportRouteBase):
     veiculo_id: uuid.UUID
 
 
+class TransportRouteUpdate(BaseModel):
+    data: date | None = None
+    preco_por_tonelada: Decimal | None = Field(default=None, gt=0)
+
+
 class TransportRouteRead(TransportRouteBase):
     model_config = ConfigDict(from_attributes=True)
 

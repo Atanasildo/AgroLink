@@ -22,12 +22,14 @@ from app.crud.transport import (
     accept_transport_request,
     create_route,
     create_transport_request,
+    delete_route,
     get_route,
     get_transport_request,
     list_incoming_requests,
     list_my_routes,
     list_my_transport_requests,
     search_routes,
+    update_route,
     update_transport_location,
     update_transport_request_status,
 )
@@ -48,6 +50,7 @@ from app.schemas.transport import (
     TransportRequestUpdateStatus,
     TransportRouteCreate,
     TransportRouteRead,
+    TransportRouteUpdate,
     VehicleCreate,
     VehicleRead,
     VehicleUpdate,
@@ -165,6 +168,37 @@ def read_route(route_id: uuid.UUID, db: Session = Depends(get_db)):
     if not route:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rota não encontrada")
     return route
+
+
+@router.put("/routes/{route_id}", response_model=TransportRouteRead)
+def edit_route(
+    route_id: uuid.UUID,
+    route_in: TransportRouteUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Editar data e/ou preço por tonelada de uma rota publicada."""
+    route = get_route(db, route_id)
+    if not route:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rota não encontrada")
+    if route.transportador_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
+    return update_route(db, route, route_in)
+
+
+@router.delete("/routes/{route_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_route(
+    route_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.TRANSPORTADOR)),
+):
+    """Remover uma rota publicada (bloqueado se já tiver solicitações associadas)."""
+    route = get_route(db, route_id)
+    if not route:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rota não encontrada")
+    if route.transportador_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
+    delete_route(db, route)
 
 
 # ---------- Solicitações de Transporte ----------
