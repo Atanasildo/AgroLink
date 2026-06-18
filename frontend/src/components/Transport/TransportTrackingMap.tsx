@@ -136,6 +136,11 @@ export function TransportTrackingMap({ requestId, token, origem, destino, produt
 
   return (
     <div className="field-card rounded-sm overflow-hidden">
+      {/* Leaflet CSS — este componente pode ser montado fora da página /mapa,
+          que é a única que já carrega isto globalmente. */}
+      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin="" />
+
       {/* Cabeçalho */}
       <div className="p-4 border-b border-field/10 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">

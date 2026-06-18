@@ -10,6 +10,7 @@ import {
 } from "@/lib/api";
 import { RouteDiagram } from "@/components/RouteDiagram";
 import { TransporterDashboard } from "@/components/TransporterDashboard";
+import { TransportTrackingMap } from "@/components/Transport/TransportTrackingMap";
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; cls: string }> = {
   pendente:     { label: "Pendente",     icon: Clock,        cls: "pending" },
@@ -241,6 +242,18 @@ export default function TransportePage() {
                           <p className="text-xs text-ink/40 uppercase tracking-wider mb-0.5">Transportador</p>
                           <p className="text-earth">{formatKz(req.valor_liquido_transportador)}</p>
                         </div>
+                      </div>
+                    )}
+
+                    {token && ["aceite", "em_andamento", "concluido"].includes(req.status) && (
+                      <div className="mt-4 pt-4 border-t border-field/10">
+                        <TransportTrackingMap
+                          requestId={req.id}
+                          token={token}
+                          origem={req.origem}
+                          destino={req.destino}
+                          produto={req.produto}
+                        />
                       </div>
                     )}
                   </div>

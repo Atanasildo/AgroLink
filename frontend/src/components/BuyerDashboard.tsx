@@ -11,6 +11,7 @@ import {
   listProducts, Product, searchRoutes, createTransportRequest,
   ApiError,
 } from "@/lib/api";
+import { TransportTrackingMap } from "@/components/Transport/TransportTrackingMap";
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; color: string }> = {
   pendente:     { label: "Pendente",     icon: Clock,        color: "text-amber-600 bg-amber-50 border-amber-200" },
@@ -259,6 +260,15 @@ function RequestCard({ req, token, onCancelled }: { req: TransportRequestItem; t
               className="text-xs font-mono text-red-600 hover:underline disabled:opacity-50">
               {cancelling ? "A cancelar..." : "✕ Cancelar pedido"}
             </button>
+          )}
+          {["aceite", "em_andamento", "concluido"].includes(req.status) && (
+            <TransportTrackingMap
+              requestId={req.id}
+              token={token}
+              origem={req.origem}
+              destino={req.destino}
+              produto={req.produto}
+            />
           )}
         </div>
       )}

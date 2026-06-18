@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent } from "react";
 import {
   Truck, Plus, Trash2, CheckCircle, XCircle, Clock, Loader,
   MapPin, Weight, Package, ChevronDown, ChevronUp, ToggleLeft, ToggleRight,
+  Wifi, WifiOff,
 } from "lucide-react";
 import {
   Vehicle, TransportRoute, TransportRequestItem,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/api";
 import { ImageUpload } from "./ImageUpload";
 import { PROVINCIAS, getMunicipios } from "@/lib/angola";
+import { useLocationBroadcaster } from "@/lib/useLocationBroadcaster";
 
 // ---- Constants ----
 
@@ -523,6 +525,14 @@ function RequestCard({
 
   const sc = statusConfig[request.status] ?? statusConfig.pendente;
 
+  // Enquanto o transporte estiver "em_andamento", partilha a localização GPS
+  // deste dispositivo em tempo real para o agricultor poder acompanhar.
+  const { broadcasting, error: gpsError } = useLocationBroadcaster(
+    request.id,
+    token,
+    request.status === "em_andamento"
+  );
+
   async function handleAccept() {
     setLoading(true);
     setError(null);
@@ -573,6 +583,14 @@ function RequestCard({
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          {request.status === "em_andamento" && (
+            <span
+              className={`flex items-center gap-1 font-mono text-xs ${broadcasting ? "text-field" : "text-ink/35"}`}
+              title={gpsError ?? (broadcasting ? "A partilhar localização GPS" : "À espera de sinal GPS")}
+            >
+              {broadcasting ? <Wifi size={12} /> : <WifiOff size={12} />}
+            </span>
+          )}
           <span className={`status-badge ${sc.cls}`}>
             <sc.icon size={11} /> {sc.label}
           </span>
@@ -648,6 +666,17 @@ function RequestCard({
               </button>
             )}
           </div>
+
+          {request.status === "em_andamento" && (
+            <p className={`font-mono text-xs flex items-center gap-1 ${gpsError ? "text-earth" : broadcasting ? "text-field" : "text-ink/45"}`}>
+              {broadcasting ? <Wifi size={11} /> : <WifiOff size={11} />}
+              {gpsError
+                ? gpsError
+                : broadcasting
+                  ? "A partilhar a sua localização em tempo real com o agricultor."
+                  : "A aguardar permissão/sinal de GPS para começar a partilhar a localização..."}
+            </p>
+          )}
         </div>
       )}
     </div>
