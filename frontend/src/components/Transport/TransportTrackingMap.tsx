@@ -24,7 +24,7 @@
  *   />
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Clock, MapPin, Navigation, Signal, SignalZero, Truck, Wifi, WifiOff } from "lucide-react";
 import { useTransportTracking } from "@/lib/useTransportTracking";
 
@@ -52,6 +52,27 @@ export function TransportTrackingMap({ requestId, token, origem, destino, produt
   const leafletRef = useRef<any>(null);  // instância do mapa Leaflet
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markerRef = useRef<any>(null);   // marcador do caminhão
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myMarkerRef = useRef<any>(null);    // marcador "a minha localização"
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const routeLayerRef = useRef<any>(null);  // linha da rota (camião → eu)
+  const lastRouteFetchRef = useRef<number>(0);
+  const routeFetchInFlight = useRef(false);
+
+  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [myLocationDenied, setMyLocationDenied] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{ km: number; minutes: number } | null>(null);
+
+  // Pede, uma vez, a localização de quem está a ver o mapa (agricultor/comprador)
+  // para depois conseguir traçar a rota do camião até aqui.
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setMyLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => setMyLocationDenied(true),
+      { enableHighAccuracy: false, maximumAge: 5 * 60_000, timeout: 10_000 }
+    );
+  }, []);
 
   // Inicializa o mapa Leaflet uma única vez (client-side only)
   useEffect(() => {
@@ -111,6 +132,8 @@ export function TransportTrackingMap({ requestId, token, origem, destino, produt
         leafletRef.current.remove();
         leafletRef.current = null;
         markerRef.current = null;
+        myMarkerRef.current = null;
+        routeLayerRef.current = null;
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -130,6 +153,92 @@ export function TransportTrackingMap({ requestId, token, origem, destino, produt
       `<small>Atualizado: ${location.timestamp.toLocaleTimeString("pt-AO")}</small>`
     );
   }, [location, produto, origem, destino]);
+
+  // Marca "a minha localização" (de quem está a ver o mapa) no mapa
+  useEffect(() => {
+    if (!myLocation || !leafletRef.current) return;
+    import("leaflet").then((L) => {
+      if (myMarkerRef.current) {
+        myMarkerRef.current.setLatLng([myLocation.lat, myLocation.lng]);
+        return;
+      }
+      const meIcon = L.divIcon({
+        html: `<div style="
+          background:#b3541e;
+          border:2px solid white;
+          border-radius:50%;
+          width:26px;
+          height:26px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          box-shadow:0 2px 8px rgba(0,0,0,0.3);
+          font-size:13px;
+        ">📍</div>`,
+        className: "",
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+      });
+      myMarkerRef.current = L.marker([myLocation.lat, myLocation.lng], { icon: meIcon })
+        .addTo(leafletRef.current)
+        .bindPopup("A minha localização");
+    });
+  }, [myLocation]);
+
+  // Traça a rota (estradas reais, via OSRM) do camião até à minha localização.
+  // Limitado a recalcular no máximo de 20 em 20 segundos, para não inundar o
+  // serviço de routing a cada atualização de GPS (que chega a cada ~5s).
+  useEffect(() => {
+    if (!location || !myLocation || !leafletRef.current) return;
+
+    const now = Date.now();
+    if (routeLayerRef.current && now - lastRouteFetchRef.current < 20_000) return;
+    if (routeFetchInFlight.current) return;
+
+    lastRouteFetchRef.current = now;
+    routeFetchInFlight.current = true;
+
+    const url =
+      "https://router.project-osrm.org/route/v1/driving/" +
+      `${location.longitude},${location.latitude};${myLocation.lng},${myLocation.lat}` +
+      "?overview=full&geometries=geojson";
+
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        const routeData = data?.routes?.[0];
+        const coords = routeData?.geometry?.coordinates as [number, number][] | undefined;
+        if (!coords || !leafletRef.current) return;
+
+        import("leaflet").then((L) => {
+          if (!leafletRef.current) return;
+          const latlngs = coords.map(([lng, lat]) => [lat, lng] as [number, number]);
+          if (routeLayerRef.current) {
+            routeLayerRef.current.setLatLngs(latlngs);
+          } else {
+            routeLayerRef.current = L.polyline(latlngs, {
+              color: "#1a7a3c",
+              weight: 4,
+              opacity: 0.65,
+              dashArray: "1, 8",
+            }).addTo(leafletRef.current);
+          }
+          leafletRef.current.fitBounds(routeLayerRef.current.getBounds(), { padding: [40, 40] });
+        });
+
+        if (routeData) {
+          setRouteInfo({ km: routeData.distance / 1000, minutes: routeData.duration / 60 });
+        }
+      })
+      .catch(() => {
+        // Falha a calcular a rota (sem ligação, fora de cobertura do serviço de
+        // routing, etc.) — ignora silenciosamente; o mapa continua a funcionar
+        // normalmente, só sem a linha de rota.
+      })
+      .finally(() => {
+        routeFetchInFlight.current = false;
+      });
+  }, [location, myLocation]);
 
   const statusInfo = STATUS_LABELS[status ?? "pendente"] ?? STATUS_LABELS.pendente;
   const hasLocation = location !== null;
@@ -178,6 +287,23 @@ export function TransportTrackingMap({ requestId, token, origem, destino, produt
           </span>
         )}
       </div>
+
+      {/* Distância/tempo até à minha localização (calculada via routing real) */}
+      {routeInfo && (
+        <div className="px-4 py-2 bg-field/5 border-b border-field/10 flex items-center gap-2 font-mono text-xs text-field">
+          <Navigation size={11} />
+          <span>
+            🚛 ↔ 📍 {routeInfo.km.toFixed(routeInfo.km < 10 ? 1 : 0)} km · ~{Math.round(routeInfo.minutes)} min até si
+          </span>
+        </div>
+      )}
+      {myLocationDenied && hasLocation && !routeInfo && (
+        <div className="px-4 py-2 border-b border-field/10">
+          <p className="font-mono text-xs text-ink/40">
+            Ative a localização do navegador para ver a rota e a distância até si.
+          </p>
+        </div>
+      )}
 
       {/* Mapa */}
       <div className="relative">
