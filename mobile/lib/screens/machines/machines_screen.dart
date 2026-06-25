@@ -117,7 +117,7 @@ class _MachineCardState extends State<_MachineCard> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
-      ctrl.text = '\${picked.year}-\${picked.month.toString().padLeft(2, '0')}-\${picked.day.toString().padLeft(2, '0')}';
+      ctrl.text = '${picked.year}-${picked.month.toString().padLeft(2, "0")}-${picked.day.toString().padLeft(2, "0")}';
     }
   }
 
@@ -161,7 +161,7 @@ class _MachineCardState extends State<_MachineCard> {
                 style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('\${_fmtKz(m['preco_diaria'])} Kz',
+              Text('${_fmtKz(m["preco_diaria"])} Kz',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: scheme.secondary)),
               Text('/dia', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
             ]),
@@ -260,6 +260,6 @@ class _MachineCardState extends State<_MachineCard> {
   String _fmtKz(dynamic v) {
     final n = double.tryParse(v.toString()) ?? 0;
     return n.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '\${m[1]} ');
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ');
   }
 }
