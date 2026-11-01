@@ -811,3 +811,23 @@ export function confirmPhoneVerification(token: string, code: string) {
 export function getPublicProducts(userId: string) {
   return apiRequest<Product[]>(`/products/?agricultor_id=${userId}&limit=6`);
 }
+
+// ---------- Upload de foto de perfil ----------
+
+export async function uploadProfilePhoto(token: string, file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_URL}/uploads/profile`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) {
+    let detail: unknown;
+    try { detail = (await res.json()).detail; } catch { detail = res.statusText; }
+    throw new ApiError(res.status, detail);
+  }
+  const data = await res.json();
+  return data.url as string;
+}
+
