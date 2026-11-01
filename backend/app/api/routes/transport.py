@@ -210,9 +210,14 @@ def remove_route(
 async def request_transport(
     request_in: TransportRequestCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.AGRICULTOR)),
+    current_user: User = Depends(require_roles(
+        UserRole.AGRICULTOR, UserRole.COMPRADOR, UserRole.PROPRIETARIO_MAQUINAS
+    )),
 ):
-    """Agricultor cria uma solicitação de transporte.
+    """Qualquer utilizador que precise de transporte cria uma solicitação.
+
+    Agricultor, comprador e proprietário de máquinas podem solicitar;
+    transportadores não — eles são o destino da solicitação.
 
     Notifica o transportador via push FCM (se tiver rota associada).
     """
@@ -243,9 +248,11 @@ async def request_transport(
 @router.get("/requests/me", response_model=list[TransportRequestRead])
 def my_transport_requests(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.AGRICULTOR)),
+    current_user: User = Depends(require_roles(
+        UserRole.AGRICULTOR, UserRole.COMPRADOR, UserRole.PROPRIETARIO_MAQUINAS
+    )),
 ):
-    """Listar as solicitações de transporte do agricultor autenticado."""
+    """Listar as solicitações de transporte do utilizador autenticado."""
     return list_my_transport_requests(db, current_user.id)
 
 
