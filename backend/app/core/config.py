@@ -1,5 +1,46 @@
+import secrets
+import string
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_DEFAULTS = {
+    "troque-esta-chave-por-uma-chave-secreta-forte",
+    "troque-esta-chave-admin-no-env",
+}
+
+# Conjunto de caracteres que contam como "complexidade"
+_UPPER = set(string.ascii_uppercase)
+_LOWER = set(string.ascii_lowercase)
+_DIGITS = set(string.digits)
+_SPECIAL = set(string.punctuation)
+
+
+def _check_key_strength(value: str, field_name: str) -> str:
+    """Rejeita chaves fracas ou com valores padrão inseguros em produção."""
+    if value in _INSECURE_DEFAULTS:
+        # Não lançar erro em tempo de importação — o aviso de startup trata isso.
+        return value
+
+    chars = set(value)
+    issues = []
+    if len(value) < 32:
+        issues.append(f"comprimento mínimo 32 chars (atual: {len(value)})")
+    if not (chars & _UPPER):
+        issues.append("pelo menos uma letra maiúscula")
+    if not (chars & _LOWER):
+        issues.append("pelo menos uma letra minúscula")
+    if not (chars & _DIGITS):
+        issues.append("pelo menos um dígito")
+
+    if issues:
+        suggested = secrets.token_urlsafe(48)
+        raise ValueError(
+            f"{field_name} não cumpre os requisitos mínimos de segurança: "
+            + "; ".join(issues)
+            + f". Sugestão segura: {suggested}"
+        )
+    return value
 
 
 class Settings(BaseSettings):
@@ -23,6 +64,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def _validate_secret_key(cls, value: str) -> str:
+        return _check_key_strength(value, "SECRET_KEY")
+
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000,https://agro-link-eight.vercel.app"
 
@@ -32,6 +78,11 @@ class Settings(BaseSettings):
 
     # Admin
     ADMIN_SETUP_KEY: str = "troque-esta-chave-admin-no-env"
+
+    @field_validator("ADMIN_SETUP_KEY")
+    @classmethod
+    def _validate_admin_setup_key(cls, value: str) -> str:
+        return _check_key_strength(value, "ADMIN_SETUP_KEY")
 
     # Verificação OTP
     VERIFICATION_CODE_EXPIRE_MINUTES: int = 10
@@ -73,9 +124,7 @@ class Settings(BaseSettings):
     PROXYPAY_CALLBACK_URL: str = "https://api.agrolink.ao/api/v1/payments/webhook/multicaixa"
     PROXYPAY_WEBHOOK_SECRET: str = ""
 
-    # Gateway de pagamento simulado (enquanto o contrato/acesso real à ProxyPay
-    # RPS não está disponível). Gera referências Multicaixa fictícias e permite
-    # "simular" a confirmação do pagamento. DEVE ser False em produção real.
+    # Gateway de pagamento simulado
     PAYMENT_SANDBOX_MODE: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

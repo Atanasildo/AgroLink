@@ -180,7 +180,15 @@ async def payment_webhook_multicaixa(
             return {"status": "ok", "message": "Pagamento ainda pendente"}
 
     except Exception as exc:
-        return {"status": "error", "message": str(exc)}
+        import logging as _log
+        _log.getLogger(__name__).error(
+            "Erro interno no processamento do webhook: %s", type(exc).__name__, exc_info=exc
+        )
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar o webhook. Tente novamente.",
+        ) from exc
 
 
 @router.post("/{payment_id}/initiate", status_code=status.HTTP_201_CREATED)

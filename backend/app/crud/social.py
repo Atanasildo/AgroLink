@@ -30,7 +30,12 @@ def list_posts(
     skip: int = 0,
     limit: int = 20,
 ) -> list[Post]:
-    query = db.query(Post).options(joinedload(Post.autor))
+    query = (
+        db.query(Post)
+        .options(joinedload(Post.autor))
+        # Apenas posts aprovados são visíveis no feed público
+        .filter(Post.aprovado == True)  # noqa: E712
+    )
     if tipo is not None:
         query = query.filter(Post.tipo == tipo)
     return query.order_by(Post.criado_em.desc()).offset(skip).limit(limit).all()

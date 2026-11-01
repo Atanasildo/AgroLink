@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import HTTPException, status
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.rating import Rating
@@ -10,7 +11,26 @@ from app.schemas.rating import RatingCreate
 
 def create_rating(db: Session, rating_in: RatingCreate, avaliador_id: uuid.UUID) -> Rating:
     if rating_in.avaliado_id == avaliador_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível avaliar a si mesmo")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível avaliar a si mesmo",
+        )
+
+    # Verificar se já existe avaliação deste par (defesa em camada de aplicação,
+    # antes de chegar ao UniqueConstraint da BD)
+    existing = (
+        db.query(Rating)
+        .filter(
+            Rating.avaliador_id == avaliador_id,
+            Rating.avaliado_id == rating_in.avaliado_id,
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Já avaliaste este utilizador. Só é permitida uma avaliação por utilizador.",
+        )
 
     data = rating_in.model_dump()
     # Schema usa nota; coluna na BD é pontuacao
@@ -18,7 +38,14 @@ def create_rating(db: Session, rating_in: RatingCreate, avaliador_id: uuid.UUID)
 
     db_rating = Rating(**data, avaliador_id=avaliador_id)
     db.add(db_rating)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Já avaliaste este utilizador. Só é permitida uma avaliação por utilizador.",
+        )
     db.refresh(db_rating)
     return db_rating
 

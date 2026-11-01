@@ -111,6 +111,9 @@ def _safe_migrate():
             criado_em TIMESTAMP WITH TIME ZONE DEFAULT now(),
             UNIQUE(post_id, utilizador_id)
         )""",
+        # Rating: unicidade por par avaliador/avaliado — previne spam de avaliações
+        """CREATE UNIQUE INDEX IF NOT EXISTS uq_rating_avaliador_avaliado
+           ON ratings (avaliador_id, avaliado_id)""",
     ]
     with engine.begin() as conn:
         for sql in migrations:
