@@ -29,6 +29,7 @@ def list_products(
     municipio: str | None = None,
     preco_min: Decimal | None = None,
     preco_max: Decimal | None = None,
+    agricultor_id: uuid.UUID | None = None,
 ) -> list[Product]:
     query = db.query(Product).filter(Product.ativo.is_(True))
 
@@ -44,6 +45,8 @@ def list_products(
         query = query.filter(Product.preco >= preco_min)
     if preco_max is not None:
         query = query.filter(Product.preco <= preco_max)
+    if agricultor_id is not None:
+        query = query.filter(Product.agricultor_id == agricultor_id)
 
     return query.order_by(Product.criado_em.desc()).offset(skip).limit(limit).all()
 
