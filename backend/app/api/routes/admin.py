@@ -154,7 +154,28 @@ def list_all_products(
             q = q.filter(Product.agricultor_id == _uuid.UUID(agricultor_id))
         except ValueError:
             pass
-    return q.offset(skip).limit(limit).all()
+    products = q.offset(skip).limit(limit).all()
+    return [
+        {
+            "id": str(p.id),
+            "nome": p.nome,
+            "descricao": p.descricao,
+            "categoria": p.categoria.value if hasattr(p.categoria, "value") else p.categoria,
+            "preco": float(p.preco),
+            "quantidade": float(p.quantidade),
+            "unidade": p.unidade.value if hasattr(p.unidade, "value") else p.unidade,
+            "imagens": p.imagens or [],
+            "provincia": p.provincia,
+            "municipio": p.municipio,
+            "agricultor_id": str(p.agricultor_id),
+            "ativo": p.ativo,
+            "aprovado": p.aprovado,
+            "flagged": p.flagged,
+            "flag_reason": p.flag_reason,
+            "criado_em": p.criado_em.isoformat() if p.criado_em else None,
+        }
+        for p in products
+    ]
 
 
 @router.get("/transport/requests")
