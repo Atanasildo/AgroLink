@@ -761,3 +761,35 @@ export function listOnlineUsers(token: string, role?: string) {
 export function listActiveConnections(token: string) {
   return apiRequest<ActiveConnection[]>("/transport/active-connections", { token });
 }
+
+// ---------- Verificação de conta ----------
+
+export function requestEmailVerification(token: string) {
+  return apiRequest<{ detail: string }>("/verify/email/request", { method: "POST", token });
+}
+
+export function confirmEmailVerification(token: string, code: string) {
+  return apiRequest<{ detail: string }>("/verify/email/confirm", {
+    method: "POST",
+    body: { code },
+    token,
+  });
+}
+
+export function requestPhoneVerification(token: string) {
+  return apiRequest<{ detail: string }>("/verify/phone/request", { method: "POST", token });
+}
+
+export function confirmPhoneVerification(token: string, code: string) {
+  return apiRequest<{ detail: string }>("/verify/phone/confirm", {
+    method: "POST",
+    body: { code },
+    token,
+  });
+}
+
+// ---------- Perfil público ----------
+
+export function getPublicProducts(userId: string) {
+  return apiRequest<Product[]>(`/products/?agricultor_id=${userId}&limit=6`);
+}
