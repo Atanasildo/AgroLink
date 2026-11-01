@@ -38,11 +38,19 @@ def search_products(
     municipio: str | None = Query(default=None, description="Filtrar por município"),
     preco_min: Decimal | None = Query(default=None, ge=0),
     preco_max: Decimal | None = Query(default=None, ge=0),
+    agricultor_id: str | None = Query(default=None, description="Filtrar por agricultor (perfil público)"),
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    """Listar/pesquisar produtos com filtros (produto, categoria, província, município, preço)."""
+    """Listar/pesquisar produtos com filtros (produto, categoria, província, município, preço, agricultor)."""
+    agricultor_uuid = None
+    if agricultor_id:
+        import uuid as _uuid
+        try:
+            agricultor_uuid = _uuid.UUID(agricultor_id)
+        except ValueError:
+            pass
     return list_products(
         db,
         skip=skip,
@@ -53,6 +61,7 @@ def search_products(
         municipio=municipio,
         preco_min=preco_min,
         preco_max=preco_max,
+        agricultor_id=agricultor_uuid,
     )
 
 
