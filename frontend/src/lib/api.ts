@@ -762,6 +762,24 @@ export function listActiveConnections(token: string) {
   return apiRequest<ActiveConnection[]>("/transport/active-connections", { token });
 }
 
+// ---------- Notificações in-app ----------
+
+export interface NotificationItem {
+  tipo: string;
+  count: number;
+  label: string;
+  href: string;
+}
+
+export interface NotificationsResponse {
+  total: number;
+  items: NotificationItem[];
+}
+
+export function getNotifications(token: string) {
+  return apiRequest<NotificationsResponse>("/notifications/", { token });
+}
+
 // ---------- Verificação de conta ----------
 
 export function requestEmailVerification(token: string) {
