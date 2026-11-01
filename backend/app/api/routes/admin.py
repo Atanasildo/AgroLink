@@ -142,17 +142,19 @@ def toggle_user_active(
 def list_all_products(
     skip: int = 0,
     limit: int = 100,
+    agricultor_id: str | None = None,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    """Listar todos os produtos (incluindo inactivos)."""
-    return (
-        db.query(Product)
-        .order_by(Product.criado_em.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    """Listar todos os produtos (incluindo inactivos). Filtrável por agricultor_id."""
+    import uuid as _uuid
+    q = db.query(Product).order_by(Product.criado_em.desc())
+    if agricultor_id:
+        try:
+            q = q.filter(Product.agricultor_id == _uuid.UUID(agricultor_id))
+        except ValueError:
+            pass
+    return q.offset(skip).limit(limit).all()
 
 
 @router.get("/transport/requests")
