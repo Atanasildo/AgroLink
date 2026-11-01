@@ -1,629 +1,541 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
-  Star, MapPin, BadgeCheck, Calendar, MessageSquare, Edit2, Save, X,
-  Phone, Mail, Truck, Wrench, Leaf, ShoppingCart, Shield,
+  User, MapPin, Star, Package, Truck, Wrench, MessageCircle,
+  CheckCircle, Calendar, Flag, ChevronRight, Loader2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  ApiError, Rating, User, UserRatingSummary,
-  createRating, getUser, getUserRatingSummary, getUserRatings,
-  updateMyProfile, changePassword,
+  getUser, getUserRatings, getUserRatingSummary, getMe,
+  listProducts, myMachines, myTransportRequests, updateMyProfile,
+  User as ApiUser, Rating, UserRatingSummary, Product, Machine,
+  TransportRequestItem, ApiError, createRating,
 } from "@/lib/api";
-import { FarmerDashboard } from "@/components/FarmerDashboard";
-import { TransporterDashboard } from "@/components/TransporterDashboard";
-import { MachineOwnerDashboard } from "@/components/MachineOwnerDashboard";
-import { BuyerDashboard } from "@/components/BuyerDashboard";
 import { ReportButton } from "@/components/ReportButton";
-import { useAutoRetry } from "@/lib/useAutoRetry";
-import { PROVINCIAS, getMunicipios } from "@/lib/angola";
 
-const roleLabels: Record<string, { label: string; icon: typeof Leaf; color: string }> = {
-  agricultor:            { label: "Agricultor",           icon: Leaf,        color: "text-green-700 bg-green-50 border-green-200" },
-  comprador:             { label: "Comprador",             icon: ShoppingCart, color: "text-blue-700 bg-blue-50 border-blue-200" },
-  transportador:         { label: "Transportador",         icon: Truck,       color: "text-amber-700 bg-amber-50 border-amber-200" },
-  proprietario_maquinas: { label: "Proprietário de Máquinas", icon: Wrench,  color: "text-purple-700 bg-purple-50 border-purple-200" },
-  admin:                 { label: "Administrador",         icon: Shield,      color: "text-red-700 bg-red-50 border-red-200" },
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+const roleLabel: Record<string, string> = {
+  agricultor:            "🌾 Agricultor",
+  comprador:             "🛒 Comprador",
+  transportador:         "🚛 Transportador",
+  proprietario_maquinas: "⚙️ Prop. de Máquinas",
+  admin:                 "🛡️ Administrador",
 };
 
-
-function Stars({ value, size = 16 }: { value: number; size?: number }) {
+function StarRow({ value, max = 5 }: { value: number; max?: number }) {
   return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
+    <span className="inline-flex gap-0.5">
+      {Array.from({ length: max }).map((_, i) => (
         <Star
           key={i}
-          size={size}
-          className={i <= Math.round(value) ? "text-harvest fill-harvest" : "text-ink/20"}
+          size={13}
+          className={i < Math.round(value) ? "text-harvest fill-harvest" : "text-ink/20"}
         />
       ))}
-    </div>
+    </span>
   );
 }
 
-function ClickableStars({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <button type="button" key={i} onClick={() => onChange(i)}>
-          <Star size={22} className={i <= value ? "text-harvest fill-harvest" : "text-ink/20"} />
-        </button>
-      ))}
-    </div>
-  );
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-AO", { month: "short", year: "numeric" });
 }
 
-export default function PerfilPage({ params }: { params: { id: string } }) {
-  const { user: currentUser, token } = useAuth();
-  const profileId = params.id;
+// ─── Rating Form ─────────────────────────────────────────────────────────────
 
-  const [profile, setProfile] = useState<User | null>(null);
-  const [summary, setSummary] = useState<UserRatingSummary | null>(null);
-  const [ratings, setRatings] = useState<Rating[]>([]);
-  const [loading, setLoading] = useState(true);
+function RatingForm({
+  token,
+  avaliadoId,
+  onDone,
+}: {
+  token: string;
+  avaliadoId: string;
+  onDone: () => void;
+}) {
+  const [nota, setNota] = useState(5);
+  const [hover, setHover] = useState(0);
+  const [comentario, setComentario] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showRatingForm, setShowRatingForm] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
 
-  async function load() {
+  async function handleSubmit() {
     setLoading(true);
     setError(null);
     try {
-      const profileData = await getUser(profileId);
-      setProfile(profileData);
-      try {
-        const [sum, rats] = await Promise.all([
-          getUserRatingSummary(profileId),
-          getUserRatings(profileId),
-        ]);
-        setSummary(sum);
-        setRatings(rats);
-      } catch {
-        setSummary({ media_geral: 0, total_avaliacoes: 0 });
-        setRatings([]);
-      }
+      await createRating(token, {
+        avaliado_id: avaliadoId,
+        nota,
+        comentario: comentario.trim() || undefined,
+      });
+      onDone();
     } catch (err) {
-      setError(
-        err instanceof ApiError && err.status === 0
-          ? "O servidor está a acordar (~30s). Aguarde e recarregue a página."
-          : "Não foi possível carregar este perfil."
-      );
+      setError(err instanceof ApiError ? String(err.detail) : "Erro ao enviar avaliação.");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [profileId]);
-  useAutoRetry(!!error, load);
+  return (
+    <div className="field-card rounded-sm space-y-4">
+      <p className="label-eyebrow">Deixar avaliação</p>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setNota(n)}
+            onMouseEnter={() => setHover(n)}
+            onMouseLeave={() => setHover(0)}
+          >
+            <Star
+              size={28}
+              className={(hover || nota) >= n ? "text-harvest fill-harvest" : "text-ink/20"}
+            />
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comentario}
+        onChange={(e) => setComentario(e.target.value)}
+        rows={3}
+        maxLength={500}
+        placeholder="Comentário opcional..."
+        className="field-input rounded-sm resize-none text-sm"
+      />
+      {error && <p className="text-earth text-sm font-body">{error}</p>}
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="btn-harvest rounded-sm text-xs disabled:opacity-50"
+      >
+        {loading ? <Loader2 size={13} className="animate-spin" /> : <Star size={13} />}
+        {loading ? "A enviar..." : "Enviar avaliação"}
+      </button>
+    </div>
+  );
+}
 
-  const isOwnProfile = currentUser?.id === profileId;
-  const roleInfo = profile ? (roleLabels[profile.role] ?? { label: profile.role, icon: Shield, color: "text-ink/60 bg-field/5 border-field/20" }) : null;
+// ─── Edit Profile Form ────────────────────────────────────────────────────────
 
-  if (loading) {
+function EditProfileForm({
+  user,
+  token,
+  onSaved,
+}: {
+  user: ApiUser;
+  token: string;
+  onSaved: () => void;
+}) {
+  const [nome, setNome] = useState(user.nome);
+  const [bio, setBio] = useState(user.bio ?? "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    setLoading(true);
+    setError(null);
+    try {
+      await updateMyProfile(token, { nome, bio: bio || undefined });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : "Erro ao guardar.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="field-card rounded-sm space-y-4">
+      <p className="label-eyebrow">Editar perfil</p>
+      <label className="flex flex-col gap-1.5">
+        <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Nome</span>
+        <input
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          className="field-input rounded-sm text-sm"
+        />
+      </label>
+      <label className="flex flex-col gap-1.5">
+        <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Bio</span>
+        <textarea
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          rows={3}
+          maxLength={500}
+          className="field-input rounded-sm text-sm resize-none"
+          placeholder="Conta um pouco sobre ti..."
+        />
+      </label>
+      {error && <p className="text-earth text-sm font-body">{error}</p>}
+      <button
+        onClick={handleSave}
+        disabled={loading}
+        className="btn-primary rounded-sm text-xs disabled:opacity-50"
+      >
+        {loading ? "A guardar..." : "Guardar"}
+      </button>
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function PerfilPage() {
+  const { id } = useParams<{ id: string }>();
+  const { user: authUser, token } = useAuth();
+  const router = useRouter();
+
+  const isOwn = authUser?.id === id;
+
+  const [profile, setProfile] = useState<ApiUser | null>(null);
+  const [summary, setSummary] = useState<UserRatingSummary | null>(null);
+  const [ratings, setRatings] = useState<Rating[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [requests, setRequests] = useState<TransportRequestItem[]>([]);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [showRatingForm, setShowRatingForm] = useState(false);
+
+  async function loadProfile() {
+    setLoadingProfile(true);
+    try {
+      const [p, s, r] = await Promise.all([
+        getUser(id),
+        getUserRatingSummary(id),
+        getUserRatings(id),
+      ]);
+      setProfile(p as ApiUser);
+      setSummary(s);
+      setRatings(r);
+    } catch {
+      router.replace("/");
+    } finally {
+      setLoadingProfile(false);
+    }
+  }
+
+  async function loadActivity() {
+    if (!token) return;
+    try {
+      if (isOwn) {
+        const [prods, reqs] = await Promise.all([
+          listProducts({ limit: "6" }),
+          myTransportRequests(token),
+        ]);
+        // filter own products
+        setProducts((prods as Product[]).filter((p) => p.agricultor_id === id).slice(0, 6));
+        setRequests((reqs as TransportRequestItem[]).slice(0, 5));
+      }
+    } catch { /* silent */ }
+  }
+
+  async function loadOwnerMachines() {
+    if (!token || !isOwn || authUser?.role !== "proprietario_maquinas") return;
+    try {
+      const m = await myMachines(token);
+      setMachines(m.slice(0, 4));
+    } catch { /* silent */ }
+  }
+
+  useEffect(() => {
+    if (!id) return;
+    loadProfile();
+    loadActivity();
+    loadOwnerMachines();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, token]);
+
+  if (loadingProfile) {
     return (
-      <div className="text-center py-20">
-        <div className="inline-flex items-center gap-2 font-mono text-sm text-field/60">
-          <BadgeCheck size={16} className="animate-pulse" />
-          A carregar perfil...
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 size={28} className="text-field/40 animate-spin" />
       </div>
     );
   }
 
-  if (error || !profile) {
-    return (
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="field-card text-center py-16 rounded-sm border-l-4 border-alert">
-          <p className="font-display text-2xl text-field mb-2">Perfil não encontrado</p>
-          <p className="font-body text-ink/50 mb-6">{error ?? "Este utilizador não existe."}</p>
-          <div className="flex justify-center gap-2">
-            <button onClick={load} className="btn-primary rounded-sm text-sm">🔄 Tentar novamente</button>
-            <a href="/" className="btn-secondary rounded-sm text-sm">← Voltar ao início</a>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!profile) return null;
 
-  const RoleIcon = roleInfo!.icon;
+  const memberSince = formatDate(profile.criado_em ?? new Date().toISOString());
+  const canRate = !isOwn && !!token && !!authUser;
 
   return (
     <div>
-      {/* Hero header */}
-      <div className="border-b border-field/15 bg-sky-light">
-        <div className="mx-auto max-w-3xl px-6 py-10">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-medium mb-3 ${roleInfo!.color}`}>
-                <RoleIcon size={12} />
-                {roleInfo!.label}
-              </div>
-              <h1 className="text-4xl text-field leading-tight">{profile.nome}</h1>
-              <div className="flex flex-wrap items-center gap-4 mt-3">
-                {(profile.provincia || profile.municipio) && (
-                  <span className="flex items-center gap-1 font-mono text-xs text-ink/50">
-                    <MapPin size={12} className="text-field" />
-                    {[profile.municipio, profile.provincia].filter(Boolean).join(", ")}
-                  </span>
-                )}
-                <span className="flex items-center gap-1 font-mono text-xs text-ink/50">
-                  <Calendar size={12} className="text-field" />
-                  Membro desde {new Date(profile.criado_em).toLocaleDateString("pt-AO", { year: "numeric", month: "long" })}
+      {/* ── Hero ── */}
+      <div className="border-b border-field/15 bg-gradient-to-r from-field/5 to-field/10">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-12">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+            {/* Avatar */}
+            <div className="w-20 h-20 bg-field/15 border-2 border-field/20 rounded-full flex items-center justify-center flex-shrink-0 relative">
+              {profile.foto_perfil_url ? (
+                <img
+                  src={profile.foto_perfil_url}
+                  alt={profile.nome}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                <span className="font-display text-3xl text-field">
+                  {profile.nome[0].toUpperCase()}
                 </span>
-              </div>
+              )}
+              {profile.is_online && (
+                <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-cream rounded-full" />
+              )}
             </div>
 
-            {/* Rating badge */}
-            {summary && summary.total_avaliacoes > 0 && (
-              <div className="field-card rounded-sm text-center px-5 py-3 flex-shrink-0">
-                <p className="font-display text-3xl text-field">{summary.media_geral.toFixed(1)}</p>
-                <Stars value={summary.media_geral} size={14} />
-                <p className="font-mono text-xs text-ink/40 mt-1">{summary.total_avaliacoes} avaliação{summary.total_avaliacoes !== 1 ? "ões" : ""}</p>
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h1 className="text-3xl text-field">{profile.nome}</h1>
+                {profile.email_verificado && (
+                  <span title="Email verificado">
+                    <CheckCircle size={16} className="text-green-600" />
+                  </span>
+                )}
               </div>
-            )}
-          </div>
+              <p className="font-mono text-xs uppercase tracking-wider text-ink/50 mb-2">
+                {roleLabel[profile.role] ?? profile.role}
+              </p>
+              {profile.provincia && (
+                <p className="flex items-center gap-1 font-body text-sm text-ink/50 mb-2">
+                  <MapPin size={13} className="text-field" />
+                  {profile.municipio ? `${profile.municipio}, ` : ""}
+                  {profile.provincia}
+                </p>
+              )}
+              {profile.bio && (
+                <p className="font-body text-sm text-ink/70 max-w-xl leading-relaxed">
+                  {profile.bio}
+                </p>
+              )}
+              <p className="font-mono text-xs text-ink/35 mt-2 flex items-center gap-1">
+                <Calendar size={11} /> Membro desde {memberSince}
+              </p>
+            </div>
 
-          {profile.bio && (
-            <p className="font-body text-ink/60 mt-5 leading-relaxed max-w-xl">{profile.bio}</p>
-          )}
+            {/* Actions */}
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              {isOwn && (
+                <button
+                  onClick={() => setEditing((v) => !v)}
+                  className="btn-secondary rounded-sm text-xs"
+                >
+                  <User size={13} />
+                  {editing ? "Cancelar" : "Editar perfil"}
+                </button>
+              )}
+              {!isOwn && token && (
+                <Link
+                  href={`/chat?with=${id}`}
+                  className="btn-primary rounded-sm text-xs"
+                >
+                  <MessageCircle size={13} /> Enviar mensagem
+                </Link>
+              )}
+              {!isOwn && token && authUser && (
+                <ReportButton
+                  token={token}
+                  denunciadoId={id}
+                  denunciadoNome={profile.nome}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-6 py-10 space-y-10">
-
-        {/* Edit or view profile info */}
-        {isOwnProfile && editing && token ? (
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 space-y-10">
+        {/* ── Edit form ── */}
+        {isOwn && editing && (
           <EditProfileForm
-            profile={profile}
-            token={token}
-            onSaved={(updated) => {
-              setProfile(updated);
-              // profile updated locally
-              setEditing(false);
-            }}
-            onCancel={() => setEditing(false)}
-          />
-        ) : null}
-
-        {/* Change Password Form */}
-        {isOwnProfile && showChangePassword && token ? (
-          <ChangePasswordForm
-            token={token}
+            user={authUser!}
+            token={token!}
             onSaved={() => {
-              setShowChangePassword(false);
+              setEditing(false);
+              loadProfile();
             }}
-            onCancel={() => setShowChangePassword(false)}
           />
-        ) : null}
+        )}
 
-        {/* View profile info */}
-        {!editing ? (
-          <section className="field-card rounded-sm">
+        {/* ── Rating summary ── */}
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div className="field-card rounded-sm text-center">
+            <p className="font-display text-4xl text-harvest mb-1">
+              {summary ? summary.media_geral.toFixed(1) : "—"}
+            </p>
+            <StarRow value={summary?.media_geral ?? 0} />
+            <p className="font-mono text-xs text-ink/40 mt-1 uppercase tracking-wider">
+              {summary?.total_avaliacoes ?? 0} avaliações
+            </p>
+          </div>
+          <div className="field-card rounded-sm text-center">
+            <CheckCircle size={24} className="text-green-600 mx-auto mb-1" />
+            <p className="font-body text-sm text-ink/60">
+              {profile.email_verificado ? "Email verificado" : "Email não verificado"}
+            </p>
+            <p className="font-body text-xs text-ink/40 mt-0.5">
+              {profile.telefone_verificado ? "Telemóvel verificado" : "Telemóvel não verificado"}
+            </p>
+          </div>
+          <div className="field-card rounded-sm text-center">
+            <p className="font-display text-4xl text-field mb-1">{products.length || "—"}</p>
+            <p className="font-mono text-xs text-ink/40 uppercase tracking-wider">
+              {profile.role === "transportador" ? "Rotas publicadas" :
+               profile.role === "proprietario_maquinas" ? "Máquinas registadas" :
+               "Produtos publicados"}
+            </p>
+          </div>
+        </div>
+
+        {/* ── Own activity: products ── */}
+        {isOwn && products.length > 0 && (
+          <section>
             <div className="flex items-center justify-between mb-4">
-              <p className="label-eyebrow">Informações de contacto</p>
-              {isOwnProfile && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowChangePassword(true)}
-                    className="flex items-center gap-1.5 font-mono text-xs text-amber-600 hover:text-amber-700 transition-colors"
-                  >
-                    🔐 Mudar Senha
-                  </button>
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="flex items-center gap-1.5 font-mono text-xs text-ink/50 hover:text-field transition-colors"
-                  >
-                    <Edit2 size={13} /> Editar perfil
-                  </button>
-                </div>
-              )}
+              <p className="label-eyebrow flex items-center gap-1.5">
+                <Package size={13} /> Os meus produtos
+              </p>
+              <Link href="/marketplace" className="font-mono text-xs text-field hover:underline flex items-center gap-1">
+                Ver todos <ChevronRight size={12} />
+              </Link>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-field/10 flex items-center justify-center flex-shrink-0">
-                  <Mail size={14} className="text-field/60" />
-                </div>
-                <div>
-                  <p className="font-mono text-xs text-ink/40 uppercase tracking-wider">Email</p>
-                  <p className="font-body text-sm text-field">{profile.email}</p>
-                </div>
-              </div>
-              {profile.telefone ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-field/10 flex items-center justify-center flex-shrink-0">
-                    <Phone size={14} className="text-field/60" />
-                  </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {products.map((p) => (
+                <div key={p.id} className="field-card rounded-sm flex justify-between items-center gap-3">
                   <div>
-                    <p className="font-mono text-xs text-ink/40 uppercase tracking-wider">Telefone</p>
-                    <p className="font-body text-sm text-field">{profile.telefone}</p>
+                    <p className="font-body text-sm text-field font-medium">{p.nome}</p>
+                    <p className="font-mono text-xs text-ink/50">
+                      {Number(p.preco).toLocaleString("pt-AO")} Kz/{p.unidade}
+                    </p>
+                    <p className="font-mono text-xs text-ink/35">{p.municipio}, {p.provincia}</p>
                   </div>
+                  <span className={`status-badge ${p.ativo ? "active" : "done"} text-[10px]`}>
+                    {p.ativo ? "Activo" : "Inactivo"}
+                  </span>
                 </div>
-              ) : isOwnProfile ? (
-                <div className="flex items-center gap-3 opacity-40">
-                  <div className="w-8 h-8 rounded-full bg-field/10 flex items-center justify-center flex-shrink-0">
-                    <Phone size={14} className="text-field/60" />
-                  </div>
-                  <div>
-                    <p className="font-mono text-xs text-ink/40 uppercase tracking-wider">Telefone</p>
-                    <p className="font-body text-sm text-ink/40 italic">Não definido</p>
-                  </div>
-                </div>
-              ) : null}
+              ))}
             </div>
-
-            {!profile.bio && isOwnProfile && (
-              <div className="mt-4 pt-4 border-t border-field/10">
-                <p className="font-body text-xs text-ink/40 italic">Adicione uma bio para apresentar o seu negócio aos outros utilizadores.</p>
-              </div>
-            )}
           </section>
-        ) : null}
+        )}
 
-        {/* Dashboard do próprio utilizador */}
-        {isOwnProfile && token && showDashboard && (
-          <section className="field-card rounded-sm">
-            {profile.role === "agricultor" && (
-              <FarmerDashboard token={token} />
-            )}
-            {profile.role === "comprador" && (
-              <BuyerDashboard token={token} />
-            )}
-            {profile.role === "transportador" && (
-              <TransporterDashboard token={token} />
-            )}
-            {profile.role === "proprietario_maquinas" && (
-              <MachineOwnerDashboard token={token} />
+        {/* ── Own activity: machines (proprietário) ── */}
+        {isOwn && authUser?.role === "proprietario_maquinas" && machines.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <p className="label-eyebrow flex items-center gap-1.5">
+                <Wrench size={13} /> As minhas máquinas
+              </p>
+              <Link href="/maquinas" className="font-mono text-xs text-field hover:underline flex items-center gap-1">
+                Gerir <ChevronRight size={12} />
+              </Link>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {machines.map((m) => (
+                <div key={m.id} className="field-card rounded-sm flex justify-between items-center gap-3">
+                  <div>
+                    <p className="font-body text-sm text-field font-medium">{m.nome}</p>
+                    <p className="font-mono text-xs text-ink/50">
+                      {Number(m.preco_diaria).toLocaleString("pt-AO")} Kz/dia
+                    </p>
+                  </div>
+                  <span className={`status-badge ${m.disponivel ? "active" : "done"} text-[10px]`}>
+                    {m.disponivel ? "Disponível" : "Indisponível"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Own activity: transport requests ── */}
+        {isOwn && requests.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <p className="label-eyebrow flex items-center gap-1.5">
+                <Truck size={13} /> Pedidos de transporte
+              </p>
+              <Link href="/transporte" className="font-mono text-xs text-field hover:underline flex items-center gap-1">
+                Ver todos <ChevronRight size={12} />
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {requests.map((r) => (
+                <div key={r.id} className="field-card rounded-sm flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-body text-sm text-field">{r.produto}</p>
+                    <p className="font-mono text-xs text-ink/50">
+                      {r.origem} → {r.destino} · {r.peso_toneladas}t
+                    </p>
+                  </div>
+                  <span className={`status-badge text-[10px] ${
+                    r.status === "concluido" ? "done" :
+                    r.status === "cancelado" ? "done" :
+                    r.status === "pendente" ? "pending" : "active"
+                  }`}>
+                    {r.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Rating form (outros utilizadores) ── */}
+        {canRate && (
+          <section>
+            {showRatingForm ? (
+              <RatingForm
+                token={token!}
+                avaliadoId={id}
+                onDone={() => {
+                  setShowRatingForm(false);
+                  loadProfile();
+                }}
+              />
+            ) : (
+              <button
+                onClick={() => setShowRatingForm(true)}
+                className="btn-secondary rounded-sm text-xs"
+              >
+                <Star size={13} /> Avaliar este utilizador
+              </button>
             )}
           </section>
         )}
 
-        {/* Ratings section */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl text-field flex items-center gap-2">
-              <Star size={18} className="text-harvest" />
-              Avaliações
-              {summary && summary.total_avaliacoes > 0 && (
-                <span className="font-mono text-sm text-ink/40">({summary.total_avaliacoes})</span>
-              )}
-            </h2>
-            <div className="flex items-center gap-3 flex-wrap">
-              {!isOwnProfile && token && !showRatingForm && (
-                <button
-                  onClick={() => setShowRatingForm(true)}
-                  className="btn-primary rounded-sm text-xs"
-                >
-                  <MessageSquare size={13} /> Avaliar
-                </button>
-              )}
-              {!isOwnProfile && token && (
-                <ReportButton
-                  token={token}
-                  denunciadoId={profileId}
-                  denunciadoNome={profile.nome}
-                />
-              )}
-              {isOwnProfile && token && (
-                <button
-                  onClick={() => setShowDashboard(v => !v)}
-                  className="btn-secondary rounded-sm text-xs"
-                >
-                  {showDashboard ? "← Ocultar painel" : "📊 O meu painel"}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {showRatingForm && token && (
-            <RatingForm
-              token={token}
-              avaliadoId={profileId}
-              onSubmitted={() => { setShowRatingForm(false); load(); }}
-              onCancel={() => setShowRatingForm(false)}
-            />
-          )}
-
-          {ratings.length === 0 && !showRatingForm ? (
-            <div className="field-card text-center py-10 rounded-sm">
-              <Star size={28} className="text-field/20 mx-auto mb-3" />
-              <p className="font-display text-xl text-field mb-1">Sem avaliações ainda</p>
-              <p className="font-body text-ink/45 text-sm">
-                {isOwnProfile
-                  ? "As avaliações de outros utilizadores aparecerão aqui."
-                  : "Seja o primeiro a avaliar este utilizador."}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {ratings.map((rating) => (
-                <RatingCard key={rating.id} rating={rating} />
+        {/* ── Ratings list ── */}
+        {ratings.length > 0 && (
+          <section>
+            <p className="label-eyebrow mb-4 flex items-center gap-1.5">
+              <Star size={13} /> Avaliações recebidas
+            </p>
+            <div className="space-y-3">
+              {ratings.map((r) => (
+                <div key={r.id} className="field-card rounded-sm">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <StarRow value={r.nota} />
+                    <span className="font-mono text-xs text-ink/30">
+                      {formatDate(r.criado_em)}
+                    </span>
+                  </div>
+                  {r.comentario && (
+                    <p className="font-body text-sm text-ink/70 leading-relaxed">{r.comentario}</p>
+                  )}
+                </div>
               ))}
             </div>
-          )}
-        </section>
-      </div>
-    </div>
-  );
-}
+          </section>
+        )}
 
-// ---- Edit Profile Form ----
-function EditProfileForm({ profile, token, onSaved, onCancel }: {
-  profile: User;
-  token: string;
-  onSaved: (u: User) => void;
-  onCancel: () => void;
-}) {
-  const [nome, setNome] = useState(profile.nome);
-  const [telefone, setTelefone] = useState(profile.telefone ?? "");
-  const [bio, setBio] = useState(profile.bio ?? "");
-  const [provincia, setProvincia] = useState(profile.provincia ?? "");
-  const [municipio, setMunicipio] = useState(profile.municipio ?? "");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const updated = await updateMyProfile(token, {
-        nome,
-        telefone: telefone || undefined,
-        bio: bio || undefined,
-        provincia: provincia || undefined,
-        municipio: municipio || undefined,
-      });
-      onSaved(updated);
-    } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : "Erro ao guardar perfil.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="field-card rounded-sm">
-      <div className="flex items-center justify-between mb-4">
-        <p className="label-eyebrow">Editar perfil</p>
-        <button type="button" onClick={onCancel} className="text-ink/40 hover:text-field transition-colors">
-          <X size={16} />
-        </button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-2 sm:col-span-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Nome completo</span>
-          <input required value={nome} onChange={e => setNome(e.target.value)} className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Telefone</span>
-          <input value={telefone} onChange={e => setTelefone(e.target.value)} placeholder="+244 9xx xxx xxx" className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Província</span>
-          <select value={provincia} onChange={e => { setProvincia(e.target.value); setMunicipio(""); }} className="field-input rounded-sm">
-            <option value="">Selecionar...</option>
-            {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Município</span>
-          <select value={municipio} onChange={e => setMunicipio(e.target.value)} className="field-input rounded-sm" disabled={!provincia}>
-            <option value="">Selecionar...</option>
-            {provincia && getMunicipios(provincia).map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-2 sm:col-span-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Bio (apresentação do negócio)</span>
-          <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3} placeholder="Descreva o seu negócio, especialidade, anos de experiência..." className="field-input rounded-sm resize-none" />
-        </label>
-      </div>
-      {error && <p className="text-earth font-body text-sm mt-3">{error}</p>}
-      <div className="flex gap-2 mt-4">
-        <button type="submit" disabled={loading} className="btn-harvest rounded-sm disabled:opacity-50">
-          <Save size={14} />
-          {loading ? "A guardar..." : "Guardar perfil"}
-        </button>
-        <button type="button" onClick={onCancel} className="btn-secondary rounded-sm">
-          Cancelar
-        </button>
-      </div>
-    </form>
-  );
-}
-
-// ---- Change Password Form ----
-function ChangePasswordForm({ token, onSaved, onCancel }: {
-  token: string;
-  onSaved: () => void;
-  onCancel: () => void;
-}) {
-  const [senhaAtual, setSenhaAtual] = useState("");
-  const [senhaNova, setSenhaNova] = useState("");
-  const [senhaConfirm, setSenhaConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSuccess(false);
-    
-    if (senhaNova !== senhaConfirm) {
-      setError("As senhas novas não correspondem");
-      return;
-    }
-    
-    if (senhaNova.length < 8) {
-      setError("A senha deve ter no mínimo 8 caracteres");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await changePassword(token, senhaAtual, senhaNova);
-      setSuccess(true);
-      setTimeout(() => {
-        setSenhaAtual("");
-        setSenhaNova("");
-        setSenhaConfirm("");
-        onSaved();
-      }, 2000);
-    } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : "Erro ao mudar senha.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="field-card rounded-sm bg-amber-50 border-2 border-amber-200">
-      <div className="flex items-center justify-between mb-4">
-        <p className="label-eyebrow text-amber-700">🔐 Mudar Senha</p>
-        <button type="button" onClick={onCancel} className="text-ink/40 hover:text-field transition-colors">
-          <X size={16} />
-        </button>
-      </div>
-      <div className="grid gap-4">
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Senha Atual</span>
-          <input type="password" required value={senhaAtual} onChange={e => setSenhaAtual(e.target.value)} placeholder="Introduza a sua senha atual" className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Nova Senha</span>
-          <input type="password" required value={senhaNova} onChange={e => setSenhaNova(e.target.value)} placeholder="Mínimo 8 caracteres" className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Confirmar Nova Senha</span>
-          <input type="password" required value={senhaConfirm} onChange={e => setSenhaConfirm(e.target.value)} placeholder="Repita a nova senha" className="field-input rounded-sm" />
-        </label>
-      </div>
-      {error && <p className="text-earth font-body text-sm mt-3">{error}</p>}
-      {success && <p className="text-harvest font-body text-sm mt-3">✅ Senha alterada com sucesso!</p>}
-      <div className="flex gap-2 mt-4">
-        <button type="submit" disabled={loading || success} className="btn-harvest rounded-sm disabled:opacity-50">
-          {loading ? "A mudar..." : success ? "✅ Alterada!" : "Mudar Senha"}
-        </button>
-        <button type="button" onClick={onCancel} className="btn-secondary rounded-sm">
-          Cancelar
-        </button>
-      </div>
-    </form>
-  );
-}
-
-// ---- Rating Card ----
-function RatingCard({ rating }: { rating: Rating }) {
-  return (
-    <div className="field-card rounded-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Stars value={rating.nota} size={14} />
-            <span className="font-mono text-xs text-ink/40">
-              {new Date(rating.criado_em).toLocaleDateString("pt-AO")}
-            </span>
+        {ratings.length === 0 && !isOwn && (
+          <div className="field-card rounded-sm text-center py-8">
+            <Star size={28} className="text-ink/20 mx-auto mb-2" />
+            <p className="font-body text-sm text-ink/40">Ainda sem avaliações</p>
           </div>
-          {rating.comentario && (
-            <p className="font-body text-sm text-ink/70 leading-relaxed">{rating.comentario}</p>
-          )}
-          {(rating.confianca || rating.qualidade || rating.pontualidade || rating.atendimento) && (
-            <div className="flex flex-wrap gap-3 mt-3">
-              {rating.confianca && (
-                <span className="font-mono text-xs text-ink/50">Confiança: <span className="text-field">{rating.confianca}/5</span></span>
-              )}
-              {rating.qualidade && (
-                <span className="font-mono text-xs text-ink/50">Qualidade: <span className="text-field">{rating.qualidade}/5</span></span>
-              )}
-              {rating.pontualidade && (
-                <span className="font-mono text-xs text-ink/50">Pontualidade: <span className="text-field">{rating.pontualidade}/5</span></span>
-              )}
-              {rating.atendimento && (
-                <span className="font-mono text-xs text-ink/50">Atendimento: <span className="text-field">{rating.atendimento}/5</span></span>
-              )}
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
-  );
-}
-
-// ---- Rating Form ----
-function RatingForm({ token, avaliadoId, onSubmitted, onCancel }: {
-  token: string;
-  avaliadoId: string;
-  onSubmitted: () => void;
-  onCancel: () => void;
-}) {
-  const [nota, setNota] = useState(5);
-  const [confianca, setConfianca] = useState(5);
-  const [qualidade, setQualidade] = useState(5);
-  const [pontualidade, setPontualidade] = useState(5);
-  const [atendimento, setAtendimento] = useState(5);
-  const [comentario, setComentario] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await createRating(token, {
-        avaliado_id: avaliadoId, nota, confianca, qualidade, pontualidade, atendimento,
-        comentario: comentario || undefined,
-      });
-      onSubmitted();
-    } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : "Não foi possível enviar a avaliação.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const criteria: [string, number, (v: number) => void][] = [
-    ["Nota geral", nota, setNota],
-    ["Confiança", confianca, setConfianca],
-    ["Qualidade", qualidade, setQualidade],
-    ["Pontualidade", pontualidade, setPontualidade],
-    ["Atendimento", atendimento, setAtendimento],
-  ];
-
-  return (
-    <form onSubmit={handleSubmit} className="field-card rounded-sm border-harvest/30 mb-4">
-      <div className="flex items-center justify-between mb-4">
-        <p className="label-eyebrow">Deixar avaliação</p>
-        <button type="button" onClick={onCancel} className="text-ink/40 hover:text-field transition-colors">
-          <X size={16} />
-        </button>
-      </div>
-      <div className="grid gap-5 sm:grid-cols-2 mb-4">
-        {criteria.map(([label, value, setValue]) => (
-          <label key={label} className="flex flex-col gap-2">
-            <span className="font-mono text-xs uppercase tracking-wider text-ink/50">{label}</span>
-            <ClickableStars value={value} onChange={setValue} />
-          </label>
-        ))}
-      </div>
-      <label className="flex flex-col gap-2 mb-4">
-        <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Comentário (opcional)</span>
-        <textarea value={comentario} onChange={e => setComentario(e.target.value)} rows={3}
-          placeholder="Partilhe a sua experiência com este utilizador..."
-          className="field-input rounded-sm resize-none" />
-      </label>
-      {error && <p className="text-earth font-body text-sm mb-3">{error}</p>}
-      <div className="flex gap-2">
-        <button type="submit" disabled={loading} className="btn-harvest rounded-sm disabled:opacity-50">
-          {loading ? "A enviar..." : "Enviar avaliação"}
-        </button>
-        <button type="button" onClick={onCancel} className="btn-secondary rounded-sm">
-          Cancelar
-        </button>
-      </div>
-    </form>
   );
 }
