@@ -21,6 +21,7 @@ from app.api.routes import (
 )
 from app.api.routes import (
     admin_moderation,
+    notifications,
     payments_gateway,
     prices_trends,
     social_shares,
@@ -216,6 +217,7 @@ app.include_router(payments.router, prefix=api_prefix)
 app.include_router(payments_gateway.router, prefix=api_prefix)
 app.include_router(uploads.router, prefix=api_prefix)
 app.include_router(admin_moderation.router, prefix=api_prefix)
+app.include_router(notifications.router, prefix=api_prefix)
 
 
 @app.exception_handler(Exception)
