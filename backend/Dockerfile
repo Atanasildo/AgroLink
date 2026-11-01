@@ -24,3 +24,4 @@ CMD ["sh", "-c", "\
   echo 'A iniciar servidor...' && \
   uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1\
 "]
+# redeploy trigger
