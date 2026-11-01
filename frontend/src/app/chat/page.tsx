@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Send, MessageCircle, Loader2, ArrowLeft, UserPlus, Search, X, Wifi } from "lucide-react";
 import { ReportButton } from "@/components/ReportButton";
 import { useAuth } from "@/context/AuthContext";
@@ -29,7 +30,7 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString("pt-AO");
 }
 
-export default function ChatPage() {
+function ChatPageInner() {
   const { user, token } = useAuth();
   // Clear unread badge when chat is open
   const { refreshUnread } = useAuth();
@@ -51,6 +52,16 @@ export default function ChatPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
+
+  // Suporte a /chat?with=USER_ID (vindo do perfil público)
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const withId = searchParams.get("with");
+    if (withId && withId !== activeId) {
+      setActiveId(withId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -560,5 +571,13 @@ export default function ChatPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={null}>
+      <ChatPageInner />
+    </Suspense>
   );
 }
