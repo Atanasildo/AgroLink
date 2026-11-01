@@ -9,39 +9,6 @@ _INSECURE_DEFAULTS = {
     "troque-esta-chave-admin-no-env",
 }
 
-# Conjunto de caracteres que contam como "complexidade"
-_UPPER = set(string.ascii_uppercase)
-_LOWER = set(string.ascii_lowercase)
-_DIGITS = set(string.digits)
-_SPECIAL = set(string.punctuation)
-
-
-def _check_key_strength(value: str, field_name: str) -> str:
-    """Rejeita chaves fracas ou com valores padrão inseguros em produção."""
-    if value in _INSECURE_DEFAULTS:
-        # Não lançar erro em tempo de importação — o aviso de startup trata isso.
-        return value
-
-    chars = set(value)
-    issues = []
-    if len(value) < 32:
-        issues.append(f"comprimento mínimo 32 chars (atual: {len(value)})")
-    if not (chars & _UPPER):
-        issues.append("pelo menos uma letra maiúscula")
-    if not (chars & _LOWER):
-        issues.append("pelo menos uma letra minúscula")
-    if not (chars & _DIGITS):
-        issues.append("pelo menos um dígito")
-
-    if issues:
-        suggested = secrets.token_urlsafe(48)
-        raise ValueError(
-            f"{field_name} não cumpre os requisitos mínimos de segurança: "
-            + "; ".join(issues)
-            + f". Sugestão segura: {suggested}"
-        )
-    return value
-
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AgroLink API"
@@ -64,26 +31,17 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    @field_validator("SECRET_KEY")
-    @classmethod
-    def _validate_secret_key(cls, value: str) -> str:
-        if value in _INSECURE_DEFAULTS:
-            return value  # aviso em startup, não bloqueia
-        return value  # aceita qualquer valor — validação de força em startup log
-
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000,https://agro-link-eight.vercel.app"
 
-    # Comissões
+    # Comissoes
     TRANSPORT_COMMISSION_PERCENT: float = 5.0
     MACHINE_RENTAL_COMMISSION_PERCENT: float = 10.0
 
     # Admin
     ADMIN_SETUP_KEY: str = "troque-esta-chave-admin-no-env"
 
-    # ADMIN_SETUP_KEY sem validação de força — é uma chave interna controlada pelo operador
-
-    # Verificação OTP
+    # Verificacao OTP
     VERIFICATION_CODE_EXPIRE_MINUTES: int = 10
     VERIFICATION_CODE_MAX_ATTEMPTS: int = 5
     VERIFICATION_CODE_RESEND_SECONDS: int = 60
@@ -95,17 +53,17 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     EMAIL_FROM: str = "noreply@agrolink.ao"
 
-    # SMS (Africa's Talking ou similar)
+    # SMS
     SMS_API_KEY: str = ""
     SMS_SENDER_ID: str = "AgroLink"
 
-    # S3 / MinIO (armazenamento de imagens)
+    # S3 / MinIO
     S3_BUCKET: str = ""
     S3_ACCESS_KEY: str = ""
     S3_SECRET_KEY: str = ""
     S3_REGION: str = "af-south-1"
-    S3_ENDPOINT_URL: str = ""       # Para MinIO: http://minio:9000
-    S3_PUBLIC_URL_BASE: str = ""    # URL pública base das imagens
+    S3_ENDPOINT_URL: str = ""
+    S3_PUBLIC_URL_BASE: str = ""
     MAX_UPLOAD_SIZE_MB: int = 10
 
     # Upload local (fallback dev)
@@ -114,9 +72,9 @@ class Settings(BaseSettings):
 
     # Firebase FCM v1
     FCM_PROJECT_ID: str = ""
-    FCM_SERVICE_ACCOUNT_JSON: str = ""  # JSON completo da service account
+    FCM_SERVICE_ACCOUNT_JSON: str = ""
 
-    # ProxyPay / Multicaixa EMIS GPO
+    # ProxyPay / Multicaixa
     PROXYPAY_BASE_URL: str = "https://api.proxypay.co.ao"
     PROXYPAY_BEARER_TOKEN: str = ""
     PROXYPAY_POS_ID: str = ""
