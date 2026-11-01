@@ -815,19 +815,21 @@ export function getPublicProducts(userId: string) {
 // ---------- Upload de foto de perfil ----------
 
 export async function uploadProfilePhoto(token: string, file: File): Promise<string> {
-  const form = new FormData();
-  form.append("file", file);
-  const res = await fetch(`${API_URL}/uploads/profile`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: form,
-  });
-  if (!res.ok) {
-    let detail: unknown;
-    try { detail = (await res.json()).detail; } catch { detail = res.statusText; }
-    throw new ApiError(res.status, detail);
+  for (const entityType of ["profile", "social"]) {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${API_URL}/uploads/${entityType}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (res.ok) { const data = await res.json(); return data.url as string; }
+    if (res.status !== 400) {
+      let detail: unknown;
+      try { detail = (await res.json()).detail; } catch { detail = res.statusText; }
+      throw new ApiError(res.status, detail);
+    }
   }
-  const data = await res.json();
-  return data.url as string;
+  throw new ApiError(400, "Falha ao fazer upload da foto de perfil.");
 }
 
