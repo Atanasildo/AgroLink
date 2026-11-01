@@ -78,7 +78,7 @@ export function Nav() {
             {user ? (
               <>
                 <Link
-                  href={`/perfil/${user.id}`}
+                  href="/minha-conta"
                   className="flex items-center gap-1.5 bg-field/8 border border-field/20 px-2.5 py-1.5 rounded-sm hover:bg-field/15 transition-colors"
                 >
                   <User size={12} className="text-field" />
@@ -173,7 +173,7 @@ export function Nav() {
               {user ? (
                 <div className="flex items-center justify-between">
                   <Link
-                    href={`/perfil/${user.id}`}
+                    href="/minha-conta"
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-2.5"
                   >
