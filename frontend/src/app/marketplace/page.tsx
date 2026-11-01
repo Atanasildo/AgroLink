@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
-import { Search, Plus, X, Leaf } from "lucide-react";
+import { useEffect, useState, FormEvent, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Search, X, Leaf } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, Product, createProduct, listProducts } from "@/lib/api";
+import { ApiError, Product, listProducts, getUser, User } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { FarmerDashboard } from "@/components/FarmerDashboard";
+import Link from "next/link";
 
 const categorias = [
   { value: "", label: "Todas as categorias" },
@@ -17,8 +19,9 @@ const categorias = [
   { value: "outros",       label: "📦 Outros" },
 ];
 
-export default function MarketplacePage() {
+function MarketplaceInner() {
   const { user, token } = useAuth();
+  const searchParams = useSearchParams();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,9 +31,24 @@ export default function MarketplacePage() {
   const [categoria, setCategoria] = useState("");
   const [provincia, setProvincia] = useState("");
   const [precoMax, setPrecoMax] = useState("");
-  const [showForm, setShowForm] = useState(false);
 
-  async function loadProducts() {
+  // Filtro por agricultor vindo do perfil público
+  const [agricultorId, setAgricultorId] = useState<string | null>(null);
+  const [agricultorNome, setAgricultorNome] = useState<string | null>(null);
+
+  // Inicializar filtro agricultorId a partir do query param
+  useEffect(() => {
+    const aid = searchParams.get("agricultor_id");
+    if (aid) {
+      setAgricultorId(aid);
+      getUser(aid)
+        .then((u) => setAgricultorNome(u.nome))
+        .catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadProducts(aid?: string | null) {
     setLoading(true);
     setError(null);
     try {
@@ -39,6 +57,7 @@ export default function MarketplacePage() {
         categoria: categoria || undefined,
         provincia: provincia || undefined,
         preco_max: precoMax || undefined,
+        agricultor_id: (aid !== undefined ? aid : agricultorId) || undefined,
       });
       setProducts(data);
     } catch {
@@ -48,9 +67,23 @@ export default function MarketplacePage() {
     }
   }
 
-  useEffect(() => { loadProducts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // Carregar quando agricultorId estiver definido (ou vazio)
+  useEffect(() => {
+    loadProducts(agricultorId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agricultorId]);
 
   function handleSearch(e: FormEvent) { e.preventDefault(); loadProducts(); }
+
+  function clearAgricultorFilter() {
+    setAgricultorId(null);
+    setAgricultorNome(null);
+    // Limpar URL sem reload
+    if (typeof window !== "undefined") {
+      window.history.replaceState({}, "", "/marketplace");
+    }
+    loadProducts(null);
+  }
 
   return (
     <div>
@@ -63,9 +96,6 @@ export default function MarketplacePage() {
               Produtos frescos directamente dos agricultores angolanos
             </p>
           </div>
-          {user?.role === "agricultor" && (
-            <span /> // Gerido pelo painel abaixo
-          )}
         </div>
       </div>
 
@@ -79,8 +109,21 @@ export default function MarketplacePage() {
           </div>
         )}
 
-        {showForm && token && (
-          <PublishProductForm token={token} onPublished={() => { setShowForm(false); loadProducts(); }} />
+        {/* Banner filtro por agricultor */}
+        {agricultorId && agricultorNome && (
+          <div className="flex items-center justify-between gap-3 bg-field/8 border border-field/20 rounded-sm px-4 py-3 mb-6">
+            <p className="font-mono text-xs text-field">
+              A mostrar produtos de <strong>{agricultorNome}</strong>
+            </p>
+            <div className="flex items-center gap-3">
+              <Link href={`/perfil/${agricultorId}`} className="font-mono text-xs text-field/60 hover:text-field underline-offset-2 hover:underline">
+                Ver perfil
+              </Link>
+              <button onClick={clearAgricultorFilter} className="font-mono text-xs text-earth hover:text-earth/80 flex items-center gap-1">
+                <X size={12} /> Ver todos
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Filtros */}
@@ -112,10 +155,16 @@ export default function MarketplacePage() {
                 placeholder="Sem limite"
                 className="field-input rounded-sm" />
             </label>
-            <div className="sm:col-span-2 lg:col-span-4">
+            <div className="sm:col-span-2 lg:col-span-4 flex items-center gap-3">
               <button type="submit" className="btn-primary rounded-sm">
                 <Search size={16} /> Pesquisar
               </button>
+              {(nome || categoria || provincia || precoMax) && (
+                <button type="button" onClick={() => { setNome(""); setCategoria(""); setProvincia(""); setPrecoMax(""); setTimeout(() => loadProducts(), 0); }}
+                  className="btn-secondary rounded-sm text-xs">
+                  <X size={13} /> Limpar filtros
+                </button>
+              )}
             </div>
           </div>
         </form>
@@ -126,7 +175,7 @@ export default function MarketplacePage() {
             <div>
               <p className="font-mono text-xs uppercase tracking-wider font-bold mb-0.5">Erro ao carregar</p>
               <p className="font-body text-sm">{error}</p>
-              <button onClick={loadProducts} className="font-mono text-xs underline mt-1 hover:no-underline">
+              <button onClick={() => loadProducts()} className="font-mono text-xs underline mt-1 hover:no-underline">
                 Tentar novamente
               </button>
             </div>
@@ -154,16 +203,10 @@ export default function MarketplacePage() {
             </div>
             <p className="empty-state-title">Nenhum produto encontrado</p>
             <p className="empty-state-desc">
-              Tente ajustar os filtros ou remova a pesquisa para ver todos os produtos disponíveis.
+              {agricultorId
+                ? "Este agricultor ainda não tem produtos publicados."
+                : "Tente ajustar os filtros ou remova a pesquisa para ver todos os produtos disponíveis."}
             </p>
-            {(nome || categoria || provincia || precoMax) && (
-              <button
-                onClick={() => { setNome(""); setCategoria(""); setProvincia(""); setPrecoMax(""); setTimeout(loadProducts, 0); }}
-                className="btn-secondary rounded-sm mt-5 text-xs"
-              >
-                <X size={13} /> Limpar filtros
-              </button>
-            )}
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 animate-fade-in">
@@ -179,90 +222,10 @@ export default function MarketplacePage() {
   );
 }
 
-function PublishProductForm({ token, onPublished }: { token: string; onPublished: () => void }) {
-  const [nome, setNome] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [categoria, setCategoria] = useState("cereais");
-  const [preco, setPreco] = useState("");
-  const [quantidade, setQuantidade] = useState("");
-  const [unidade, setUnidade] = useState("kg");
-  const [provincia, setProvincia] = useState("");
-  const [municipio, setMunicipio] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await createProduct(token, {
-        nome, descricao: descricao || undefined, categoria,
-        preco: Number(preco) as unknown as string,
-        quantidade: Number(quantidade) as unknown as string,
-        unidade, provincia, municipio,
-      });
-      onPublished();
-    } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : "Não foi possível publicar o produto.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
+export default function MarketplacePage() {
   return (
-    <div className="field-card mb-10 rounded-sm border-harvest/30">
-      <p className="label-eyebrow mb-5">Publicar novo produto</p>
-      <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="flex flex-col gap-2 lg:col-span-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Nome do produto</span>
-          <input required value={nome} onChange={e => setNome(e.target.value)}
-            placeholder="Ex: Milho Branco" className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Categoria</span>
-          <select value={categoria} onChange={e => setCategoria(e.target.value)} className="field-input rounded-sm">
-            {categorias.filter(c => c.value).map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Unidade</span>
-          <select value={unidade} onChange={e => setUnidade(e.target.value)} className="field-input rounded-sm">
-            {["kg", "tonelada", "saco", "unidade", "litro"].map(u => <option key={u}>{u}</option>)}
-          </select>
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Preço (Kz)</span>
-          <input required type="number" min="0.01" step="0.01" value={preco}
-            onChange={e => setPreco(e.target.value)} className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Quantidade</span>
-          <input required type="number" min="0.01" step="0.01" value={quantidade}
-            onChange={e => setQuantidade(e.target.value)} className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Província</span>
-          <input required value={provincia} onChange={e => setProvincia(e.target.value)}
-            placeholder="Ex: Huambo" className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Município</span>
-          <input required value={municipio} onChange={e => setMunicipio(e.target.value)}
-            placeholder="Ex: Caála" className="field-input rounded-sm" />
-        </label>
-        <label className="flex flex-col gap-2 lg:col-span-4">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink/50">Descrição (opcional)</span>
-          <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={3}
-            className="field-input rounded-sm" />
-        </label>
-        {error && <p className="text-earth font-body text-sm lg:col-span-4">{error}</p>}
-        <div className="lg:col-span-4">
-          <button type="submit" disabled={loading} className="btn-harvest rounded-sm disabled:opacity-50">
-            {loading ? "A publicar..." : "Publicar produto"}
-          </button>
-        </div>
-      </form>
-    </div>
+    <Suspense fallback={null}>
+      <MarketplaceInner />
+    </Suspense>
   );
 }
