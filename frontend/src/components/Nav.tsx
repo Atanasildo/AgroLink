@@ -5,7 +5,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import {
-  Sprout, Truck, ShoppingBasket, LogOut, User,
+  Sprout, Truck, ShoppingBasket, LogOut, User, Settings,
   Tractor, TrendingUp, Map, MessageCircle, Users, Menu, X, ShieldCheck,
 } from "lucide-react";
 
@@ -155,6 +155,21 @@ export function Nav() {
                   )}
                 </Link>
               ))}
+              {/* Minha Conta — visível para todos os utilizadores autenticados */}
+              {user && (
+                <Link
+                  href="/minha-conta"
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-5 py-4 font-mono text-sm uppercase tracking-wider transition-colors ${
+                    pathname === "/minha-conta"
+                      ? "bg-field text-cream"
+                      : "text-ink/70 hover:bg-field/5 hover:text-field"
+                  }`}
+                >
+                  <Settings size={18} className="text-field/50" />
+                  Minha Conta
+                </Link>
+              )}
               {/* Admin — apenas para role "admin" */}
               {user?.role === "admin" && (
                 <Link
