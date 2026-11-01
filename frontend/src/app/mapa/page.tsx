@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Map, Filter, Loader2, LocateFixed, Plus, X, Navigation,
-  Layers, ChevronDown, ChevronUp, MapPin, AlertCircle
+  Layers, ChevronDown, ChevronUp, MapPin, AlertCircle, Route
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { PROVINCIAS } from "@/lib/angola";
 import {
-  MapEntityType, MapLocation,
-  listMapLocations, createMapLocation,
+  MapEntityType, MapLocation, TransportRoute,
+  listMapLocations, createMapLocation, searchRoutes,
 } from "@/lib/api";
 
 const TIPOS: { value: MapEntityType | ""; label: string; emoji: string; color: string }[] = [
@@ -50,6 +50,13 @@ export default function MapaPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<MapLocation | null>(null);
   const [mapReady, setMapReady] = useState(false);
+
+  // Transport routes overlay
+  const [showRoutes, setShowRoutes] = useState(false);
+  const [routes, setRoutes] = useState<TransportRoute[]>([]);
+  const [routesLoading, setRoutesLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const routePolylinesRef = useRef<any[]>([]);
 
   // GPS state
   const [gpsStatus, setGpsStatus] = useState<"idle" | "loading" | "active" | "error">("idle");
@@ -206,6 +213,114 @@ export default function MapaPage() {
       });
     });
   }, [locations, mapReady]);
+
+  // ── Transport routes overlay ──────────────────────────────────────────────
+
+  // Geocode a place name (Angola biased) via Nominatim → [lat, lng] or null
+  async function geocode(place: string): Promise<[number, number] | null> {
+    try {
+      const q = encodeURIComponent(place + ", Angola");
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&countrycodes=ao`,
+        { headers: { "Accept-Language": "pt" } }
+      );
+      const data: { lat: string; lon: string }[] = await res.json();
+      if (!data.length) return null;
+      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    } catch { return null; }
+  }
+
+  // Fetch driving route from OSRM (no key required, public instance)
+  async function osrmRoute(
+    from: [number, number],
+    to: [number, number]
+  ): Promise<[number, number][] | null> {
+    try {
+      const url =
+        `https://router.project-osrm.org/route/v1/driving/` +
+        `${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.code !== "Ok" || !data.routes?.[0]) return null;
+      // GeoJSON coords are [lng, lat] — flip to [lat, lng] for Leaflet
+      return data.routes[0].geometry.coordinates.map(
+        ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
+      );
+    } catch { return null; }
+  }
+
+  useEffect(() => {
+    if (!mapReady || !leafletMapRef.current) return;
+
+    // Clear existing route polylines
+    import("leaflet").then((L) => {
+      routePolylinesRef.current.forEach((p) => p.remove());
+      routePolylinesRef.current = [];
+
+      if (!showRoutes || routes.length === 0) return;
+
+      // Draw each route asynchronously
+      routes.forEach(async (r, i) => {
+        const hue = (i * 47) % 360; // spread colours across hue wheel
+        const color = `hsl(${hue},70%,42%)`;
+
+        const [fromCoords, toCoords] = await Promise.all([
+          geocode(r.origem),
+          geocode(r.destino),
+        ]);
+        if (!fromCoords || !toCoords) return;
+        if (!leafletMapRef.current) return;
+
+        const latlngs = await osrmRoute(fromCoords, toCoords);
+
+        if (!latlngs || latlngs.length === 0) {
+          // Fallback: straight line
+          const line = L.polyline([fromCoords, toCoords], {
+            color, weight: 3, opacity: 0.7, dashArray: "6 4",
+          }).addTo(leafletMapRef.current);
+          line.bindTooltip(
+            `<b>${r.origem} → ${r.destino}</b><br/>` +
+            `Capacidade: ${r.capacidade_disponivel_toneladas}t disponíveis<br/>` +
+            `Preço: ${r.preco_por_tonelada} kz/t`,
+            { sticky: true }
+          );
+          routePolylinesRef.current.push(line);
+        } else {
+          const line = L.polyline(latlngs, {
+            color, weight: 4, opacity: 0.75,
+          }).addTo(leafletMapRef.current);
+          line.bindTooltip(
+            `<b>🚛 ${r.origem} → ${r.destino}</b><br/>` +
+            `Disponível: ${r.capacidade_disponivel_toneladas}t<br/>` +
+            `Preço: ${r.preco_por_tonelada} kz/t`,
+            { sticky: true }
+          );
+          // Origin dot
+          L.circleMarker(fromCoords, { radius: 6, color, fillColor: "#fff", fillOpacity: 1, weight: 2 })
+            .addTo(leafletMapRef.current)
+            .bindTooltip(`Origem: ${r.origem}`);
+          // Destination dot
+          L.circleMarker(toCoords, { radius: 6, color, fillColor: color, fillOpacity: 0.9, weight: 2 })
+            .addTo(leafletMapRef.current)
+            .bindTooltip(`Destino: ${r.destino}`);
+          routePolylinesRef.current.push(line);
+        }
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRoutes, routes, mapReady]);
+
+  async function handleToggleRoutes() {
+    if (showRoutes) { setShowRoutes(false); return; }
+    setRoutesLoading(true);
+    try {
+      const data = await searchRoutes();
+      setRoutes(data);
+      setShowRoutes(true);
+    } catch { /* ignore */ } finally {
+      setRoutesLoading(false);
+    }
+  }
 
   // GPS — locate user with watchPosition for real GPS accuracy
   const watchIdRef = useRef<number | null>(null);
@@ -401,6 +516,24 @@ export default function MapaPage() {
               <Navigation size={12}/> Google Maps
             </a>
           )}
+
+          {/* Routes overlay button */}
+          <button
+            onClick={handleToggleRoutes}
+            disabled={routesLoading}
+            title="Mostrar/ocultar rotas de transporte"
+            className={`flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1.5 border rounded-sm transition-colors ${
+              showRoutes
+                ? "bg-blue-600 border-blue-600 text-white"
+                : "border-blue-400/50 text-blue-700 hover:bg-blue-50"
+            }`}
+          >
+            {routesLoading
+              ? <Loader2 size={12} className="animate-spin" />
+              : <Route size={12} />
+            }
+            {showRoutes ? `${routes.length} Rotas` : "Rotas"}
+          </button>
 
           {/* Add location (authenticated only) */}
           {token && (

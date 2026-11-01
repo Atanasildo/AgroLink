@@ -293,6 +293,73 @@ export default function ChatPage() {
             </div>
           )}
 
+          {/* Online Now panel — shown when not in search mode and there are online users */}
+          {!showSearch && onlineUsers.length > 0 && (
+            <div className="border-b border-field/10 shrink-0">
+              <button
+                onClick={() => setShowOnline(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2 hover:bg-field/5 transition-colors"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Wifi size={11} className="text-emerald-500" />
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-ink/60">
+                    Online agora
+                  </span>
+                  <span className="bg-emerald-500 text-white font-mono text-[9px] px-1.5 py-0.5 rounded-full leading-none">
+                    {onlineUsers.length}
+                  </span>
+                </div>
+                <span className="font-mono text-[9px] text-ink/30">
+                  {showOnline ? "▲" : "▼"}
+                </span>
+              </button>
+              {showOnline && (
+                <div className="overflow-y-auto max-h-48 pb-1">
+                  {onlineUsers.map((u) => {
+                    const ROLE_PT: Record<string, string> = {
+                      agricultor: "Agricultor",
+                      comprador: "Comprador",
+                      transportador: "Transportador",
+                      proprietario_maquinas: "Máquinas",
+                      admin: "Admin",
+                    };
+                    const ROLE_COLOR: Record<string, string> = {
+                      agricultor: "bg-field/15 text-field",
+                      comprador: "bg-harvest/15 text-harvest",
+                      transportador: "bg-blue-100 text-blue-700",
+                      proprietario_maquinas: "bg-slate-100 text-slate-600",
+                      admin: "bg-purple-100 text-purple-700",
+                    };
+                    return (
+                      <button
+                        key={u.id}
+                        onClick={() => openConversation(u)}
+                        className="w-full text-left px-3 py-2 hover:bg-field/5 transition-colors flex items-center gap-2.5"
+                      >
+                        <div className="relative shrink-0">
+                          <div className="w-7 h-7 bg-field/15 border border-field/20 rounded-full flex items-center justify-center">
+                            <span className="font-mono text-xs text-field font-bold">
+                              {u.nome?.[0]?.toUpperCase() ?? "?"}
+                            </span>
+                          </div>
+                          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-cream" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-xs text-ink font-bold truncate leading-tight">
+                            {u.nome}
+                          </p>
+                          <span className={`inline-block font-mono text-[9px] px-1.5 py-0.5 rounded-sm uppercase tracking-wide leading-none mt-0.5 ${ROLE_COLOR[u.role] ?? "bg-ink/10 text-ink/50"}`}>
+                            {ROLE_PT[u.role] ?? u.role}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto">
             {loadingConvs && (
               <div className="p-3 space-y-2">
