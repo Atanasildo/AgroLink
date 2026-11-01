@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Send, MessageCircle, Loader2, ArrowLeft, UserPlus, Search, X } from "lucide-react";
+import { Send, MessageCircle, Loader2, ArrowLeft, UserPlus, Search, X, Wifi } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import {
   ChatMessage,
@@ -10,6 +10,7 @@ import {
   getConversation,
   getUser,
   listConversations,
+  listOnlineUsers,
   sendMessage,
   searchUsers,
 } from "@/lib/api";
@@ -40,6 +41,10 @@ export default function ChatPage() {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [sending, setSending] = useState(false);
 
+  // Online users
+  const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
+  const [showOnline, setShowOnline] = useState(false);
+
   // New conversation search
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,6 +54,15 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Poll online users every 30s
+  useEffect(() => {
+    if (!token) return;
+    const fetch = () => listOnlineUsers(token).then(setOnlineUsers).catch(() => {});
+    fetch();
+    const id = setInterval(fetch, 30_000);
+    return () => clearInterval(id);
+  }, [token]);
 
   // Load conversations list
   useEffect(() => {

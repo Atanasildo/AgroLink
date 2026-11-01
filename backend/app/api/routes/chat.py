@@ -16,9 +16,28 @@ from app.crud.chat import (
 from app.crud.user import get_user_by_id
 from app.models.user import User
 from app.schemas.chat import ChatMessageCreate, ChatMessageRead, ConversationSummary
+from app.schemas.user import UserPublicRead
 from app.utils.connection_manager import manager
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
+
+
+@router.get("/online", response_model=list[UserPublicRead])
+def list_online_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Listar utilizadores com conexão WebSocket ativa (online agora).
+    Exclui o próprio utilizador autenticado."""
+    active_ids = manager.active_user_ids()
+    users = []
+    for uid in active_ids:
+        if uid == current_user.id:
+            continue
+        u = get_user_by_id(db, uid)
+        if u and u.ativo:
+            users.append(u)
+    return users
 
 
 @router.get("/conversations", response_model=list[ConversationSummary])

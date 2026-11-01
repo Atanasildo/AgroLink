@@ -742,3 +742,7 @@ export function listReportsAdmin(token: string) {
     }[]
   >("/users/reports/admin/all", { token });
 }
+
+export function listOnlineUsers(token: string) {
+  return apiRequest<User[]>("/chat/online", { token });
+}

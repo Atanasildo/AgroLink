@@ -10,7 +10,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.crud.user import get_user_by_id, search_users, update_user
 from app.models.user import User, UserRole
-from app.schemas.user import AdminPromoteRequest, UserRead, UserUpdate
+from app.schemas.user import AdminPromoteRequest, UserPublicRead, UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["Utilizadores"])
 
@@ -179,21 +179,6 @@ def list_all_reports_admin(
 
 
 # ─── Perfil público — deve vir DEPOIS das rotas com paths fixos ──────────────
-
-class UserPublicRead(BaseModel):
-    """Perfil público de um utilizador — sem email nem telefone."""
-    model_config = {"from_attributes": True}
-
-    id: uuid.UUID
-    nome: str
-    role: str
-    provincia: str | None = None
-    municipio: str | None = None
-    bio: str | None = None
-    foto_perfil_url: str | None = None
-    email_verificado: bool
-    telefone_verificado: bool
-
 
 @router.get("/{user_id}", response_model=UserPublicRead)
 def read_user(

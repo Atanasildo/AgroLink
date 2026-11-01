@@ -21,6 +21,10 @@ class ConnectionManager:
             if not connections:
                 self._connections.pop(user_id, None)
 
+    def active_user_ids(self) -> list[uuid.UUID]:
+        """Retorna IDs de todos os utilizadores com pelo menos uma conexão WS ativa."""
+        return list(self._connections.keys())
+
     async def send_to_user(self, user_id: uuid.UUID, payload: dict) -> None:
         connections = self._connections.get(user_id, set())
         for websocket in list(connections):

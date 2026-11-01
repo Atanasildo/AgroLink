@@ -116,3 +116,18 @@ class UserRead(UserBase):
     telefone_verificado: bool
     ativo: bool
     criado_em: datetime
+
+
+class UserPublicRead(BaseModel):
+    """Perfil público de um utilizador — sem email nem telefone."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    nome: str
+    role: str
+    provincia: str | None = None
+    municipio: str | None = None
+    bio: str | None = None
+    foto_perfil_url: str | None = None
+    email_verificado: bool
+    telefone_verificado: bool
