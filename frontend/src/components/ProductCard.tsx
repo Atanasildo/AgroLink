@@ -4,6 +4,7 @@ import { Product } from "@/lib/api";
 import { MapPin, Package, MessageSquare, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
+import { ReportButton } from "@/components/ReportButton";
 
 function formatKz(value: string | number) {
   return new Intl.NumberFormat("pt-AO", { maximumFractionDigits: 0 }).format(Number(value)) + " Kz";
@@ -37,7 +38,7 @@ function getProductImage(nome: string, categoria: string): string {
 }
 
 export function ProductCard({ product }: { product: Product }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [showContact, setShowContact] = useState(false);
   const [imgError, setImgError] = useState(false);
 
@@ -129,6 +130,17 @@ export function ProductCard({ product }: { product: Product }) {
           <a href="/login" className="mt-auto w-full btn-secondary rounded-sm text-xs justify-center text-center block">
             Entrar para contactar vendedor
           </a>
+        )}
+
+        {/* Denúncia — disponível para utilizadores autenticados que não sejam o próprio vendedor */}
+        {user && token && user.id !== product.agricultor_id && (
+          <div className="pt-1 mt-auto flex justify-end">
+            <ReportButton
+              token={token}
+              denunciadoId={product.agricultor_id}
+              denunciadoNome="este vendedor"
+            />
+          </div>
         )}
       </div>
     </div>

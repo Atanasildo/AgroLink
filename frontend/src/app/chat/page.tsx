@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Send, MessageCircle, Loader2, ArrowLeft, UserPlus, Search, X, Wifi } from "lucide-react";
+import { ReportButton } from "@/components/ReportButton";
 import { useAuth } from "@/context/AuthContext";
 import {
   ChatMessage,
@@ -470,7 +471,7 @@ export default function ChatPage() {
                     {activePartner?.nome?.[0]?.toUpperCase() ?? "?"}
                   </span>
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="font-mono text-xs uppercase tracking-wider text-ink font-bold">
                     {activePartner?.nome ?? "Utilizador"}
                   </p>
@@ -480,6 +481,13 @@ export default function ChatPage() {
                     </p>
                   )}
                 </div>
+                {token && activePartner && (
+                  <ReportButton
+                    token={token}
+                    denunciadoId={activePartner.id}
+                    denunciadoNome={activePartner.nome}
+                  />
+                )}
               </div>
 
               {/* Messages */}

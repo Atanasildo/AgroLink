@@ -11,6 +11,7 @@ import {
 import { RouteDiagram } from "@/components/RouteDiagram";
 import { TransporterDashboard } from "@/components/TransporterDashboard";
 import { TransportTrackingMap } from "@/components/Transport/TransportTrackingMap";
+import { ReportButton } from "@/components/ReportButton";
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; cls: string }> = {
   pendente:     { label: "Pendente",     icon: Clock,        cls: "pending" },
@@ -195,6 +196,7 @@ export default function TransportePage() {
                     token={token}
                     isAgricultor={user?.role === "agricultor" || user?.role === "comprador"}
                     onRequested={loadMyRequests}
+                    currentUserId={user?.id}
                   />
                 </div>
               ))}
@@ -268,12 +270,13 @@ export default function TransportePage() {
 }
 
 function RouteCard({
-  route, token, isAgricultor, onRequested,
+  route, token, isAgricultor, onRequested, currentUserId,
 }: {
   route: TransportRoute;
   token: string | null;
   isAgricultor: boolean;
   onRequested: () => void;
+  currentUserId?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [peso, setPeso] = useState("");
@@ -438,6 +441,17 @@ function RouteCard({
             {loading ? "A enviar..." : "Confirmar solicitação"}
           </button>
         </form>
+      )}
+
+      {/* Denúncia do transportador */}
+      {token && currentUserId && currentUserId !== route.transportador_id && (
+        <div className="mt-3 pt-3 border-t border-field/10 flex justify-end">
+          <ReportButton
+            token={token}
+            denunciadoId={route.transportador_id}
+            denunciadoNome="este transportador"
+          />
+        </div>
       )}
 
       {done && (loadingPayment || payment) && (
