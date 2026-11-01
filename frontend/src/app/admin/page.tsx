@@ -100,6 +100,7 @@ export default function AdminPage() {
   const [reportsLoading, setReportsLoading] = useState(false);
   const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
   const [suspendingUserId, setSuspendingUserId] = useState<string | null>(null);
+  const [filterUserId, setFilterUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -182,11 +183,12 @@ export default function AdminPage() {
     }
   }, [user, token, loadStats]);
 
-  const loadAdminProducts = useCallback(async () => {
+  const loadAdminProducts = useCallback(async (userId?: string) => {
     if (!token) return;
     setProductsLoading(true);
     try {
-      const data = await apiRequest<any[]>("/admin/products?limit=100", { token });
+      const qs = userId ? `?limit=100&agricultor_id=${userId}` : "?limit=100";
+      const data = await apiRequest<any[]>(`/admin/products${qs}`, { token });
       setAdminProducts(data);
     } catch {
       setAdminProducts([]);
@@ -655,8 +657,21 @@ export default function AdminPage() {
         {tab === "produtos" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="label-eyebrow">Produtos no marketplace</p>
-              <button onClick={loadAdminProducts} disabled={productsLoading} className="btn-secondary rounded-sm text-xs">
+              <div>
+                <p className="label-eyebrow">Produtos no marketplace</p>
+                {filterUserId && (
+                  <p className="font-mono text-xs text-harvest mt-0.5">
+                    A filtrar por utilizador denunciado ·{" "}
+                    <button
+                      onClick={() => { setFilterUserId(null); loadAdminProducts(); }}
+                      className="underline hover:text-harvest/70"
+                    >
+                      ver todos
+                    </button>
+                  </p>
+                )}
+              </div>
+              <button onClick={() => loadAdminProducts(filterUserId ?? undefined)} disabled={productsLoading} className="btn-secondary rounded-sm text-xs">
                 <RefreshCw size={13} className={productsLoading ? "animate-spin" : ""} /> Actualizar
               </button>
             </div>
@@ -785,7 +800,12 @@ export default function AdminPage() {
                             {suspendingUserId === report.denunciado_id ? "..." : "Suspender utilizador"}
                           </button>
                           <button
-                            onClick={() => { setTab("produtos"); }}
+                            onClick={() => {
+                              setFilterUserId(report.denunciado_id);
+                              setAdminProducts([]);
+                              loadAdminProducts(report.denunciado_id);
+                              setTab("produtos");
+                            }}
                             className="flex items-center gap-1.5 font-mono text-xs px-3 py-1.5 rounded-sm bg-field/10 text-field hover:bg-field/20 transition-colors"
                           >
                             <Leaf size={12} />
