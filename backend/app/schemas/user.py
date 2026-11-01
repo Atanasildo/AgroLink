@@ -7,43 +7,27 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.models.user import UserRole
 
-# Domínios de confiança para foto de perfil
-_ALLOWED_PHOTO_HOSTS: set[str] = {
-    "localhost",
-    "127.0.0.1",
-    "storage.agrolink.ao",
-    "minio",
-}
-
 _PASSWORD_MIN_LENGTH = 8
-# Pelo menos uma letra e um dígito (complexidade mínima sem ser irritante em mobile)
 _PASSWORD_RE = re.compile(r"^(?=.*[A-Za-z])(?=.*\d).{8,}$")
 
 
 def _validate_foto_url(url: str | None) -> str | None:
     if not url:
         return url
+    # Rejeitar base64 — deve fazer upload via /uploads/profile primeiro
+    if url.startswith("data:"):
+        raise ValueError("Usa /uploads/profile para fazer upload da foto. Não são aceites imagens em base64.")
     try:
         parsed = urlparse(url)
     except Exception:
         raise ValueError("URL de foto de perfil inválida")
-    # Paths relativos (uploads locais em dev) são ok
+    # Path relativo (ex: /uploads/profile/abc.jpg) — ok
     if not parsed.scheme:
         return url
-    if parsed.scheme not in ("http", "https"):
-        raise ValueError(f"Esquema não permitido: {parsed.scheme!r}")
-    host = parsed.hostname or ""
-    allowed = (
-        host in _ALLOWED_PHOTO_HOSTS
-        or host.endswith(".amazonaws.com")
-        or host.endswith(".agrolink.ao")
-    )
-    if not allowed:
-        raise ValueError(
-            f"Domínio de foto não autorizado: {host!r}. "
-            "Usa /uploads para fazer upload e usa a URL devolvida."
-        )
-    return url
+    # Qualquer URL https é aceite
+    if parsed.scheme in ("http", "https"):
+        return url
+    raise ValueError(f"Esquema não permitido: {parsed.scheme!r}")
 
 
 class UserBase(BaseModel):
@@ -74,9 +58,8 @@ class UserLogin(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    """Request para mudar a senha (autenticado ou com senha temporária)."""
-    senha_atual: str = Field(min_length=1, description="Senha atual ou temporária")
-    senha_nova: str = Field(min_length=_PASSWORD_MIN_LENGTH, max_length=128, description="Nova senha")
+    senha_atual: str = Field(min_length=1)
+    senha_nova: str = Field(min_length=_PASSWORD_MIN_LENGTH, max_length=128)
 
     @field_validator("senha_nova")
     @classmethod
@@ -103,7 +86,7 @@ class UserUpdate(BaseModel):
 
 
 class AdminPromoteRequest(BaseModel):
-    chave: str = Field(min_length=1, description="Chave secreta de configuração (ADMIN_SETUP_KEY)")
+    chave: str = Field(min_length=1)
 
 
 class UserRead(UserBase):
@@ -119,7 +102,6 @@ class UserRead(UserBase):
 
 
 class UserPublicRead(BaseModel):
-    """Perfil público de um utilizador — sem email nem telefone."""
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
