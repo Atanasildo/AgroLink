@@ -196,6 +196,7 @@ async def initiate_payment(
     payment_id: str,
     telefone: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
     """Inicia um pagamento: cria transação no ProxyPay e devolve URL para o cliente pagar.
     
@@ -209,6 +210,8 @@ async def initiate_payment(
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pagamento não encontrado")
+    if payment.utilizador_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
 
     # Criar transação no ProxyPay
     transaction = await proxypay_client.create_transaction(
@@ -241,11 +244,14 @@ async def initiate_payment(
 async def get_payment_status(
     payment_id: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
     """Verifica status atual de um pagamento."""
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pagamento não encontrado")
+    if payment.utilizador_id != current_user.id and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
 
     # Se tem referência externa, verificar status no gateway
     if payment.referencia_externa:

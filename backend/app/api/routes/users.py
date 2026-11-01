@@ -15,7 +15,7 @@ from app.schemas.user import AdminPromoteRequest, UserRead, UserUpdate
 router = APIRouter(prefix="/users", tags=["Utilizadores"])
 
 
-@router.get("/", response_model=list[UserRead])
+@router.get("/", response_model=list[UserPublicRead])
 def list_users(
     q: Optional[str] = Query(None, description="Pesquisar por nome"),
     role: Optional[str] = Query(None, description="Filtrar por role"),
@@ -23,7 +23,7 @@ def list_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Pesquisar utilizadores por nome (para iniciar nova conversa)."""
+    """Pesquisar utilizadores por nome (para iniciar nova conversa). Não expõe email."""
     return search_users(db, q=q, role=role, exclude_id=current_user.id, limit=limit)
 
 

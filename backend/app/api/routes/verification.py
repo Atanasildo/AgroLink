@@ -7,9 +7,30 @@ POST /auth/verify/phone/request — gera e envia código
 POST /auth/verify/phone/confirm — valida código
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import time
+from collections import defaultdict
+from threading import Lock
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
+
+# Rate limiting local (para produção com múltiplos workers usar slowapi + Redis)
+_rate_store: dict[str, list[float]] = defaultdict(list)
+_rate_lock = Lock()
+
+
+def _check_rate_limit(key: str, max_requests: int = 5, window_seconds: int = 3600) -> None:
+    now = time.monotonic()
+    with _rate_lock:
+        _rate_store[key] = [t for t in _rate_store[key] if now - t < window_seconds]
+        if len(_rate_store[key]) >= max_requests:
+            raise HTTPException(
+                status_code=429,
+                detail="Demasiados pedidos. Aguarda antes de tentar novamente.",
+                headers={"Retry-After": str(window_seconds)},
+            )
+        _rate_store[key].append(now)
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
@@ -37,9 +58,13 @@ class VerifyCodeRequest(BaseModel):
 
 @router.post("/verify/email/request", status_code=status.HTTP_200_OK)
 async def request_email_verification(
-    payload: VerifyEmailRequest, db: Session = Depends(get_db)
+    request: Request, payload: VerifyEmailRequest, db: Session = Depends(get_db)
 ):
     """Gera um código de 6 dígitos e envia por email."""
+    # Rate limiting: 5 pedidos por hora por IP + 3 por email
+    _check_rate_limit(f"verify_email:ip:{request.client.host}", max_requests=5, window_seconds=3600)
+    _check_rate_limit(f"verify_email:email:{payload.email.lower()}", max_requests=3, window_seconds=3600)
+
     user = get_user_by_email(db, payload.email)
     if not user:
         # Não revelar se o email existe por segurança

@@ -104,6 +104,12 @@ def get_social_post(
     post = get_post(db, post_id)
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicação não encontrada")
+    # Posts não aprovados só são visíveis ao próprio autor ou a admins
+    if not post.aprovado:
+        if current_user is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicação não encontrada")
+        if post.autor_id != current_user.id and current_user.role != UserRole.ADMIN:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicação não encontrada")
     return _serialize_post(post, db, current_user)
 
 
@@ -129,7 +135,7 @@ def toggle_social_post_like(
 ):
     """Curtir/descurtir uma publicação (alterna o estado)."""
     post = get_post(db, post_id)
-    if not post:
+    if not post or not post.aprovado:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicação não encontrada")
 
     curtido = toggle_like(db, post_id, current_user.id)
@@ -152,7 +158,7 @@ def add_social_post_comment(
     current_user: User = Depends(get_current_user),
 ):
     post = get_post(db, post_id)
-    if not post:
+    if not post or not post.aprovado:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicação não encontrada")
 
     db_comment = create_comment(db, post_id, comment_in.conteudo, autor_id=current_user.id)

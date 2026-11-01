@@ -247,10 +247,20 @@ def my_transport_requests(
 
 
 @router.get("/requests/{request_id}", response_model=TransportRequestRead)
-def read_transport_request(request_id: uuid.UUID, db: Session = Depends(get_db)):
+def read_transport_request(
+    request_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     request = get_transport_request(db, request_id)
     if not request:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
+    # Apenas o agricultor, o transportador da rota ou um admin podem ver os detalhes
+    rota = get_route(db, request.rota_id) if request.rota_id else None
+    is_agricultor = request.agricultor_id == current_user.id
+    is_transportador = rota is not None and rota.transportador_id == current_user.id
+    if not (is_agricultor or is_transportador or current_user.role == UserRole.ADMIN):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
     return request
 
 
@@ -316,6 +326,13 @@ async def change_request_status(
     db_request = get_transport_request(db, request_id)
     if not db_request:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
+
+    # Ownership: agricultor pode cancelar; transportador da rota pode mover o status
+    rota = get_route(db, db_request.rota_id) if db_request.rota_id else None
+    is_agricultor = db_request.agricultor_id == current_user.id
+    is_transportador = rota is not None and rota.transportador_id == current_user.id
+    if not (is_agricultor or is_transportador or current_user.role == UserRole.ADMIN):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sem permissão")
 
     db_request = update_transport_request_status(db, db_request, status_in.status)
 
