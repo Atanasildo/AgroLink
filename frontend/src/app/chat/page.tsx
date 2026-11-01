@@ -293,7 +293,7 @@ export default function ChatPage() {
             </div>
           )}
 
-          {/* Online Now panel — shown when not in search mode and there are online users */}
+          {/* Comunidade — todos os utilizadores activos; ponto verde só para quem tem WS */}
           {!showSearch && onlineUsers.length > 0 && (
             <div className="border-b border-field/10 shrink-0">
               <button
@@ -303,11 +303,16 @@ export default function ChatPage() {
                 <div className="flex items-center gap-1.5">
                   <Wifi size={11} className="text-emerald-500" />
                   <span className="font-mono text-[10px] uppercase tracking-wider text-ink/60">
-                    Online agora
+                    Comunidade
                   </span>
-                  <span className="bg-emerald-500 text-white font-mono text-[9px] px-1.5 py-0.5 rounded-full leading-none">
+                  <span className="bg-field/20 text-field font-mono text-[9px] px-1.5 py-0.5 rounded-full leading-none">
                     {onlineUsers.length}
                   </span>
+                  {onlineUsers.some(u => u.is_online) && (
+                    <span className="bg-emerald-500 text-white font-mono text-[9px] px-1.5 py-0.5 rounded-full leading-none">
+                      {onlineUsers.filter(u => u.is_online).length} online
+                    </span>
+                  )}
                 </div>
                 <span className="font-mono text-[9px] text-ink/30">
                   {showOnline ? "▲" : "▼"}
@@ -342,7 +347,9 @@ export default function ChatPage() {
                               {u.nome?.[0]?.toUpperCase() ?? "?"}
                             </span>
                           </div>
-                          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-cream" />
+                          {u.is_online && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-cream" />
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-mono text-xs text-ink font-bold truncate leading-tight">

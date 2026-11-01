@@ -23,21 +23,31 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 
 
 @router.get("/online", response_model=list[UserPublicRead])
-def list_online_users(
+def list_community_users(
+    role: str | None = Query(default=None, description="Filtrar por role"),
+    limit: int = Query(default=100, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Listar utilizadores com conexão WebSocket ativa (online agora).
-    Exclui o próprio utilizador autenticado."""
-    active_ids = manager.active_user_ids()
-    users = []
-    for uid in active_ids:
-        if uid == current_user.id:
-            continue
-        u = get_user_by_id(db, uid)
-        if u and u.ativo:
-            users.append(u)
-    return users
+    """Listar todos os utilizadores activos da comunidade.
+
+    Devolve todos com ativo=True (excluindo o próprio utilizador).
+    O campo is_online=True indica que o utilizador tem uma conexão
+    WebSocket activa neste momento.
+    """
+    ws_ids: set[uuid.UUID] = set(manager.active_user_ids())
+
+    query = db.query(User).filter(User.ativo == True, User.id != current_user.id)  # noqa: E712
+    if role:
+        query = query.filter(User.role == role)
+    db_users = query.order_by(User.nome).limit(limit).all()
+
+    result = []
+    for u in db_users:
+        pub = UserPublicRead.model_validate(u)
+        pub.is_online = u.id in ws_ids
+        result.append(pub)
+    return result
 
 
 @router.get("/conversations", response_model=list[ConversationSummary])

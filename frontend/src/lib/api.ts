@@ -101,6 +101,16 @@ export interface User {
   telefone_verificado: boolean;
   ativo: boolean;
   criado_em: string;
+  is_online?: boolean;
+}
+
+export interface ActiveConnection {
+  pedido_id: string;
+  agricultor_id: string;
+  transportador_id: string;
+  origem: string;
+  destino: string;
+  status: string;
 }
 
 export interface Token {
@@ -743,6 +753,11 @@ export function listReportsAdmin(token: string) {
   >("/users/reports/admin/all", { token });
 }
 
-export function listOnlineUsers(token: string) {
-  return apiRequest<User[]>("/chat/online", { token });
+export function listOnlineUsers(token: string, role?: string) {
+  const q = role ? `?role=${encodeURIComponent(role)}` : "";
+  return apiRequest<User[]>(`/chat/online${q}`, { token });
+}
+
+export function listActiveConnections(token: string) {
+  return apiRequest<ActiveConnection[]>("/transport/active-connections", { token });
 }

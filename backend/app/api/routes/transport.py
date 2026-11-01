@@ -11,6 +11,8 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
+from pydantic import BaseModel
+
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
@@ -41,7 +43,8 @@ from app.crud.vehicle import (
     list_vehicles_by_owner,
     update_vehicle,
 )
-from app.models.transport_request import TransportStatus
+from app.models.transport_request import TransportRequest, TransportStatus
+from app.models.transport_route import TransportRoute as TransportRouteModel
 from app.models.user import User, UserRole
 from app.schemas.transport import (
     TransportRequestCreate,
@@ -394,6 +397,50 @@ async def update_location(
     )
 
     return db_request
+
+
+# ---------- Conexões activas agricultor↔transportador ----------
+
+class ActiveConnection(BaseModel):
+    """Par agricultor↔transportador com pedido aceite ou em andamento."""
+    pedido_id: uuid.UUID
+    agricultor_id: uuid.UUID
+    transportador_id: uuid.UUID
+    origem: str
+    destino: str
+    status: str
+
+
+@router.get("/active-connections", response_model=list[ActiveConnection])
+def list_active_connections(
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(get_current_user),
+):
+    """Devolver todos os pares agricultor↔transportador com pedido aceite ou em_andamento.
+
+    Usado pelo frontend do mapa para traçar rotas reais entre utilizadores ligados.
+    Só inclui pedidos associados a uma rota (rota_id não nulo).
+    """
+    rows = (
+        db.query(TransportRequest, TransportRouteModel)
+        .join(TransportRouteModel, TransportRequest.rota_id == TransportRouteModel.id)
+        .filter(
+            TransportRequest.status.in_([TransportStatus.ACEITE, TransportStatus.EM_ANDAMENTO]),
+            TransportRequest.rota_id.isnot(None),
+        )
+        .all()
+    )
+    return [
+        ActiveConnection(
+            pedido_id=req.id,
+            agricultor_id=req.agricultor_id,
+            transportador_id=rota.transportador_id,
+            origem=req.origem or rota.origem,
+            destino=req.destino or rota.destino,
+            status=req.status.value,
+        )
+        for req, rota in rows
+    ]
 
 
 # ---------- WebSocket de Rastreamento ----------

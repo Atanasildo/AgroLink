@@ -131,3 +131,4 @@ class UserPublicRead(BaseModel):
     foto_perfil_url: str | None = None
     email_verificado: bool
     telefone_verificado: bool
+    is_online: bool = False

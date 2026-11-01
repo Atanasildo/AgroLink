@@ -8,8 +8,8 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { PROVINCIAS } from "@/lib/angola";
 import {
-  MapEntityType, MapLocation, TransportRoute,
-  listMapLocations, createMapLocation, searchRoutes,
+  MapEntityType, MapLocation, ActiveConnection,
+  listMapLocations, createMapLocation, listActiveConnections,
 } from "@/lib/api";
 
 const TIPOS: { value: MapEntityType | ""; label: string; emoji: string; color: string }[] = [
@@ -51,9 +51,9 @@ export default function MapaPage() {
   const [selected, setSelected] = useState<MapLocation | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  // Transport routes overlay
+  // Transport routes overlay — conexões activas agricultor↔transportador
   const [showRoutes, setShowRoutes] = useState(false);
-  const [routes, setRoutes] = useState<TransportRoute[]>([]);
+  const [routes, setRoutes] = useState<ActiveConnection[]>([]);
   const [routesLoading, setRoutesLoading] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const routePolylinesRef = useRef<any[]>([]);
@@ -259,9 +259,9 @@ export default function MapaPage() {
 
       if (!showRoutes || routes.length === 0) return;
 
-      // Draw each route asynchronously
+      // Draw each active connection (agricultor↔transportador) asynchronously
       routes.forEach(async (r, i) => {
-        const hue = (i * 47) % 360; // spread colours across hue wheel
+        const hue = (i * 47) % 360;
         const color = `hsl(${hue},70%,42%)`;
 
         const [fromCoords, toCoords] = await Promise.all([
@@ -272,29 +272,23 @@ export default function MapaPage() {
         if (!leafletMapRef.current) return;
 
         const latlngs = await osrmRoute(fromCoords, toCoords);
+        const statusLabel = r.status === "em_andamento" ? "🚛 Em andamento" : "✅ Aceite";
+        const tooltip =
+          `<b>${statusLabel}</b><br/>` +
+          `${r.origem} → ${r.destino}`;
 
         if (!latlngs || latlngs.length === 0) {
-          // Fallback: straight line
+          // Fallback: dashed straight line
           const line = L.polyline([fromCoords, toCoords], {
             color, weight: 3, opacity: 0.7, dashArray: "6 4",
           }).addTo(leafletMapRef.current);
-          line.bindTooltip(
-            `<b>${r.origem} → ${r.destino}</b><br/>` +
-            `Capacidade: ${r.capacidade_disponivel_toneladas}t disponíveis<br/>` +
-            `Preço: ${r.preco_por_tonelada} kz/t`,
-            { sticky: true }
-          );
+          line.bindTooltip(tooltip, { sticky: true });
           routePolylinesRef.current.push(line);
         } else {
           const line = L.polyline(latlngs, {
-            color, weight: 4, opacity: 0.75,
+            color, weight: 4, opacity: 0.8,
           }).addTo(leafletMapRef.current);
-          line.bindTooltip(
-            `<b>🚛 ${r.origem} → ${r.destino}</b><br/>` +
-            `Disponível: ${r.capacidade_disponivel_toneladas}t<br/>` +
-            `Preço: ${r.preco_por_tonelada} kz/t`,
-            { sticky: true }
-          );
+          line.bindTooltip(tooltip, { sticky: true });
           // Origin dot
           L.circleMarker(fromCoords, { radius: 6, color, fillColor: "#fff", fillOpacity: 1, weight: 2 })
             .addTo(leafletMapRef.current)
@@ -314,7 +308,7 @@ export default function MapaPage() {
     if (showRoutes) { setShowRoutes(false); return; }
     setRoutesLoading(true);
     try {
-      const data = await searchRoutes();
+      const data = await listActiveConnections(token ?? "");
       setRoutes(data);
       setShowRoutes(true);
     } catch { /* ignore */ } finally {
@@ -532,7 +526,7 @@ export default function MapaPage() {
               ? <Loader2 size={12} className="animate-spin" />
               : <Route size={12} />
             }
-            {showRoutes ? `${routes.length} Rotas` : "Rotas"}
+            {showRoutes ? `${routes.length} Ligações` : "Ligações"}
           </button>
 
           {/* Add location (authenticated only) */}
