@@ -193,6 +193,81 @@ def resolve_report(
     return {"detail": "Denúncia resolvida e removida"}
 
 
+@router.delete("/products/{product_id}", status_code=status.HTTP_200_OK)
+def delete_product(
+    product_id: str,
+    admin: User = Depends(check_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Remove (desactiva) um produto do marketplace."""
+    import uuid
+
+    try:
+        product = db.query(Product).filter(Product.id == uuid.UUID(product_id)).first()
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="product_id inválido")
+
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Produto não encontrado")
+
+    product.ativo = False
+    product.flagged = True
+    product.flag_reason = "Removido pela administração"
+    db.add(product)
+    db.commit()
+
+    return {"detail": f"Produto '{product.nome}' removido do marketplace"}
+
+
+@router.delete("/transport/routes/{route_id}", status_code=status.HTTP_200_OK)
+def delete_transport_route(
+    route_id: str,
+    admin: User = Depends(check_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Elimina permanentemente uma rota de transporte."""
+    import uuid
+    from app.models.transport_route import TransportRoute
+
+    try:
+        route = db.query(TransportRoute).filter(TransportRoute.id == uuid.UUID(route_id)).first()
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="route_id inválido")
+
+    if not route:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rota não encontrada")
+
+    db.delete(route)
+    db.commit()
+
+    return {"detail": f"Rota {route.origem} → {route.destino} eliminada"}
+
+
+@router.delete("/machines/{machine_id}", status_code=status.HTTP_200_OK)
+def delete_machine(
+    machine_id: str,
+    admin: User = Depends(check_admin),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Remove (desactiva) uma máquina agrícola."""
+    import uuid
+    from app.models.machine import Machine
+
+    try:
+        machine = db.query(Machine).filter(Machine.id == uuid.UUID(machine_id)).first()
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="machine_id inválido")
+
+    if not machine:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Máquina não encontrada")
+
+    machine.disponivel = False
+    db.add(machine)
+    db.commit()
+
+    return {"detail": f"Máquina '{machine.nome}' desactivada"}
+
+
 @router.get("/dashboard", status_code=status.HTTP_200_OK)
 def admin_dashboard(
     admin: User = Depends(check_admin),

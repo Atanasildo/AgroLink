@@ -69,7 +69,7 @@ interface TransportRequest {
 export default function AdminPage() {
   const { user, token, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<"dashboard" | "users" | "routes" | "requests" | "precos" | "denuncias">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "users" | "produtos" | "routes" | "requests" | "precos" | "denuncias">("dashboard");
 
   // Stats reais
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -90,9 +90,16 @@ export default function AdminPage() {
   const [requests, setRequests] = useState<TransportRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
 
+  // Produtos (admin)
+  const [adminProducts, setAdminProducts] = useState<any[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [removingProductId, setRemovingProductId] = useState<string | null>(null);
+
   // Denúncias
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [resolvingReportId, setResolvingReportId] = useState<string | null>(null);
+  const [suspendingUserId, setSuspendingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -175,14 +182,68 @@ export default function AdminPage() {
     }
   }, [user, token, loadStats]);
 
+  const loadAdminProducts = useCallback(async () => {
+    if (!token) return;
+    setProductsLoading(true);
+    try {
+      const data = await apiRequest<any[]>("/admin/products?limit=100", { token });
+      setAdminProducts(data);
+    } catch {
+      setAdminProducts([]);
+    } finally {
+      setProductsLoading(false);
+    }
+  }, [token]);
+
   // Carrega dados conforme o tab activo
   useEffect(() => {
     if (!token || user?.role !== "admin") return;
     if (tab === "users" && realUsers.length === 0) loadUsers();
+    if (tab === "produtos" && adminProducts.length === 0) loadAdminProducts();
     if (tab === "routes" && routes.length === 0) loadRoutes();
     if (tab === "requests" && requests.length === 0) loadRequests();
     if (tab === "denuncias" && reports.length === 0) loadReports();
   }, [tab, token, user]);
+
+  async function removeProduct(productId: string) {
+    if (!token) return;
+    setRemovingProductId(productId);
+    try {
+      await apiRequest(`/admin/products/${productId}`, { method: "DELETE", token });
+      setAdminProducts(prev => prev.map(p => p.id === productId ? { ...p, ativo: false } : p));
+    } catch { /* silencioso */ } finally {
+      setRemovingProductId(null);
+    }
+  }
+
+  async function removeRoute(routeId: string) {
+    if (!token) return;
+    try {
+      await apiRequest(`/admin/transport/routes/${routeId}`, { method: "DELETE", token });
+      setRoutes(prev => prev.filter(r => r.id !== routeId));
+    } catch { /* silencioso */ }
+  }
+
+  async function resolveReport(reportId: string) {
+    if (!token) return;
+    setResolvingReportId(reportId);
+    try {
+      await apiRequest(`/admin/reports/${reportId}/resolve`, { method: "POST", token });
+      setReports(prev => prev.filter(r => r.id !== reportId));
+    } catch { /* silencioso */ } finally {
+      setResolvingReportId(null);
+    }
+  }
+
+  async function suspendReportedUser(userId: string) {
+    if (!token) return;
+    setSuspendingUserId(userId);
+    try {
+      await apiRequest<ApiUser>(`/admin/users/${userId}/toggle-active`, { method: "PATCH", token });
+    } catch { /* silencioso */ } finally {
+      setSuspendingUserId(null);
+    }
+  }
 
   async function toggleUserActive(userId: string) {
     if (!token) return;
@@ -250,6 +311,7 @@ export default function AdminPage() {
           {[
             { key: "dashboard", label: "Dashboard",     icon: BarChart2 },
             { key: "users",     label: "Utilizadores",  icon: Users     },
+            { key: "produtos",  label: "Produtos",      icon: Leaf      },
             { key: "routes",    label: "Rotas",         icon: Truck     },
             { key: "requests",  label: "Pedidos",       icon: Package   },
             { key: "precos",    label: "Preços",        icon: TrendingUp},
@@ -523,6 +585,14 @@ export default function AdminPage() {
                       <p className="font-mono text-xs text-ink/30 mt-0.5">
                         Disponível: {disp.toFixed(1)}t
                       </p>
+                      <div className="mt-3 pt-3 border-t border-field/10 flex justify-end">
+                        <button
+                          onClick={() => removeRoute(r.id)}
+                          className="flex items-center gap-1 font-mono text-xs text-earth/60 hover:text-earth transition-colors"
+                        >
+                          <XCircle size={12} /> Eliminar rota
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -581,6 +651,78 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* ── PRODUTOS ── */}
+        {tab === "produtos" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="label-eyebrow">Produtos no marketplace</p>
+              <button onClick={loadAdminProducts} disabled={productsLoading} className="btn-secondary rounded-sm text-xs">
+                <RefreshCw size={13} className={productsLoading ? "animate-spin" : ""} /> Actualizar
+              </button>
+            </div>
+            {productsLoading && !adminProducts.length ? (
+              <div className="text-center py-12 text-ink/30 animate-pulse">A carregar produtos...</div>
+            ) : adminProducts.length === 0 ? (
+              <div className="field-card rounded-sm text-center py-8">
+                <Leaf size={32} className="mx-auto mb-2 text-ink/20" />
+                <p className="font-body text-ink/40">Nenhum produto encontrado</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-field/15">
+                      <th className="text-left font-mono text-xs uppercase tracking-wider text-ink/50 pb-3 pr-4">Produto</th>
+                      <th className="text-left font-mono text-xs uppercase tracking-wider text-ink/50 pb-3 pr-4">Categoria</th>
+                      <th className="text-left font-mono text-xs uppercase tracking-wider text-ink/50 pb-3 pr-4">Localização</th>
+                      <th className="text-left font-mono text-xs uppercase tracking-wider text-ink/50 pb-3 pr-4">Estado</th>
+                      <th className="text-right font-mono text-xs uppercase tracking-wider text-ink/50 pb-3">Acção</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminProducts.map(p => (
+                      <tr key={p.id} className={`border-b border-field/5 ${!p.ativo ? "opacity-40" : ""}`}>
+                        <td className="py-3 pr-4">
+                          <p className="font-body text-field font-medium">{p.nome}</p>
+                          <p className="font-mono text-xs text-ink/40">{p.preco} Kz/{p.unidade}</p>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className="font-mono text-xs text-ink/60">{p.categoria}</span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className="font-mono text-xs text-ink/60">{p.municipio}, {p.provincia}</span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          {p.ativo ? (
+                            <span className="status-badge active text-[10px]">Activo</span>
+                          ) : (
+                            <span className="status-badge done text-[10px]">Removido</span>
+                          )}
+                          {p.flagged && (
+                            <span className="ml-1 status-badge pending text-[10px]">⚑ Sinalizado</span>
+                          )}
+                        </td>
+                        <td className="py-3 text-right">
+                          {p.ativo && (
+                            <button
+                              onClick={() => removeProduct(p.id)}
+                              disabled={removingProductId === p.id}
+                              className="font-mono text-xs text-earth hover:text-earth/70 disabled:opacity-40 flex items-center gap-1 ml-auto"
+                            >
+                              <XCircle size={13} />
+                              {removingProductId === p.id ? "..." : "Remover"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── PREÇOS ── */}
         {tab === "precos" && <PrecosAdmin token={token ?? ""} />}
 
@@ -617,21 +759,47 @@ export default function AdminPage() {
                             {new Date(report.criado_em).toLocaleDateString("pt-AO")}
                           </span>
                         </div>
-                        <div className="grid gap-2 mb-3">
+                        <div className="grid sm:grid-cols-2 gap-2 mb-3">
                           <div>
                             <p className="font-mono text-xs uppercase tracking-wider text-ink/50 mb-1">Denunciante</p>
-                            <p className="font-body text-sm text-field">{report.denunciante_nome}</p>
+                            <p className="font-body text-sm text-field">{report.denunciante_nome ?? report.denunciante_id?.slice(0,8)}</p>
                           </div>
                           <div>
                             <p className="font-mono text-xs uppercase tracking-wider text-ink/50 mb-1">Denunciado</p>
-                            <p className="font-body text-sm text-field">{report.denunciado_nome}</p>
+                            <p className="font-body text-sm text-field">{report.denunciado_nome ?? report.denunciado_id?.slice(0,8)}</p>
                           </div>
                         </div>
                         {report.descricao && (
-                          <div className="bg-ink/2 p-3 rounded-sm border border-field/10">
+                          <div className="bg-ink/2 p-3 rounded-sm border border-field/10 mb-3">
                             <p className="font-body text-sm text-ink/70">{report.descricao}</p>
                           </div>
                         )}
+                        {/* Acções */}
+                        <div className="flex flex-wrap gap-2 pt-2 border-t border-field/10">
+                          <button
+                            onClick={() => suspendReportedUser(report.denunciado_id)}
+                            disabled={suspendingUserId === report.denunciado_id}
+                            className="flex items-center gap-1.5 font-mono text-xs px-3 py-1.5 rounded-sm bg-earth/10 text-earth hover:bg-earth/20 disabled:opacity-40 transition-colors"
+                          >
+                            <Ban size={12} />
+                            {suspendingUserId === report.denunciado_id ? "..." : "Suspender utilizador"}
+                          </button>
+                          <button
+                            onClick={() => { setTab("produtos"); }}
+                            className="flex items-center gap-1.5 font-mono text-xs px-3 py-1.5 rounded-sm bg-field/10 text-field hover:bg-field/20 transition-colors"
+                          >
+                            <Leaf size={12} />
+                            Ver produtos deste utilizador
+                          </button>
+                          <button
+                            onClick={() => resolveReport(report.id)}
+                            disabled={resolvingReportId === report.id}
+                            className="flex items-center gap-1.5 font-mono text-xs px-3 py-1.5 rounded-sm bg-ink/8 text-ink/50 hover:bg-ink/15 disabled:opacity-40 transition-colors ml-auto"
+                          >
+                            <CheckCircle size={12} />
+                            {resolvingReportId === report.id ? "..." : "Dispensar"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

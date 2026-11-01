@@ -138,6 +138,23 @@ def toggle_user_active(
     return user
 
 
+@router.get("/products")
+def list_all_products(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Listar todos os produtos (incluindo inactivos)."""
+    return (
+        db.query(Product)
+        .order_by(Product.criado_em.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
 @router.get("/transport/requests")
 def list_all_transport_requests(
     skip: int = 0,
