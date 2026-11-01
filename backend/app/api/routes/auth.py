@@ -1,5 +1,30 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import time
+from collections import defaultdict
+from threading import Lock
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
+
+# ── Rate limiting simples em memória ─────────────────────────────────────────
+# Para produção com múltiplos workers, substituir por slowapi + Redis.
+_rate_store: dict[str, list[float]] = defaultdict(list)
+_rate_lock = Lock()
+
+
+def _check_rate_limit(key: str, max_requests: int = 5, window_seconds: int = 300) -> None:
+    """Levanta 429 se `key` exceder `max_requests` em `window_seconds`."""
+    now = time.monotonic()
+    with _rate_lock:
+        timestamps = _rate_store[key]
+        # Remover entradas fora da janela
+        _rate_store[key] = [t for t in timestamps if now - t < window_seconds]
+        if len(_rate_store[key]) >= max_requests:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Demasiadas tentativas. Aguarda alguns minutos antes de tentar novamente.",
+                headers={"Retry-After": str(window_seconds)},
+            )
+        _rate_store[key].append(now)
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
@@ -13,9 +38,10 @@ router = APIRouter(prefix="/auth", tags=["Autenticação"])
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
+def register(request: Request, user_in: UserCreate, db: Session = Depends(get_db)):
     """Cadastro de novo utilizador (agricultor, comprador, transportador,
     proprietário de máquinas ou administrador)."""
+    _check_rate_limit(f"register:{request.client.host}", max_requests=10, window_seconds=3600)
     existing = get_user_by_email(db, user_in.email)
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já registado")
@@ -23,8 +49,11 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(credentials: UserLogin, db: Session = Depends(get_db)):
+def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
     """Login por email e senha. Retorna access token e refresh token (JWT)."""
+    # Rate limit por IP (5 tentativas / 5 min) e por email (10 tentativas / 15 min)
+    _check_rate_limit(f"login:ip:{request.client.host}", max_requests=5, window_seconds=300)
+    _check_rate_limit(f"login:email:{credentials.email.lower()}", max_requests=10, window_seconds=900)
     user = authenticate_user(db, credentials.email, credentials.senha)
     if not user:
         raise HTTPException(
@@ -63,37 +92,65 @@ def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+class ResetPasswordRequest(BaseModel):
+    email: str
+
+
 @router.post("/reset-password")
-def reset_password(payload: dict, db: Session = Depends(get_db)):
-    """Gerar uma senha temporária para o utilizador.
-    MVP: devolve a senha temporária na resposta (sem SMTP configurado).
-    Em produção com SMTP configurado, enviar por email e não devolver na resposta.
+def reset_password(request: Request, payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """Envia um código OTP por email para redefinir a senha.
+
+    A resposta é sempre genérica — não revela se o email existe.
+    A senha temporária NUNCA é devolvida na resposta HTTP.
     """
     import secrets
     import string
 
-    email = payload.get("email", "").strip().lower()
+    from app.core.config import settings as _cfg
+    from app.core.security import hash_password
+    from app.utils.email import send_verification_email
+
+    # Rate limit: 3 pedidos por email por hora
+    email = payload.email.strip().lower()
+    _check_rate_limit(f"reset:{email}", max_requests=3, window_seconds=3600)
+    _check_rate_limit(f"reset:ip:{request.client.host}", max_requests=5, window_seconds=3600)
+
     if not email:
         raise HTTPException(status_code=400, detail="Email é obrigatório.")
 
     user = get_user_by_email(db, email)
+
+    # Resposta genérica independentemente de o utilizador existir
+    generic_response = {"detail": "Se o email existir, receberás instruções em breve."}
+
     if not user:
-        # Resposta genérica por segurança (não revelar se o email existe)
-        return {"detail": "Se o email existir, receberás instruções em breve."}
+        return generic_response
 
-    # Gerar senha temporária segura: 10 caracteres alfanuméricos
+    # Gerar senha temporária segura (12 chars: letras + dígitos)
     alphabet = string.ascii_letters + string.digits
-    temp_password = "".join(secrets.choice(alphabet) for _ in range(10))
+    temp_password = "".join(secrets.choice(alphabet) for _ in range(12))
 
-    from app.core.security import hash_password
     user.hashed_password = hash_password(temp_password)
     db.commit()
 
-    # MVP: devolver a senha na resposta (substituir por email quando SMTP estiver configurado)
-    return {
-        "detail": "Senha temporária gerada com sucesso.",
-        "temp_password": temp_password,
-    }
+    # Enviar por email — NÃO devolver na resposta
+    try:
+        send_verification_email(
+            email,
+            temp_password,
+            subject="AgroLink — Senha Temporária",
+            message_template=(
+                "A sua senha temporária é: {code}\n\n"
+                "Use-a para iniciar sessão e altere-a imediatamente em Definições > Segurança.\n"
+                "Esta senha expira em 24 horas."
+            ),
+        )
+    except Exception:
+        # Falha silenciosa no envio de email não deve revelar info ao cliente
+        import logging as _log
+        _log.getLogger(__name__).error("Falha ao enviar email de reset para %s", email)
+
+    return generic_response
 
 
 @router.post("/change-password")

@@ -87,16 +87,7 @@ def register_fcm_token(
     return current_user
 
 
-@router.get("/{user_id}", response_model=UserRead)
-def read_user(user_id: uuid.UUID, db: Session = Depends(get_db)):
-    """Visualizar o perfil público de um utilizador."""
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
-    return user
-
-
-# ─── Denúncias ───────────────────────────────────────────────────────────────
+# ─── Denúncias — estas rotas devem vir ANTES de /{user_id} ──────────────────
 
 import uuid as _uuid_mod
 from datetime import datetime as _datetime
@@ -185,3 +176,34 @@ def list_all_reports_admin(
             "criado_em": r.criado_em.isoformat() if r.criado_em else None,
         })
     return result
+
+
+# ─── Perfil público — deve vir DEPOIS das rotas com paths fixos ──────────────
+
+class UserPublicRead(BaseModel):
+    """Perfil público de um utilizador — sem email nem telefone."""
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    nome: str
+    role: str
+    provincia: str | None = None
+    municipio: str | None = None
+    bio: str | None = None
+    foto_perfil_url: str | None = None
+    email_verificado: bool
+    telefone_verificado: bool
+
+
+@router.get("/{user_id}", response_model=UserPublicRead)
+def read_user(
+    user_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),  # Requer autenticação
+):
+    """Visualizar o perfil público de um utilizador (requer sessão).
+    Não expõe email nem telefone."""
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
+    return user

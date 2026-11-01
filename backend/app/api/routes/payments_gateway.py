@@ -15,7 +15,10 @@ from decimal import Decimal
 from typing import Optional
 import uuid
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+import hashlib
+import hmac
+
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -47,18 +50,82 @@ class PaymentWebhookPayload(BaseModel):
     mobile: Optional[str] = None
 
 
+def _verify_proxypay_signature(raw_body: bytes, signature: str | None) -> None:
+    """Verifica assinatura HMAC-SHA256 do ProxyPay.
+
+    O ProxyPay envia o header X-Proxypay-Signature: sha256=<hex>.
+    Se PROXYPAY_WEBHOOK_SECRET não estiver configurado, o webhook está desprotegido
+    em modo sandbox — aceitar mas registar aviso.
+    """
+    import logging as _log
+    _logger = _log.getLogger(__name__)
+
+    if not settings.PROXYPAY_WEBHOOK_SECRET:
+        if not settings.PAYMENT_SANDBOX_MODE:
+            # Em produção sem secret configurado: rejeitar
+            _logger.error("PROXYPAY_WEBHOOK_SECRET não configurado em produção — webhook rejeitado")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Webhook não autorizado: secret não configurado.",
+            )
+        # Sandbox: aceitar mas alertar
+        _logger.warning("Webhook sem verificação HMAC (sandbox). Configure PROXYPAY_WEBHOOK_SECRET em produção.")
+        return
+
+    if not signature:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Assinatura do webhook ausente.",
+        )
+
+    # Formato esperado: "sha256=<hex>"
+    try:
+        algo, sig_hex = signature.split("=", 1)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Formato de assinatura inválido.",
+        )
+
+    expected = hmac.new(
+        settings.PROXYPAY_WEBHOOK_SECRET.encode(),
+        raw_body,
+        hashlib.sha256,
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected, sig_hex):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Assinatura do webhook inválida.",
+        )
+
+
 @router.post("/webhook/multicaixa", status_code=status.HTTP_200_OK)
 async def payment_webhook_multicaixa(
-    payload: PaymentWebhookPayload = Body(...),
+    request: Request,
+    x_proxypay_signature: str | None = Header(default=None, alias="X-Proxypay-Signature"),
     db: Session = Depends(get_db),
 ) -> dict:
     """Webhook para callbacks de pagamento do ProxyPay.
-    
+
     Processa pagamentos confirmados:
+    - Valida assinatura HMAC-SHA256
     - Atualiza status do Payment
     - Calcula comissão
     - Libera saldo ao prestador
     """
+    # Ler corpo raw para verificar HMAC antes de fazer parse
+    raw_body = await request.body()
+    _verify_proxypay_signature(raw_body, x_proxypay_signature)
+
+    # Parse do payload
+    import json as _json
+    try:
+        data = _json.loads(raw_body)
+        payload = PaymentWebhookPayload(**data)
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payload inválido.") from exc
+
     try:
         # Localizar pagamento
         payment = db.query(Payment).filter(Payment.id == payload.external_id).first()

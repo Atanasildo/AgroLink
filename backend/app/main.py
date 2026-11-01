@@ -1,6 +1,9 @@
+import logging as _startup_log
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.routes import (
     admin,
@@ -131,6 +134,20 @@ def _safe_migrate():
 
 _safe_migrate()
 
+# ── Aviso de segurança em startup ────────────────────────────────────────────
+_sec_logger = _startup_log.getLogger("agrolink.security")
+_INSECURE_DEFAULTS = {
+    "SECRET_KEY": "troque-esta-chave-por-uma-chave-secreta-forte",
+    "ADMIN_SETUP_KEY": "troque-esta-chave-admin-no-env",
+}
+for _var, _default in _INSECURE_DEFAULTS.items():
+    if getattr(settings, _var, None) == _default:
+        _sec_logger.warning(
+            "SEGURANÇA: %s está com o valor padrão inseguro. "
+            "Defina um valor forte no ficheiro .env antes de ir a produção.",
+            _var,
+        )
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=(
@@ -141,12 +158,39 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# ── Middleware de headers de segurança ───────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adiciona headers de segurança HTTP a todas as respostas."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("X-XSS-Protection", "1; mode=block")
+        response.headers.setdefault(
+            "Strict-Transport-Security",
+            "max-age=31536000; includeSubDomains",
+        )
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault(
+            "Permissions-Policy",
+            "geolocation=(self), microphone=(), camera=()",
+        )
+        # Remover header que expõe o framework
+        response.headers.pop("Server", None)
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ── CORS — restrito às origens configuradas ──────────────────────────────────
+_allowed_origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 api_prefix = settings.API_V1_PREFIX
@@ -182,9 +226,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Erro interno no servidor. Tente novamente mais tarde."},
     )
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "*"
+    # Não adicionar CORS wildcard aqui — o CORSMiddleware trata isso com base
+    # na origem real do pedido. Um wildcard manual aqui contornaria a política.
     return response
 
 

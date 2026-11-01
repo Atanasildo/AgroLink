@@ -7,8 +7,10 @@ DELETE /uploads/{url} — remove imagem
 entity_type: "products", "machines", "vehicles", "social"
 """
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
+from app.api.deps import get_current_user
+from app.models.user import User
 from app.utils.storage import delete_image, upload_image
 
 router = APIRouter(prefix="/uploads", tags=["Armazenamento"])
@@ -18,6 +20,7 @@ router = APIRouter(prefix="/uploads", tags=["Armazenamento"])
 async def upload_image_endpoint(
     entity_type: str,
     file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),  # Autenticação obrigatória
 ) -> dict:
     """Faz upload de imagem para S3/MinIO (ou disco local em dev).
     
@@ -39,7 +42,10 @@ async def upload_image_endpoint(
 
 
 @router.delete("", status_code=status.HTTP_200_OK)
-async def delete_image_endpoint(url: str) -> dict:
+async def delete_image_endpoint(
+    url: str,
+    current_user: User = Depends(get_current_user),  # Autenticação obrigatória
+) -> dict:
     """Remove imagem do armazenamento.
     
     Args:
