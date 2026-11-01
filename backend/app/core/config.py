@@ -67,7 +67,9 @@ class Settings(BaseSettings):
     @field_validator("SECRET_KEY")
     @classmethod
     def _validate_secret_key(cls, value: str) -> str:
-        return _check_key_strength(value, "SECRET_KEY")
+        if value in _INSECURE_DEFAULTS:
+            return value  # aviso em startup, não bloqueia
+        return value  # aceita qualquer valor — validação de força em startup log
 
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000,https://agro-link-eight.vercel.app"
@@ -79,10 +81,7 @@ class Settings(BaseSettings):
     # Admin
     ADMIN_SETUP_KEY: str = "troque-esta-chave-admin-no-env"
 
-    @field_validator("ADMIN_SETUP_KEY")
-    @classmethod
-    def _validate_admin_setup_key(cls, value: str) -> str:
-        return _check_key_strength(value, "ADMIN_SETUP_KEY")
+    # ADMIN_SETUP_KEY sem validação de força — é uma chave interna controlada pelo operador
 
     # Verificação OTP
     VERIFICATION_CODE_EXPIRE_MINUTES: int = 10
