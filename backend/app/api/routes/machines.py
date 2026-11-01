@@ -112,10 +112,12 @@ def request_rental(
     machine_id: uuid.UUID,
     rental_in: MachineRentalCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.AGRICULTOR)),
+    current_user: User = Depends(require_roles(
+        UserRole.AGRICULTOR, UserRole.COMPRADOR, UserRole.PROPRIETARIO_MAQUINAS
+    )),
 ):
-    """Agricultor solicita reserva de uma máquina. A plataforma calcula
-    automaticamente o valor total e a comissão (10%)."""
+    """Solicita reserva de uma máquina. Aberto a agricultor, comprador e proprietário de máquinas.
+    A plataforma calcula automaticamente o valor total e a comissão (10%)."""
     machine = get_machine(db, machine_id)
     if not machine:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Máquina não encontrada")
