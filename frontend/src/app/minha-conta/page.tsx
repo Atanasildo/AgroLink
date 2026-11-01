@@ -2,9 +2,18 @@
 
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { User, Save, Lock, CheckCircle, AlertCircle, Loader, ChevronLeft, Camera, X } from "lucide-react";
+import { User, Save, Lock, CheckCircle, AlertCircle, Loader, ChevronLeft, Camera, X, Mail, Phone, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, updateMyProfile, changePassword, uploadProfilePhoto } from "@/lib/api";
+import {
+  ApiError,
+  updateMyProfile,
+  changePassword,
+  uploadProfilePhoto,
+  requestEmailVerification,
+  confirmEmailVerification,
+  requestPhoneVerification,
+  confirmPhoneVerification,
+} from "@/lib/api";
 import { PROVINCIAS, getMunicipios } from "@/lib/angola";
 
 export default function MinhaContaPage() {
@@ -28,6 +37,18 @@ export default function MinhaContaPage() {
   const [senhaConfirm, setSenhaConfirm] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
   const [pwdMsg, setPwdMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // Verificação de email
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
+  const [emailCode, setEmailCode] = useState("");
+  const [emailVerifLoading, setEmailVerifLoading] = useState(false);
+  const [emailVerifMsg, setEmailVerifMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // Verificação de telefone
+  const [phoneCodeSent, setPhoneCodeSent] = useState(false);
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneVerifLoading, setPhoneVerifLoading] = useState(false);
+  const [phoneVerifMsg, setPhoneVerifMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -78,22 +99,21 @@ export default function MinhaContaPage() {
         finalFotoUrl = await uploadProfilePhoto(token, fotoFile);
         setFotoUrl(finalFotoUrl);
         setFotoFile(null);
-        setFotoPreview(null);
       }
       await updateMyProfile(token, {
         nome,
         telefone: telefone || undefined,
-        bio: bio || undefined,
         provincia: provincia || undefined,
         municipio: municipio || undefined,
-        foto_perfil_url: finalFotoUrl || undefined,
+        bio: bio || undefined,
+        foto_perfil_url: finalFotoUrl ?? undefined,
       });
       await refreshUser();
-      setProfileMsg({ type: "ok", text: "Perfil atualizado." });
+      setProfileMsg({ type: "ok", text: "Perfil guardado com sucesso." });
     } catch (err) {
       setProfileMsg({
         type: "err",
-        text: err instanceof ApiError ? String(err.detail) : "Erro ao guardar.",
+        text: err instanceof ApiError ? String(err.detail) : "Erro ao guardar perfil.",
       });
     } finally {
       setSavingProfile(false);
@@ -104,7 +124,7 @@ export default function MinhaContaPage() {
     e.preventDefault();
     if (!token) return;
     if (senhaNova !== senhaConfirm) {
-      setPwdMsg({ type: "err", text: "As senhas novas não coincidem." });
+      setPwdMsg({ type: "err", text: "As senhas não coincidem." });
       return;
     }
     setSavingPwd(true);
@@ -120,6 +140,84 @@ export default function MinhaContaPage() {
       });
     } finally {
       setSavingPwd(false);
+    }
+  }
+
+  async function handleRequestEmailVerif() {
+    if (!token) return;
+    setEmailVerifLoading(true);
+    setEmailVerifMsg(null);
+    try {
+      await requestEmailVerification(token);
+      setEmailCodeSent(true);
+      setEmailVerifMsg({ type: "ok", text: "Código enviado para o teu email." });
+    } catch (err) {
+      setEmailVerifMsg({
+        type: "err",
+        text: err instanceof ApiError ? String(err.detail) : "Erro ao enviar código.",
+      });
+    } finally {
+      setEmailVerifLoading(false);
+    }
+  }
+
+  async function handleConfirmEmailVerif(e: FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setEmailVerifLoading(true);
+    setEmailVerifMsg(null);
+    try {
+      await confirmEmailVerification(token, emailCode);
+      await refreshUser();
+      setEmailCodeSent(false);
+      setEmailCode("");
+      setEmailVerifMsg({ type: "ok", text: "Email verificado com sucesso!" });
+    } catch (err) {
+      setEmailVerifMsg({
+        type: "err",
+        text: err instanceof ApiError ? String(err.detail) : "Código inválido ou expirado.",
+      });
+    } finally {
+      setEmailVerifLoading(false);
+    }
+  }
+
+  async function handleRequestPhoneVerif() {
+    if (!token) return;
+    setPhoneVerifLoading(true);
+    setPhoneVerifMsg(null);
+    try {
+      await requestPhoneVerification(token);
+      setPhoneCodeSent(true);
+      setPhoneVerifMsg({ type: "ok", text: "Código enviado por SMS." });
+    } catch (err) {
+      setPhoneVerifMsg({
+        type: "err",
+        text: err instanceof ApiError ? String(err.detail) : "Erro ao enviar SMS.",
+      });
+    } finally {
+      setPhoneVerifLoading(false);
+    }
+  }
+
+  async function handleConfirmPhoneVerif(e: FormEvent) {
+    e.preventDefault();
+    if (!token) return;
+    setPhoneVerifLoading(true);
+    setPhoneVerifMsg(null);
+    try {
+      await confirmPhoneVerification(token, phoneCode);
+      await refreshUser();
+      setPhoneCodeSent(false);
+      setPhoneCode("");
+      setPhoneVerifMsg({ type: "ok", text: "Telefone verificado com sucesso!" });
+    } catch (err) {
+      setPhoneVerifMsg({
+        type: "err",
+        text: err instanceof ApiError ? String(err.detail) : "Código inválido ou expirado.",
+      });
+    } finally {
+      setPhoneVerifLoading(false);
     }
   }
 
@@ -263,6 +361,150 @@ export default function MinhaContaPage() {
             </button>
           </div>
         </form>
+      </section>
+
+      {/* ── Verificação de conta ── */}
+      <section className="field-card rounded-sm mb-6">
+        <p className="label-eyebrow mb-4 flex items-center gap-1.5">
+          <ShieldCheck size={13} className="text-harvest" /> Verificação de conta
+        </p>
+        <div className="flex flex-col gap-5">
+
+          {/* Email */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail size={13} className="text-ink/50" />
+                <span className="font-mono text-xs text-ink/70">{user.email}</span>
+                {user.email_verificado ? (
+                  <span className="flex items-center gap-1 font-mono text-[10px] text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
+                    <CheckCircle size={9} /> Verificado
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 font-mono text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                    <AlertCircle size={9} /> Não verificado
+                  </span>
+                )}
+              </div>
+              {!user.email_verificado && !emailCodeSent && (
+                <button
+                  onClick={handleRequestEmailVerif}
+                  disabled={emailVerifLoading}
+                  className="font-mono text-[10px] uppercase tracking-wider text-field border border-field/30 hover:border-field/60 px-2.5 py-1 rounded-sm transition-colors disabled:opacity-50"
+                >
+                  {emailVerifLoading ? <Loader size={10} className="animate-spin inline" /> : "Verificar"}
+                </button>
+              )}
+            </div>
+
+            {!user.email_verificado && emailCodeSent && (
+              <form onSubmit={handleConfirmEmailVerif} className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value)}
+                  placeholder="Código de 6 dígitos"
+                  maxLength={6}
+                  className="field-input rounded-sm text-center font-mono tracking-widest w-36 text-sm"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={emailVerifLoading || emailCode.length < 6}
+                  className="btn-harvest rounded-sm text-xs disabled:opacity-50"
+                >
+                  {emailVerifLoading ? <Loader size={11} className="animate-spin" /> : "Confirmar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmailCodeSent(false); setEmailCode(""); setEmailVerifMsg(null); }}
+                  className="font-mono text-[10px] text-ink/40 hover:text-ink/70"
+                >
+                  Cancelar
+                </button>
+              </form>
+            )}
+
+            {emailVerifMsg && (
+              <p className={`flex items-center gap-1.5 font-mono text-xs ${emailVerifMsg.type === "ok" ? "text-green-700" : "text-earth"}`}>
+                {emailVerifMsg.type === "ok" ? <CheckCircle size={11} /> : <AlertCircle size={11} />}
+                {emailVerifMsg.text}
+              </p>
+            )}
+          </div>
+
+          <div className="border-t border-field/10" />
+
+          {/* Telefone */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Phone size={13} className="text-ink/50" />
+                <span className="font-mono text-xs text-ink/70">
+                  {user.telefone || <span className="text-ink/30 italic">Sem telefone</span>}
+                </span>
+                {user.telefone && (
+                  user.telefone_verificado ? (
+                    <span className="flex items-center gap-1 font-mono text-[10px] text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
+                      <CheckCircle size={9} /> Verificado
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 font-mono text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                      <AlertCircle size={9} /> Não verificado
+                    </span>
+                  )
+                )}
+              </div>
+              {user.telefone && !user.telefone_verificado && !phoneCodeSent && (
+                <button
+                  onClick={handleRequestPhoneVerif}
+                  disabled={phoneVerifLoading}
+                  className="font-mono text-[10px] uppercase tracking-wider text-field border border-field/30 hover:border-field/60 px-2.5 py-1 rounded-sm transition-colors disabled:opacity-50"
+                >
+                  {phoneVerifLoading ? <Loader size={10} className="animate-spin inline" /> : "Verificar"}
+                </button>
+              )}
+              {!user.telefone && (
+                <span className="font-mono text-[10px] text-ink/30">Adiciona um telefone no perfil</span>
+              )}
+            </div>
+
+            {user.telefone && !user.telefone_verificado && phoneCodeSent && (
+              <form onSubmit={handleConfirmPhoneVerif} className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  value={phoneCode}
+                  onChange={(e) => setPhoneCode(e.target.value)}
+                  placeholder="Código de 6 dígitos"
+                  maxLength={6}
+                  className="field-input rounded-sm text-center font-mono tracking-widest w-36 text-sm"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={phoneVerifLoading || phoneCode.length < 6}
+                  className="btn-harvest rounded-sm text-xs disabled:opacity-50"
+                >
+                  {phoneVerifLoading ? <Loader size={11} className="animate-spin" /> : "Confirmar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPhoneCodeSent(false); setPhoneCode(""); setPhoneVerifMsg(null); }}
+                  className="font-mono text-[10px] text-ink/40 hover:text-ink/70"
+                >
+                  Cancelar
+                </button>
+              </form>
+            )}
+
+            {phoneVerifMsg && (
+              <p className={`flex items-center gap-1.5 font-mono text-xs ${phoneVerifMsg.type === "ok" ? "text-green-700" : "text-earth"}`}>
+                {phoneVerifMsg.type === "ok" ? <CheckCircle size={11} /> : <AlertCircle size={11} />}
+                {phoneVerifMsg.text}
+              </p>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* ── Alterar senha ── */}
